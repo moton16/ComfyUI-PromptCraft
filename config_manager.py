@@ -524,7 +524,8 @@ class ConfigManager:
         for svc in cfg.get("services", []):
             if svc["id"] == service_id:
                 from .llm_client import LLMClient
-                client = LLMClient(service_config=svc)
+                test_cfg = {**svc, "enabled": True}
+                client = LLMClient(service_config=test_cfg)
                 return client.test_connection()
         return False, "服务不存在"
 

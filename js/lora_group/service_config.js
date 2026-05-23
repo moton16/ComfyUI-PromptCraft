@@ -179,7 +179,7 @@ async function selectService(backdrop, svcId) {
                 </div>
                 <div class="lsc-field">
                     <label>API Key</label>
-                    <input class="lsc-input" type="password" data-field="api_key" data-masked="true" value="${escAttr(svc.api_key)}" placeholder="输入 API Key" />
+                    <input class="lsc-input" type="password" data-field="api_key" data-masked="true" value="" placeholder="${svc.api_key ? '已设置（留空则保留原值）' : '输入 API Key'}" />
                 </div>
                 <div class="lsc-field">
                     <label>模型名称</label>
@@ -204,17 +204,11 @@ async function selectService(backdrop, svcId) {
             </div>
         `;
 
-        // Track API key modifications - clear masked flag when user types
+        // Track API key modifications - only include in save when user typed a non-empty value
         const apiKeyInput = detail.querySelector('[data-field="api_key"]');
         if (apiKeyInput) {
             apiKeyInput.addEventListener('input', () => {
-                apiKeyInput.dataset.masked = 'false';
-            });
-            apiKeyInput.addEventListener('focus', () => {
-                if (apiKeyInput.dataset.masked === 'true') {
-                    apiKeyInput.value = '';
-                    apiKeyInput.dataset.masked = 'false';
-                }
+                apiKeyInput.dataset.masked = apiKeyInput.value.length > 0 ? 'false' : 'true';
             });
         }
     } catch (e) {

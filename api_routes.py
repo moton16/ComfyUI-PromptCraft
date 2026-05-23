@@ -417,6 +417,7 @@ async def api_test_service(request):
         if inline_config:
             # Test with provided config (for when user modified API key before saving)
             from .llm_client import LLMClient
+            inline_config["enabled"] = True
             client = LLMClient(service_config=inline_config)
             success, msg = client.test_connection()
         else:
