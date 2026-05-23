@@ -210,10 +210,11 @@ class ConfigManager:
 
     @staticmethod
     def _get_default_llm_system_prompt() -> dict:
+        lora_rule = " Content wrapped in triple-slash markers (///...///) are immutable LoRA trigger words — you MUST copy them verbatim into your output in their original position without any modification, reordering, or omission."
         return {
             "version": "1.0.0",
-            "sfw_rules": "You are a professional prompt engineer for AI image generation. Enhance the user's base prompt with rich details. Output ONLY comma-separated English tags.",
-            "nsfw_rules": "You are a professional prompt engineer. Enhance the prompt including special content details. Output ONLY comma-separated English tags.",
+            "sfw_rules": "You are a professional prompt engineer for AI image generation. Enhance the user's base prompt with rich details. Output ONLY comma-separated English tags." + lora_rule,
+            "nsfw_rules": "You are a professional prompt engineer. Enhance the prompt including special content details. Output ONLY comma-separated English tags." + lora_rule,
             "sfw_enabled": True,
             "nsfw_enabled": False
         }

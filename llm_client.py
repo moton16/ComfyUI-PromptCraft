@@ -94,15 +94,16 @@ class LLMClient:
         """设置配置项"""
         self.config[key] = value
 
-    def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint=""):
+    def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint="", lora_tags=""):
         """
         使用LLM增强prompt
-        
+
         Args:
             base_prompt: 基础prompt（已包含库中随机选取的标签）
             is_detailed: 是否使用详细扩写规则（对应NSFW system prompt）
             llm_hint: 用户对LLM的特殊要求提示词
-            
+            lora_tags: LoRA 标签字符串（已用 /// 包裹），需原样保留在输出中
+
         Returns:
             enhanced_prompt: 增强后的prompt（纯英文标签）
             None: 调用失败时返回None
@@ -124,6 +125,10 @@ class LLMClient:
         else:
             system_prompt = self.config.get("system_prompt", "")
 
+        # 动态注入 LoRA 标记保护指令（兼容用户自定义 system prompt）
+        if lora_tags:
+            system_prompt += " Content wrapped in triple-slash markers (///...///) are immutable LoRA trigger words — you MUST copy them verbatim into your output in their original position without any modification, reordering, or omission."
+
         if not api_url or not api_key:
             print("[LLMClient] API URL或API Key为空")
             return None
@@ -133,6 +138,8 @@ class LLMClient:
             api_url = api_url.rstrip("/") + "/chat/completions"
 
         user_message = f"Enhance this image generation prompt with richer details:\n\n{base_prompt}"
+        if lora_tags:
+            user_message += f"\n\nThe following LoRA trigger words are marked with /// and MUST be preserved exactly as-is in your output:\n{lora_tags}"
         if llm_hint and llm_hint.strip():
             user_message += f"\n\nAdditional requirements from the user:\n{llm_hint.strip()}"
 

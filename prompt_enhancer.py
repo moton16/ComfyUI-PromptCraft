@@ -403,9 +403,31 @@ class PromptEnhancer:
                 扩写模式 = kwargs.get("扩写模式", "基础扩写")
                 is_detailed = (扩写模式 == "详细扩写")
                 llm_hint = kwargs.get("大模型提示词", "").strip()
-                enhanced = llm_client.enhance_prompt(positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint)
+
+                # LoRA 标记保护：用 /// 包裹 LoRA 标签，LLM 不得修改
+                lora_tag_str = ""
+                if lora_prompt_elements:
+                    lora_tag_str = "///" + ", ".join(lora_prompt_elements) + "///"
+
+                enhanced = llm_client.enhance_prompt(
+                    positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
+                    lora_tags=lora_tag_str
+                )
                 if enhanced and enhanced.strip():
-                    positive_prompt = enhanced.strip()
+                    result = enhanced.strip()
+                    # 后验证：检查 LoRA 标签是否被 LLM 改写或丢弃
+                    if lora_prompt_elements:
+                        result_lower = result.lower()
+                        missing = [t for t in lora_prompt_elements if t.lower() not in result_lower]
+                        if missing:
+                            print(f"[PromptCraft] ⚠ LoRA 标签丢失 {len(missing)}/{len(lora_prompt_elements)} 条，自动补回")
+                            # 移除可能残留的标记符号后，把原始 LoRA 标签加回最前面
+                            result = result.replace("///", "").strip().lstrip(",").strip()
+                            result = ", ".join(lora_prompt_elements) + ", " + result
+                        else:
+                            print(f"[PromptCraft] ✓ LoRA 标签验证通过")
+                            result = result.replace("///", "").strip()
+                    positive_prompt = result
                     llm_enhanced = True
                     print(f"[PromptCraft] 大模型增强成功")
                 else:
