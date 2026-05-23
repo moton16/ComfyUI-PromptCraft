@@ -1920,6 +1920,46 @@
     flex: 1;
 }
 
+.lsc-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--input-text, #ddd);
+    user-select: none;
+}
+.lsc-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    background: #444;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.lsc-toggle::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #aaa;
+    transition: all 0.2s;
+}
+.lsc-toggle:checked {
+    background: #6a5a3a;
+}
+.lsc-toggle:checked::before {
+    left: 18px;
+    background: var(--pc-accent, #d4953a);
+}
+
 .lsc-actions {
     display: flex;
     gap: 8px;

@@ -464,6 +464,8 @@ class ConfigManager:
             "model": "",
             "temperature": 0.7,
             "max_tokens": 300,
+            "disable_thinking": True,
+            "filter_thinking_output": True,
         })
         self.save_services_config(cfg)
         return svc_id
@@ -472,7 +474,7 @@ class ConfigManager:
         cfg = self.load_services_config()
         for svc in cfg["services"]:
             if svc["id"] == service_id:
-                for k in ("name", "api_url", "api_key", "model", "temperature", "max_tokens"):
+                for k in ("name", "api_url", "api_key", "model", "temperature", "max_tokens", "disable_thinking", "filter_thinking_output"):
                     if k in updates:
                         svc[k] = updates[k]
                 self.save_services_config(cfg)
@@ -514,6 +516,8 @@ class ConfigManager:
                     "model": cur.get("model") or svc.get("model", ""),
                     "temperature": svc.get("temperature", 0.7),
                     "max_tokens": svc.get("max_tokens", 300),
+                    "disable_thinking": svc.get("disable_thinking", True),
+                    "filter_thinking_output": svc.get("filter_thinking_output", True),
                 }
         # 回退到旧配置
         return self.load_llm_config()

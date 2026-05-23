@@ -146,6 +146,13 @@ class LLMClient:
             "max_tokens": max_tokens
         }
 
+        # 思维链关闭参数
+        from .thinking_control import build_thinking_suppression, filter_thinking_content
+        disable_thinking = self.config.get("disable_thinking", True)
+        filter_output = self.config.get("filter_thinking_output", True)
+        if disable_thinking:
+            payload.update(build_thinking_suppression(model, disable_thinking=True))
+
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -157,13 +164,19 @@ class LLMClient:
                 },
                 method="POST"
             )
-            
+
             with urllib.request.urlopen(req, timeout=30) as response:
                 result = json.loads(response.read().decode("utf-8"))
-                
+
             if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0].get("message", {}).get("content", "")
+                msg = result["choices"][0].get("message", {})
+                content = msg.get("content", "") or ""
+                # DeepSeek reasoning models fallback
+                if not content.strip():
+                    content = msg.get("reasoning_content", "") or ""
                 if content.strip():
+                    if filter_output:
+                        content = filter_thinking_content(content)
                     return content.strip()
 
             print(f"[LLMClient] API响应格式异常: {json.dumps(result, ensure_ascii=False)[:300]}")
@@ -272,6 +285,13 @@ class LLMClient:
             "max_tokens": max_tokens if max_tokens is not None else self.config.get("max_tokens", 1000),
         }
 
+        # 思维链关闭参数
+        from .thinking_control import build_thinking_suppression, filter_thinking_content
+        disable_thinking = self.config.get("disable_thinking", True)
+        filter_output = self.config.get("filter_thinking_output", True)
+        if disable_thinking:
+            payload.update(build_thinking_suppression(model, disable_thinking=True))
+
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -284,6 +304,7 @@ class LLMClient:
             )
 
             with urllib.request.urlopen(req, timeout=120) as response:
+                has_content = False
                 for raw_line in response:
                     line = raw_line.decode("utf-8").strip()
                     if not line.startswith("data: "):
@@ -296,7 +317,13 @@ class LLMClient:
                         delta = chunk["choices"][0].get("delta", {})
                         content = delta.get("content", "")
                         if content:
+                            has_content = True
                             yield content
+                        elif not has_content:
+                            # Fallback: capture reasoning_content if content is empty
+                            reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
+                            if reasoning and not filter_output:
+                                yield reasoning
                     except (json.JSONDecodeError, KeyError, IndexError):
                         continue
         except Exception as e:
@@ -356,6 +383,13 @@ class LLMClient:
             "max_tokens": max_tokens,
         }
 
+        # 思维链关闭参数
+        from .thinking_control import build_thinking_suppression, filter_thinking_content
+        disable_thinking = self.config.get("disable_thinking", True)
+        filter_output = self.config.get("filter_thinking_output", True)
+        if disable_thinking:
+            payload.update(build_thinking_suppression(model, disable_thinking=True))
+
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -370,8 +404,13 @@ class LLMClient:
                 result = json.loads(response.read().decode("utf-8"))
 
             if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0].get("message", {}).get("content", "")
+                msg = result["choices"][0].get("message", {})
+                content = msg.get("content", "") or ""
+                if not content.strip():
+                    content = msg.get("reasoning_content", "") or ""
                 if content.strip():
+                    if filter_output:
+                        content = filter_thinking_content(content)
                     return content.strip()
 
             print(f"[LLMClient] Agent 响应格式异常")

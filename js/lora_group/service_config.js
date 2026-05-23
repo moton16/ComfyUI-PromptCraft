@@ -195,6 +195,20 @@ async function selectService(backdrop, svcId) {
                         <input class="lsc-input" type="number" step="50" min="50" max="4000" data-field="max_tokens" value="${svc.max_tokens}" />
                     </div>
                 </div>
+                <div class="lsc-field-row">
+                    <div class="lsc-field lsc-field-half">
+                        <label class="lsc-toggle-label">
+                            <input type="checkbox" class="lsc-toggle" data-field="disable_thinking" ${svc.disable_thinking !== false ? 'checked' : ''} />
+                            <span>关闭思维链</span>
+                        </label>
+                    </div>
+                    <div class="lsc-field lsc-field-half">
+                        <label class="lsc-toggle-label">
+                            <input type="checkbox" class="lsc-toggle" data-field="filter_thinking_output" ${svc.filter_thinking_output !== false ? 'checked' : ''} />
+                            <span>过滤思维链输出</span>
+                        </label>
+                    </div>
+                </div>
                 <div class="lsc-actions">
                     <button class="lsc-btn lsc-btn-primary" data-action="test-service">🧪 测试连接</button>
                     <button class="lsc-btn lsc-btn-save" data-action="save-service">💾 保存</button>
@@ -227,6 +241,10 @@ function collectFormData(backdrop) {
         let val = input.value;
         if (field === 'temperature' || field === 'max_tokens') val = parseFloat(val);
         data[field] = val;
+    });
+    // Checkbox toggles
+    backdrop.querySelectorAll('.lsc-toggle[data-field]').forEach(toggle => {
+        data[toggle.dataset.field] = toggle.checked;
     });
     return data;
 }
