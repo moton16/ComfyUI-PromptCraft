@@ -1,0 +1,363 @@
+{
+  "version": "1.0.0",
+  "description": "默认Prompt增强库 - 正常向内容",
+  "categories": {
+    "场景类型": {
+      "label": "场景类型",
+      "description": "设定画面的背景与环境",
+      "options": [
+        {"label": "空教室", "en": "empty classroom, wooden_desk, blackboard, half-open_window, quiet"},
+        {"label": "学校楼梯间", "en": "school_stairwell, concrete_steps, metal_handrail, gray_tones, empty"},
+        {"label": "日式和室", "en": "japanese_room, tatami, shoji, tokonoma, soft_lighting, serene"},
+        {"label": "通学电车车厢", "en": "train_interior, longitudinal_seats, hanging_strap, blurred_background, commuting"},
+        {"label": "深夜便利店", "en": "convenience_store_/at_night, shelves, fluorescent_lighting, automatic_door, cool_white_tone"},
+        {"label": "公寓走廊", "en": "apartment_hallway, rows_of_doors, concrete_floor, corridor, residential"},
+        {"label": "图书馆", "en": "library, bookshelves, wooden_floor, receding_perspective, quiet"},
+        {"label": "美术室", "en": "art_classroom, easel, plaster_statue, studio_lighting, paint_stains"},
+        {"label": "地下车库", "en": "underground_parking, concrete_pillar, gray_walls, empty, claustrophobic"},
+        {"label": "木造公寓房间", "en": "old_apartment, aged_floor, wooden_walls, lived_in, tram_view"},
+        {"label": "更衣室", "en": "locker_room, metal_locker, bench, fluorescent_lighting, tiled_floor, humid, narrow_aisle"},
+        {"label": "酒店客房", "en": "hotel_room, tidy_bed, white_linens, bedside_lamp, city_view, floor_to_ceiling_window, soft_warm_lighting"},
+        {"label": "室内泳池", "en": "indoor_swimming_pool, still_water, lane_rope, high_ceiling, skylight, steam_mist, ceramic_tile, blue-white_reflection"},
+        {"label": "海滨豪宅", "en": "seaside_mansion, large_living_room, floor_to_ceiling_window, ocean_view, terrace, modern_furniture, white_curtain, natural_lighting"},
+        {"label": "市中心公寓", "en": "downtown_apartment, floor_to_ceiling_window, city_skyline, modern_furniture, polished_concrete_floor, glass_facade, sunlight, high-rise"},
+        {"label": "十字路口", "en": "city_intersection, crosswalk, traffic_light, high-rise_building, aerial_view"},
+        {"label": "商业广场", "en": "commercial_plaza, sunken_plaza, fountain, high-rise, pedestrians"},
+        {"label": "天桥俯瞰", "en": "pedestrian_bridge_view, traffic_below, cityscape, top_down_perspective, overlooking"},
+        {"label": "海堤步道", "en": "seawall, promenade, stone_breakwater, sea, horizon, wind-swept"},
+        {"label": "步行街", "en": "pedestrian_street, flagstone_pavement, shop_window, decorative_flag, fountain"},
+        {"label": "小巷", "en": "alley, mottled_wall, narrow, strip_of_sky, roll-up_door, confined"},
+        {"label": "铁道道口", "en": "railway_crossing, train_track, crossing_gate, tracks, perspective, vanishing_point"},
+        {"label": "日式老街巷弄", "en": "old_japanese_street, low_wooden_house, stone_pavement, lantern, deep_perspective"},
+        {"label": "老街茶屋区", "en": "old_tea_house_street, wooden_eaves, fabric_curtain, stone_road, japanese_lantern"},
+        {"label": "坡道老街", "en": "sloping_street, stone_slope, tile_roof, varying_heights, traditional"},
+        {"label": "稻田", "en": "rice_field, golden_ears_of_rice, distant_mountains, autumn, afternoon"},
+        {"label": "乡村聚落", "en": "rural_village, tile_roof_house, stone_path, cooking_smoke, countryside"},
+        {"label": "乡间公路", "en": "country_road, asphalt_road, windbreak_trees, open, empty, rural"},
+        {"label": "小神社", "en": "small_shrine, stone_path, torii, surrounded_by_trees, shrine"},
+        {"label": "废弃校园", "en": "abandoned_school, overgrown, rusted_equipment, dilapidated, decay"},
+        {"label": "山间溪流", "en": "mountain_stream, clear_water, scattered_rocks, forest, nature"},
+        {"label": "平原道路", "en": "plain_road, straight_road, horizon, grassland, vast_sky"},
+        {"label": "草地", "en": "open_grassy_field, green_meadow, rolling_hills, blue_sky, wildflowers, natural_lighting, expansive"},
+        {"label": "海蚀崖岸", "en": "sea_cliff, steep_rock_face, white_waves, crashing_waves, blue_ocean"},
+        {"label": "海边沙滩", "en": "sandy_beach, shoreline, gentle_waves, blue_ocean, golden_sand, horizon, seashells, coastal"},
+        {"label": "密林深处", "en": "deep_forest, towering_trees, thick_foliage, mysterious, stillness"},
+        {"label": "野花山坡", "en": "wildflower_hillside, colorful_blooms, distant_snow_peaks, blue_sky"},
+        {"label": "瀑布深潭", "en": "waterfall, emerald_pool, misty_spray, moss_covered_rocks"},
+        {"label": "高原湿地", "en": "plateau_wetland, reflecting_pool, snow_mountains, open_expanse"},
+        {"label": "沙漠戈壁", "en": "gobi_desert, gravel, yardang, barren, desolation"},
+        {"label": "冰川湖", "en": "glacial_lake, blue_water, glacier, snow_peaks, reflection"},
+        {"label": "红叶山谷", "en": "autumn_valley, maple_leaves, red_leaves, winding_stream, layered_mountains"}
+      ]
+    },
+    "动作姿态": {
+      "label": "动作姿态",
+      "description": "描述主体的动作或姿势",
+      "options": [
+        {"label": "亚洲蹲，双手放腿，略微抬头，清纯感觉", "en": "squatting, hands_on_thighs, looking_up, innocent"},
+        {"label": "抱膝坐，下巴搁膝上，抬头仰望，可爱", "en": "sitting, hugging_knees, chin_on_knees, looking_up, cute"},
+        {"label": "并腿深蹲，双手交叠放在膝盖间，微微侧脸，乖巧", "en": "squatting, legs_together, hands_between_knees, looking_away, well-behaved"},
+        {"label": "坐沿，双手后撑，双腿悬空晃动，灵动", "en": "sitting_on_edge, hands_behind, legs_dangling, lively"},
+        {"label": "跪坐，双手放膝盖上，微微低头，乖巧", "en": "seiza, hands_on_knees, head_down, obedient"},
+        {"label": "鸭子坐，双手撑地，抬头仰望，眼睛睁大", "en": "w-sitting, hands_on_ground, looking_up, wide_eyes"},
+        {"label": "侧身坐，双腿交叠翘二郎腿，优雅", "en": "sitting_sideways, legs_crossed, elegant"},
+        {"label": "反骑跨坐，双臂搭前托腮，若有所思", "en": "straddling_chair_backwards, arms_on_chair_back, chin_resting_on_hands, contemplative"},
+        {"label": "盘腿坐，双手捧脸，歪头，呆萌", "en": "sitting_cross-legged, hands_on_cheeks, head_tilt, derpy"},
+        {"label": "向前行走，双臂自然摆动，目视前方，轻松", "en": "walking, arms_swinging, looking_ahead, relaxed"},
+        {"label": "向前行走，侧身回头看向镜头，挥手，俏皮", "en": "walking, looking_back_/waving, playful"},
+        {"label": "小步慢走，双手背后交握，低头看路，文静", "en": "walking, small_steps, hands_behind_back, looking_down, gentle"},
+        {"label": "背对走来，突然回头越过肩膀，微笑，惊喜", "en": "walking_away, looking_back_over_shoulder, smile, surprised"},
+        {"label": "并肩视角，正常行走，双手握拳，侧头看向镜头，眼神有光", "en": "side_view, walking, clenched_fist, looking_at_viewer, sparkling_eyes"},
+        {"label": "朝镜头跑来，双手伸向前方似要拥抱，开心笑容，雀跃", "en": "running_towards_viewer, arms_outstretched, happy_smile, jumping"},
+        {"label": "侧身奔跑，回头看向镜头挥手，俏皮", "en": "running, from_side, looking_back, waving, playful"},
+        {"label": "赤脚奔跑，裙角飞扬，自由自在，快乐", "en": "barefoot, running, skirt_fluttering, happy"},
+        {"label": "匆忙小跑，一手按住被风吹起的裙边，羞涩", "en": "jogging, one_hand_holding_skirt, wind-blown_skirt, embarrassed"},
+        {"label": "手指指向自己嘴唇，略歪头，无辜", "en": "finger_to_lip, head_tilt, innocent"},
+        {"label": "双手捧脸，睁大眼睛，呆萌", "en": "hands_on_cheeks, wide_eyes, derpy"},
+        {"label": "比剪刀手贴脸颊，吐舌，活泼", "en": "peace_sign, tongue_out, cheerful"},
+        {"label": "手指比框框，透过手指看镜头，调皮", "en": "framing_fingers, looking_at_viewer, mischievous"},
+        {"label": "单手遮住半边脸，露一只眼睛，害羞", "en": "one_hand_covering_face, one_eye_visible, shy"},
+        {"label": "单手托腮，眼神迷离若有所思，慵懒", "en": "hand_on_chin, daydreaming, lazy"}
+      ]
+    },
+    "服饰": {
+      "label": "服饰",
+      "description": "主体穿着的服装与配饰",
+      "options": [
+        {"label": "白色衬衫，深色百褶裙，红色领结", "en": "white_shirt, pleated_skirt, red_neckerchief, school_uniform"},
+        {"label": "宽松卫衣，超短裙，长筒袜", "en": "hoodie, mini_skirt, thighhighs, casual"},
+        {"label": "针织开衫，白T恤，牛仔半裙，细项链", "en": "cardigan, white_t-shirt, denim_skirt, necklace"},
+        {"label": "吊带连衣裙，薄针织披肩，手链", "en": "spaghetti_strap_dress, shawl, bracelet"},
+        {"label": "Oversize 衬衫下装，短袜，脚链", "en": "oversized_shirt, ankle_socks, anklet"},
+        {"label": "水手服，领巾，及膝裙", "en": "sailor_uniform, neckerchief, kneehighs, school_uniform"},
+        {"label": "连帽卫衣，工装裤，运动手表", "en": "hoodie, cargo_pants, watch"},
+        {"label": "高领毛衣，格纹短裙，过膝靴，贝雷帽", "en": "turtleneck, plaid_skirt, knee_high_boots, beret"},
+        {"label": "一字肩上衣，高腰阔腿裤，耳环", "en": "off-shoulder_top, high-waisted_pants, earrings"},
+        {"label": "背带裤，白T，发箍", "en": "overalls, white_t-shirt, hairband"},
+        {"label": "西装外套，衬衫领带，百褶裙，徽章胸针", "en": "blazer, shirt_and_tie, pleated_skirt, brooch"},
+        {"label": "露肩毛衣，迷笛裙，珍珠项链", "en": "cold-shoulder_sweater, midi_skirt, pearl_necklace"},
+        {"label": "运动背心，羽毛球裙，发带", "en": "tank_top, tennis_skirt, headband"},
+        {"label": "和服浴衣，木屐，日式发簪", "en": "yukata, geta, kanzashi"},
+        {"label": "黑色连衣裙，白色围裙，头饰蕾丝", "en": "black_dress, white_apron, lace_headpiece, maid"},
+        {"label": "皮夹克，碎花裙，马丁靴，金属链条包", "en": "leather_jacket, floral_dress, combat_boots, chain_bag"},
+        {"label": "旗袍，盘扣，玉镯", "en": "qipao, frog_buttons, jade_bangle"},
+        {"label": "毛绒连体睡衣，毛绒拖鞋，可爱袜子", "en": "onesie, fluffy_slippers, cute_socks"},
+        {"label": "比基尼，沙滩罩衫，草编遮阳帽", "en": "bikini, beach_cover-up, straw_hat"},
+        {"label": "圣诞红毛衣，鹿角发饰，铃铛手链", "en": "red_sweater, reindeer_antlers, jingle_bell_bracelet, christmas"},
+        {"label": "白衬衫，背带裙，平底小皮鞋，细手链", "en": "white_shirt, pinafore_dress, flat_shoes, thin_bracelet"},
+        {"label": "高领打底，V领毛衣叠穿，A字裙，金属细链", "en": "turtleneck, v-neck_sweater, a-line_skirt, layered, metal_chain"},
+        {"label": "露脐短上衣，高腰牛仔裤，运动鞋，腰链", "en": "crop_top, high-waisted_jeans, sneakers, waist_chain"},
+        {"label": "泡泡袖连衣裙，草编包，贝壳项链", "en": "puff_sleeve_dress, straw_bag, shell_necklace"},
+        {"label": "棒球服外套，百褶迷你裙，棒球帽，运动手表", "en": "baseball_jacket, pleated_skirt, baseball_cap, watch"},
+        {"label": "黑色高领，JK制服裙，领带", "en": "black_turtleneck, sailor_uniform, pleated_skirt, tie"},
+        {"label": "连体工装裤，腰带束紧，戒指/指环", "en": "boiler_suit, belt_belt, rings"},
+        {"label": "针织背心+白衬衫叠穿，格子长裤，眼镜框", "en": "knit_vest, white_shirt, layered, plaid_pants, glasses"},
+        {"label": "抹胸连衣裙，开衫披肩，凉鞋，脚踝系带", "en": "strapless_dress, cardigan, shawl, sandals, ankle_straps"}
+      ]
+    },
+    "情绪氛围": {
+      "label": "情绪氛围",
+      "description": "画面传达的情感或气氛风格",
+      "options": [
+        {"label": "咧嘴笑", "en": ", grinning"},
+        {"label": "温柔浅笑", "en": "gentle smile, soft light"},
+        {"label": "面无表情", "en": "expressionless"},
+        {"label": "脸颊泛红", "en": "blushing cheeks"},
+        {"label": "歪头微笑", "en": "tilted head smiling"},
+        {"label": "嘴角上扬", "en": "smirking"},
+        {"label": "眨眼发呆", "en": "blinking"},
+        {"label": "下巴微扬", "en": "chin raised"},
+        {"label": "挑眉坏笑", "en": "one_eyebrow_raised, smirk"},
+        {"label": "wink", "en": "wink"},
+        {"label": "单手遮眼", "en": "hand covering eye"},
+        {"label": "嘟嘴撒娇", "en": "pout"},
+        {"label": "打哈欠", "en": "yawning"},
+        {"label": "认真凝视", "en": "gaze"},
+        {"label": "咬唇低头", "en": "lip_bite, looking_down"},
+        {"label": "侧过脸", "en": "looking_away"},
+        {"label": "冷笑撇嘴", "en": "cold smirk"},
+        {"label": "睁大眼睛", "en": "wide_eyes"},
+        {"label": "含泪深情", "en": "teary_eyes, eye_smile, gentle_smile"},
+        {"label": "眯眼享受", "en": "happy_eyes, closed_eyes, enjoying"},
+        {"label": "皱眉困惑", "en": "furrowed_brow, confused"},
+        {"label": "咬牙握拳", "en": "teeth_clenching, clenched_fist"}
+      ]
+    },
+    "机位角度": {
+      "label": "机位角度",
+      "description": "摄像机的拍摄角度",
+      "options": [
+        {"label": "平视角度", "en": "eye-level"},
+        {"label": "低角度仰拍", "en": "low angle"},
+        {"label": "高角度俯拍", "en": "high angle"},
+        {"label": "侧面视角", "en": "from_side"},
+        {"label": "斜侧面视角", "en": " three quarter view"},
+        {"label": "过肩视角", "en": "over-the-shoulder view"},
+        {"label": "荷兰角倾斜", "en": "Ddutch_angle"},
+        {"label": "正面视角", "en": "front view"},
+        {"label": "背面视角", "en": "back view"},
+        {"label": "侧面剪影", "en": "silhouette"}
+      ]
+    },
+    "镜头类型": {
+      "label": "镜头类型",
+      "description": "使用的镜头种类",
+      "options": [
+        {"label": "面部特写", "en": "close_up face"},
+        {"label": "半身", "en": "upper_body"},
+        {"label": "七分身", "en": "cowboy_shot"},
+        {"label": "全身", "en": "full_body"},
+        {"label": "全身远景", "en": "full_body, wide_shot"},
+        {"label": "中景镜头", "en": "medium_shot"},
+        {"label": "远景镜头", "en": "long_shot"}
+      ]
+    },
+    "特效镜头": {
+      "label": "特效镜头",
+      "description": "特殊效果镜头选项",
+      "options": [
+        {"label": "光晕效果，柔美梦幻", "en": "lens flare effect, soft dreamy"},
+        {"label": "慢动作，时间凝滞", "en": "slow motion, time frozen"},
+        {"label": "散景光斑，唯美背景", "en": "bokeh light spots, beautiful background"},
+        {"label": "双重曝光，意境叠加", "en": "double exposure, layered imagery"},
+        {"label": "光轨拖尾，动态感", "en": "light trails, dynamic feel"},
+        {"label": "烟雾效果，朦胧氛围", "en": "fog effect, misty atmosphere"},
+        {"label": "粒子飞舞，魔法感", "en": "floating particles, magical feel"}
+      ]
+    },
+    "镜头滤镜": {
+      "label": "镜头滤镜",
+      "description": "叠加的滤镜效果",
+      "options": [
+        {"label": "柔光滤镜，肤质细腻", "en": "soft filter, smooth skin texture"},
+        {"label": "暖色滤镜，温馨怀旧", "en": "warm filter, cozy nostalgic"},
+        {"label": "冷色滤镜，清冷高级", "en": "cool filter, crisp premium"},
+        {"label": "高对比度滤镜，戏剧化", "en": "high contrast filter, dramatic"},
+        {"label": "褪色滤镜，复古胶片", "en": "faded filter, vintage film"},
+        {"label": "赛博朋克滤镜，霓虹色调", "en": "cyberpunk filter, neon tones"}
+      ]
+    },
+    "光源类型": {
+      "label": "光源类型",
+      "description": "光源种类",
+      "options": [
+        {"label": "自然阳光，晴天下光影", "en": "natural sunlight, clear day light and shadow"},
+        {"label": "黄金时刻，日落暖光", "en": "golden hour, warm sunset light"},
+        {"label": "月光洒落，银白清辉", "en": "moonlight spilling, silver clear glow"},
+        {"label": "烛光摇曳，温暖柔和", "en": "candlelight flickering, warm and soft"},
+        {"label": "霓虹灯光，色彩斑斓", "en": "neon lights, colorful and vibrant"},
+        {"label": "棚拍灯，专业布光", "en": "studio lighting, professional setup"},
+        {"label": "壁炉火光，橘红暖意", "en": "fireplace glow, orange-red warmth"},
+        {"label": "荧光灯管，冷白科技感", "en": "fluorescent tubes, cool white tech feel"}
+      ]
+    },
+    "光线类型": {
+      "label": "光线类型",
+      "description": "光线的质感与方向",
+      "options": [
+        {"label": "柔光，均匀散射", "en": "soft light, evenly diffused"},
+        {"label": "硬光，强烈对比阴影", "en": "hard light, strong contrasting shadows"},
+        {"label": "逆光剪影，轮廓发光", "en": "backlit silhouette, rim light glow"},
+        {"label": "侧光，立体感塑造", "en": "side light, sculpting three-dimensionality"},
+        {"label": "顶光，戏剧化效果", "en": "top light, dramatic effect"},
+        {"label": "底光，神秘恐怖感", "en": "bottom light, mysterious horror feel"},
+        {"label": "体积光，丁达尔效应", "en": "volumetric lighting, god rays"},
+        {"label": "漫反射光，柔和包裹", "en": "diffuse reflected light, soft wrapping"}
+      ]
+    },
+    "视觉风格": {
+      "label": "视觉风格",
+      "description": "整体艺术风格设定",
+      "options": [
+        {"label": "写实风格，细腻逼真", "en": "realistic style, detailed and lifelike"},
+        {"label": "日系动漫风，赛璐璐", "en": "Japanese anime style, cel-shaded"},
+        {"label": "油画质感，厚重笔触", "en": "oil painting texture, thick brushstrokes"},
+        {"label": "水彩风格，轻盈透明", "en": "watercolor style, light and transparent"},
+        {"label": "厚涂CG，数字绘画", "en": "thick paint CG, digital art"},
+        {"label": "线稿素描，简洁黑白", "en": "line art sketch, clean black and white"},
+        {"label": "低多边形3D，风格化", "en": "low poly 3D, stylized"},
+        {"label": "皮克斯风格，圆润可爱", "en": "Pixar style, round and cute"},
+        {"label": "赛博朋克风，高科技低生活", "en": "cyberpunk style, high tech low life"},
+        {"label": "新艺术装饰风，穆夏风", "en": "Art Nouveau, Mucha style"},
+        {"label": "水墨画风，东方韵味", "en": "ink wash painting, oriental charm"},
+        {"label": "波普艺术，鲜艳色块", "en": "pop art, vibrant color blocks"}
+      ]
+    },
+    "质量等级": {
+      "label": "质量等级",
+      "description": "输出质量级别",
+      "options": [
+        {"label": "标准", "en": "detailed, high quality"},
+        {"label": "高质量", "en": "masterpiece, best quality, ultra-detailed, high resolution"},
+        {"label": "超高质量", "en": "masterpiece, best quality, ultra-detailed, extremely detailed, 8k, photorealistic"},
+        {"label": "大师级", "en": "masterpiece, best quality, ultra-detailed, extremely detailed, 8k, 4k, photorealistic, professional photography, studio lighting, perfect anatomy"}
+      ]
+    }
+  },
+  "negative_prompts": {
+    "标准": "low quality, worst quality, normal quality, lowres, pixelated, blurry, bad anatomy, bad hands, bad feet, missing fingers, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, ugly, bad proportions, extra limbs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, mutated, bad body, unnatural body, long body, duplicate, morbid, mutilated, out of frame, disfigured, gross proportions, missing arms, missing legs, extra arms, extra legs, cloned face, username, watermark, signature, text",
+    "高质量": "(worst quality:2.0), (low quality:2.0), (normal quality:1.8), (lowres:1.8), (bad anatomy:1.8), (bad hands:1.8), (text:1.8), (error:1.8), (missing fingers:1.8), (extra digit:1.8), (fewer digits:1.8), (cropped:1.8), (jpeg artifacts:1.8), (signature:1.8), (watermark:1.8), (username:1.8), (blurry:1.8), (artist name:1.8), (out of focus:1.8), (ugly:1.8), (duplicate:1.8), (morbid:1.8), (mutilated:1.8), (extra fingers:1.8), (mutated hands:1.8), (poorly drawn hands:1.8), (poorly drawn face:1.8), (mutation:1.8), (deformed:1.8), (bad proportions:1.8), (extra limbs:1.8), (cloned face:1.8), (disfigured:1.8), (gross proportions:1.8), (malformed limbs:1.8), (missing arms:1.8), (missing legs:1.8), (extra arms:1.8), (extra legs:1.8), (fused fingers:1.8), (too many fingers:1.8), (long neck:1.8), (cross-eyed:1.8)",
+    "简单": "low quality, worst quality, blurry"
+  },
+  "presets": {
+    "古风仕女": {
+      "场景类型": "日式和室",
+      "动作姿态": "跪坐，双手放膝盖上，微微低头，乖巧",
+      "服饰": "和服浴衣，木屐，日式发簪",
+      "情绪氛围": "垂眸浅笑端庄温婉，环境暖黄醇厚"
+    },
+    "都市时尚": {
+      "场景类型": "十字路口",
+      "动作姿态": "向前行走，双臂自然摆动，目视前方，轻松",
+      "服饰": "高领毛衣，格纹短裙，过膝靴，贝雷帽",
+      "情绪氛围": "从容微笑不急不缓，环境优雅低饱和"
+    },
+    "校园日常": {
+      "场景类型": "空教室",
+      "动作姿态": "坐沿，双手后撑，双腿悬空晃动，灵动",
+      "服饰": "白色衬衫，深色百褶裙，红色领结",
+      "情绪氛围": "眉眼弯弯大笑，环境明亮通透"
+    },
+    "梦幻森林": {
+      "场景类型": "密林深处",
+      "动作姿态": "手指指向自己嘴唇，略歪头，无辜",
+      "服饰": "吊带连衣裙，薄针织披肩，手链",
+      "情绪氛围": "瞳孔涣散若有所思，环境梦幻迷幻"
+    },
+    "冬日雪景": {
+      "场景类型": "冰川湖",
+      "动作姿态": "抱膝坐，下巴搁膝上，抬头仰望，可爱",
+      "服饰": "高领打底，V领毛衣叠穿，A字裙，金属细链",
+      "情绪氛围": "半睁眼打哈欠，环境灰调松弛"
+    },
+    "赛博朋克": {
+      "场景类型": "深夜便利店",
+      "动作姿态": "单手托腮，眼神迷离若有所思，慵懒",
+      "服饰": "皮夹克，碎花裙，马丁靴，金属链条包",
+      "情绪氛围": "挑眉坏笑"
+    },
+    "海边漫步": {
+      "场景类型": "海堤步道",
+      "动作姿态": "向前行走，侧身回头看向镜头，挥手，俏皮",
+      "服饰": "宽松卫衣，超短裙，长筒袜",
+      "情绪氛围": "眯眼享受神情陶醉，环境斑驳树影慵懒"
+    },
+    "日式老街": {
+      "场景类型": "日式老街巷弄",
+      "动作姿态": "小步慢走，双手背后交握，低头看路，文静",
+      "服饰": "水手服，领巾，及膝裙",
+      "情绪氛围": "嘴角浅笑眼神温柔，环境柔光朦胧"
+    }
+  },
+  "trigger_words": {
+    "核心标签": [
+      {"label": "单人物 (1girl)", "en": "1girl"},
+      {"label": "单男性 (1boy)", "en": "1boy"},
+      {"label": "双女性 (2girls)", "en": "2girls"},
+      {"label": "双男性 (2boys)", "en": "2boys"},
+      {"label": "男女配对 (1boy, 1girl)", "en": "1boy, 1girl"},
+      {"label": "群体 (multiple people)", "en": "multiple people"},
+      {"label": "无人场景 (no humans)", "en": "no humans"},
+      {"label": "solo", "en": "solo"}
+    ],
+    "角色类型": [
+      {"label": "骑士 (knight)", "en": "knight"},
+      {"label": "法师 (mage)", "en": "mage"},
+      {"label": "精灵 (elf)", "en": "elf"},
+      {"label": "天使 (angel)", "en": "angel"},
+      {"label": "恶魔 (demon)", "en": "demon"},
+      {"label": "吸血鬼 (vampire)", "en": "vampire"},
+      {"label": "狼人 (werewolf)", "en": "werewolf"},
+      {"label": "猫耳娘 (catgirl)", "en": "catgirl"},
+      {"label": "兔耳娘 (bunny girl)", "en": "bunny girl"},
+      {"label": "狐娘 (fox girl)", "en": "fox girl"},
+      {"label": "机器人 (robot)", "en": "robot"},
+      {"label": "仿生人 (android)", "en": "android"},
+      {"label": "女仆 (maid)", "en": "maid"},
+      {"label": "执事 (butler)", "en": "butler"},
+      {"label": "护士 (nurse)", "en": "nurse"},
+      {"label": "学生 (student)", "en": "student"},
+      {"label": "教师 (teacher)", "en": "teacher"},
+      {"label": "警察 (police)", "en": "police officer"},
+      {"label": "偶像 (idol)", "en": "idol"},
+      {"label": "魔法少女 (magical girl)", "en": "magical girl"},
+      {"label": "公主 (princess)", "en": "princess"},
+      {"label": "女王 (queen)", "en": "queen"},
+      {"label": "女神 (goddess)", "en": "goddess"},
+      {"label": "武士 (samurai)", "en": "samurai"},
+      {"label": "忍者 (ninja)", "en": "ninja"}
+    ]
+  },
+  "nsfw_tags": {
+    "label": "NSFW标签（需手动启用）",
+    "description": "为控制生图健康而单独设立的标签，默认禁用",
+    "enabled": false,
+    "options": [
+      {"label": "裸体 (naked)", "en": "naked"},
+      {"label": "内衣 (lingerie)", "en": "lingerie"},
+      {"label": "比基尼 (bikini)", "en": "bikini"},
+      {"label": "湿衣服 (wet clothes)", "en": "wet clothes"},
+      {"label": "透明服装 (see-through)", "en": "see-through clothing"}
+    ]
+  }
+}

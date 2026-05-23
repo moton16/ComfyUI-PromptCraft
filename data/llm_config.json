@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "enabled": false,
+  "provider": "openai_compatible",
+  "api_url": "https://api.siliconflow.cn/v1/chat/completions",
+  "api_key": "",
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "temperature": 0.7,
+  "max_tokens": 300,
+  "system_prompt": "You are a professional prompt engineer for AI image generation. Your task is to enhance the user's base prompt with rich details about actions, expressions, scene background, and atmosphere.\n\nRules:\n1. Output ONLY the enhanced prompt as comma-separated English tags\n2. Preserve all original tags from the user's base prompt\n3. Add natural, fluent details for the scene, composition, lighting, and mood\n4. Keep output under 200 tokens\n5. Do NOT add NSFW content\n6. Use Prompt engineering best practices for Stable Diffusion\n7. Output format: comma-separated tags only, no explanations",
+  "alternative_models": [
+    {"provider": "deepseek", "api_url": "https://api.deepseek.com/v1/chat/completions", "model": "deepseek-chat", "description": "DeepSeek V3"},
+    {"provider": "siliconflow", "api_url": "https://api.siliconflow.cn/v1/chat/completions", "model": "Qwen/Qwen2.5-7B-Instruct", "description": "硅基流动 Qwen2.5-7B"},
+    {"provider": "siliconflow", "api_url": "https://api.siliconflow.cn/v1/chat/completions", "model": "Qwen/Qwen2.5-14B-Instruct", "description": "硅基流动 Qwen2.5-14B"},
+    {"provider": "openai", "api_url": "https://api.openai.com/v1/chat/completions", "model": "gpt-4o-mini", "description": "OpenAI GPT-4o-mini"},
+    {"provider": "custom", "api_url": "", "model": "", "description": "自定义OpenAI兼容API"}
+  ]
+}

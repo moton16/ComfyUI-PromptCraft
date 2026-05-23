@@ -1,0 +1,352 @@
+{
+  "version": "1.0.0",
+  "description": "默认Prompt增强库 - 正常向内容",
+  "categories": {
+    "场景类型": {
+      "label": "场景类型",
+      "description": "设定画面的背景与环境",
+      "options": [
+        {"label": "现代都市街道，霓虹灯光，雨后湿滑路面", "en": "modern city street, neon lights, wet road after rain"},
+        {"label": "古典欧式宫殿，大理石柱，金色装饰", "en": "classical European palace, marble columns, golden decorations"},
+        {"label": "日式庭院，樱花飘落，木质廊道", "en": "Japanese garden, cherry blossoms falling, wooden corridor"},
+        {"label": "未来科幻都市，全息投影，飞行器穿梭", "en": "futuristic sci-fi city, holographic projections, flying vehicles"},
+        {"label": "热带海滩，碧蓝海水，白色沙滩", "en": "tropical beach, azure water, white sand"},
+        {"label": "魔法森林，发光植物，神秘雾气", "en": "magical forest, glowing plants, mysterious mist"},
+        {"label": "废弃工业区，锈蚀机械，涂鸦墙壁", "en": "abandoned industrial zone, rusted machinery, graffiti walls"},
+        {"label": "雪山之巅，云雾缭绕，日出金光", "en": "snowy mountain peak, surrounded by clouds, golden sunrise"},
+        {"label": "温馨咖啡厅，暖黄灯光，木质家具", "en": "cozy cafe, warm yellow lighting, wooden furniture"},
+        {"label": "图书馆大厅，高耸书架，柔光洒落", "en": "library hall, towering bookshelves, soft light falling"},
+        {"label": "星空下的草原，萤火虫飞舞", "en": "grassland under starry sky, fireflies dancing"},
+        {"label": "水下世界，珊瑚礁，鱼群环绕", "en": "underwater world, coral reefs, schools of fish"},
+        {"label": "赛博朋克小巷，霓虹广告牌，蒸汽弥漫", "en": "cyberpunk alley, neon billboards, steam filled"},
+        {"label": "中世纪城堡，石墙火炬，铁质吊灯", "en": "medieval castle, stone wall torches, iron chandeliers"},
+        {"label": "太空站内部，金属舱壁，星空舷窗", "en": "space station interior, metal bulkheads, starry portholes"},
+        {"label": "春日公园，繁花盛开，孩童嬉戏", "en": "spring park, flowers in full bloom, children playing"},
+        {"label": "沙漠绿洲，棕榈树，清澈泉水", "en": "desert oasis, palm trees, clear spring water"},
+        {"label": "蒸汽朋克工坊，齿轮管道，黄铜光泽", "en": "steampunk workshop, gears and pipes, brass sheen"}
+      ]
+    },
+    "动作姿态": {
+      "label": "动作姿态",
+      "description": "描述主体的动作或姿势",
+      "options": [
+        {"label": "双手合十祈祷，闭眼低头", "en": "hands clasped in prayer, eyes closed, head bowed"},
+        {"label": "回眸一笑，发丝飘动", "en": "looking back with a smile, hair flowing"},
+        {"label": "单手叉腰，自信站姿", "en": "one hand on hip, confident stance"},
+        {"label": "盘腿静坐，冥想状态", "en": "sitting cross-legged, meditative state"},
+        {"label": "俯身凝视，手托下巴", "en": "leaning forward gazing, hand supporting chin"},
+        {"label": "轻抚发梢，眼神温柔", "en": "gently touching hair tips, gentle eyes"},
+        {"label": "张开双臂，迎风而立", "en": "arms wide open, standing against the wind"},
+        {"label": "低头写字，专注神情", "en": "writing with head lowered, focused expression"},
+        {"label": "端杯品茶，优雅姿态", "en": "holding a cup of tea, elegant posture"},
+        {"label": "轻抚琴弦，音乐家气质", "en": "gently strumming strings, musician aura"},
+        {"label": "单膝跪地，仰望姿态", "en": "kneeling on one knee, looking up"},
+        {"label": "侧卧休憩，慵懒放松", "en": "lying on side resting, lazy and relaxed"},
+        {"label": "挥剑姿势，动态张力", "en": "sword swinging pose, dynamic tension"},
+        {"label": "奔跑瞬间，衣袂翻飞", "en": "running moment, clothes fluttering"},
+        {"label": "执伞回眸，雨中漫步", "en": "holding umbrella looking back, walking in rain"},
+        {"label": "托腮思考，目光深邃", "en": "chin resting on hand thinking, profound gaze"},
+        {"label": "轻盈跳跃，裙摆飞扬", "en": "light jump, skirt flying"},
+        {"label": "双手捧花，温柔笑意", "en": "holding flowers in both hands, gentle smile"}
+      ]
+    },
+    "服饰": {
+      "label": "服饰",
+      "description": "主体穿着的服装与配饰",
+      "options": [
+        {"label": "优雅连衣裙，珍珠项链", "en": "elegant dress, pearl necklace"},
+        {"label": "长款风衣，皮靴，围巾", "en": "long trench coat, leather boots, scarf"},
+        {"label": "汉服长裙，发簪，丝带", "en": "hanfu long dress, hairpin, ribbons"},
+        {"label": "和服，蝴蝶结腰带，木屐", "en": "kimono, obi bow, wooden sandals"},
+        {"label": "西式礼服，领结，皮鞋", "en": "western suit, bow tie, leather shoes"},
+        {"label": "休闲卫衣，牛仔裤，运动鞋", "en": "casual hoodie, jeans, sneakers"},
+        {"label": "校园制服，格子短裙", "en": "school uniform, plaid skirt"},
+        {"label": "科幻装甲服，发光纹路", "en": "sci-fi armor suit, glowing patterns"},
+        {"label": "军装风外套，贝雷帽", "en": "military style coat, beret"},
+        {"label": "针织毛衣，毛线帽，围巾", "en": "knit sweater, beanie, scarf"},
+        {"label": "洛丽塔洋装，蕾丝蝴蝶结", "en": "lolita dress, lace bows"},
+        {"label": "紧身运动服，护腕头带", "en": "tight athletic wear, wristbands, headband"},
+        {"label": "波斯米亚长裙，编织凉鞋", "en": "bohemian long dress, woven sandals"},
+        {"label": "黑色皮衣，金属铆钉", "en": "black leather jacket, metal studs"},
+        {"label": "睡衣睡袍，毛绒拖鞋", "en": "pajamas, fluffy slippers"},
+        {"label": "泳装沙滩裙，草帽墨镜", "en": "swimsuit with beach dress, straw hat, sunglasses"},
+        {"label": "奇幻法师袍，魔法书腰挂", "en": "fantasy wizard robe, spellbook at waist"},
+        {"label": "舞蹈练功服，芭蕾舞鞋", "en": "dance practice clothes, ballet shoes"}
+      ]
+    },
+    "情绪氛围": {
+      "label": "情绪氛围",
+      "description": "画面传达的情感或气氛风格",
+      "options": [
+        {"label": "宁静祥和，内心平静如水", "en": "peaceful and serene, inner calm like water"},
+        {"label": "欢快愉悦，笑容灿烂", "en": "joyful and cheerful, bright smile"},
+        {"label": "忧郁深沉，眼神忧伤", "en": "melancholic and deep, sorrowful eyes"},
+        {"label": "神秘莫测，朦胧氛围", "en": "mysterious and enigmatic, hazy atmosphere"},
+        {"label": "浪漫温馨，暖意融融", "en": "romantic and warm, cozy warmth"},
+        {"label": "紧张刺激，剑拔弩张", "en": "tense and thrilling, on edge"},
+        {"label": "孤独寂寥，空旷画面", "en": "lonely and desolate, empty scene"},
+        {"label": "庄严肃穆，庄严气氛", "en": "solemn and dignified, reverent atmosphere"},
+        {"label": "天真烂漫，童趣盎然", "en": "innocent and playful, full of childlike joy"},
+        {"label": "怀旧复古，暖黄怀旧色调", "en": "nostalgic and vintage, warm sepia tones"},
+        {"label": "希望光明，曙光初现", "en": "hopeful and bright, dawn breaking"},
+        {"label": "恐惧不安，暗影重重", "en": "fearful and uneasy, deep shadows"},
+        {"label": "温柔细腻，轻柔触感", "en": "gentle and delicate, soft touch"},
+        {"label": "豪迈奔放，气势磅礴", "en": "bold and unrestrained, magnificent momentum"},
+        {"label": "梦幻缥缈，如入仙境", "en": "dreamy and ethereal, like entering fairyland"}
+      ]
+    },
+    "运镜方式": {
+      "label": "运镜方式",
+      "description": "镜头的移动轨迹",
+      "options": [
+        {"label": "缓慢推进，聚焦主体面部", "en": "slow push-in, focusing on subject's face"},
+        {"label": "环绕拍摄，360度展示", "en": "orbiting shot, 360-degree display"},
+        {"label": "低角度仰拍，突出气势", "en": "low angle shot, emphasizing grandeur"},
+        {"label": "跟随拍摄，平稳移动", "en": "tracking shot, smooth movement"},
+        {"label": "拉远镜头，展现全景", "en": "pull-back shot, revealing full scene"},
+        {"label": "手持晃动，纪实风格", "en": "handheld shaky, documentary style"},
+        {"label": "急速变焦，强调瞬间", "en": "rapid zoom, emphasizing the moment"},
+        {"label": "稳定滑轨，电影质感", "en": "steady dolly, cinematic quality"}
+      ]
+    },
+    "机位角度": {
+      "label": "机位角度",
+      "description": "摄像机的拍摄角度",
+      "options": [
+        {"label": "平视角度，自然视觉", "en": "eye-level angle, natural vision"},
+        {"label": "低角度仰拍，强调高度", "en": "low angle, emphasizing height"},
+        {"label": "高角度俯拍，俯瞰全局", "en": "high angle overhead, bird's eye view"},
+        {"label": "过肩视角，代入感强", "en": "over-the-shoulder, strong immersion"},
+        {"label": "荷兰角倾斜，不安定感", "en": "Dutch angle tilt, unsettling feel"},
+        {"label": "特写正面，直击表情", "en": "close-up front, direct expression"},
+        {"label": "背面视角，神秘留白", "en": "back view, mysterious ambiguity"},
+        {"label": "侧面剪影，轮廓美感", "en": "side silhouette, contour beauty"}
+      ]
+    },
+    "镜头类型": {
+      "label": "镜头类型",
+      "description": "使用的镜头种类",
+      "options": [
+        {"label": "广角镜头，大场景感", "en": "wide-angle lens, expansive scene"},
+        {"label": "标准镜头，接近人眼", "en": "standard lens, close to human eye"},
+        {"label": "长焦镜头，背景虚化", "en": "telephoto lens, background blur"},
+        {"label": "微距镜头，细节放大", "en": "macro lens, magnified details"},
+        {"label": "鱼眼镜头，夸张透视", "en": "fisheye lens, exaggerated perspective"},
+        {"label": "移轴镜头，迷你模型感", "en": "tilt-shift lens, miniature effect"}
+      ]
+    },
+    "焦距": {
+      "label": "焦距",
+      "description": "镜头焦段设置",
+      "options": [
+        {"label": "24mm 广角，大视野", "en": "24mm wide angle, wide field of view"},
+        {"label": "35mm 人文焦段", "en": "35mm humanistic focal length"},
+        {"label": "50mm 标准视角", "en": "50mm standard perspective"},
+        {"label": "85mm 人像焦段", "en": "85mm portrait focal length"},
+        {"label": "135mm 长焦压缩", "en": "135mm telephoto compression"},
+        {"label": "200mm 远摄", "en": "200mm telephoto"}
+      ]
+    },
+    "特效镜头": {
+      "label": "特效镜头",
+      "description": "特殊效果镜头选项",
+      "options": [
+        {"label": "光晕效果，柔美梦幻", "en": "lens flare effect, soft dreamy"},
+        {"label": "慢动作，时间凝滞", "en": "slow motion, time frozen"},
+        {"label": "散景光斑，唯美背景", "en": "bokeh light spots, beautiful background"},
+        {"label": "双重曝光，意境叠加", "en": "double exposure, layered imagery"},
+        {"label": "光轨拖尾，动态感", "en": "light trails, dynamic feel"},
+        {"label": "烟雾效果，朦胧氛围", "en": "fog effect, misty atmosphere"},
+        {"label": "粒子飞舞，魔法感", "en": "floating particles, magical feel"}
+      ]
+    },
+    "镜头滤镜": {
+      "label": "镜头滤镜",
+      "description": "叠加的滤镜效果",
+      "options": [
+        {"label": "柔光滤镜，肤质细腻", "en": "soft filter, smooth skin texture"},
+        {"label": "暖色滤镜，温馨怀旧", "en": "warm filter, cozy nostalgic"},
+        {"label": "冷色滤镜，清冷高级", "en": "cool filter, crisp premium"},
+        {"label": "高对比度滤镜，戏剧化", "en": "high contrast filter, dramatic"},
+        {"label": "褪色滤镜，复古胶片", "en": "faded filter, vintage film"},
+        {"label": "赛博朋克滤镜，霓虹色调", "en": "cyberpunk filter, neon tones"}
+      ]
+    },
+    "光源类型": {
+      "label": "光源类型",
+      "description": "光源种类",
+      "options": [
+        {"label": "自然阳光，晴天下光影", "en": "natural sunlight, clear day light and shadow"},
+        {"label": "黄金时刻，日落暖光", "en": "golden hour, warm sunset light"},
+        {"label": "月光洒落，银白清辉", "en": "moonlight spilling, silver clear glow"},
+        {"label": "烛光摇曳，温暖柔和", "en": "candlelight flickering, warm and soft"},
+        {"label": "霓虹灯光，色彩斑斓", "en": "neon lights, colorful and vibrant"},
+        {"label": "棚拍灯，专业布光", "en": "studio lighting, professional setup"},
+        {"label": "壁炉火光，橘红暖意", "en": "fireplace glow, orange-red warmth"},
+        {"label": "荧光灯管，冷白科技感", "en": "fluorescent tubes, cool white tech feel"}
+      ]
+    },
+    "光线类型": {
+      "label": "光线类型",
+      "description": "光线的质感与方向",
+      "options": [
+        {"label": "柔光，均匀散射", "en": "soft light, evenly diffused"},
+        {"label": "硬光，强烈对比阴影", "en": "hard light, strong contrasting shadows"},
+        {"label": "逆光剪影，轮廓发光", "en": "backlit silhouette, rim light glow"},
+        {"label": "侧光，立体感塑造", "en": "side light, sculpting three-dimensionality"},
+        {"label": "顶光，戏剧化效果", "en": "top light, dramatic effect"},
+        {"label": "底光，神秘恐怖感", "en": "bottom light, mysterious horror feel"},
+        {"label": "体积光，丁达尔效应", "en": "volumetric lighting, god rays"},
+        {"label": "漫反射光，柔和包裹", "en": "diffuse reflected light, soft wrapping"}
+      ]
+    },
+    "色调": {
+      "label": "色调",
+      "description": "画面的整体色彩倾向",
+      "options": [
+        {"label": "暖金色调，温暖舒适", "en": "warm golden tone, cozy and comfortable"},
+        {"label": "冷蓝色调，清冷静谧", "en": "cool blue tone, crisp and serene"},
+        {"label": "粉紫色调，梦幻浪漫", "en": "pink-purple tone, dreamy romantic"},
+        {"label": "墨绿色调，沉稳自然", "en": "dark green tone, calm and natural"},
+        {"label": "黑白灰，经典高级", "en": "black white grey, classic premium"},
+        {"label": "高饱和鲜艳，活力四射", "en": "high saturation vibrant, full of energy"},
+        {"label": "低饱和度莫兰迪色", "en": "low saturation Morandi color"},
+        {"label": "橙青互补色，电影感", "en": "teal and orange complementary, cinematic"}
+      ]
+    },
+    "视觉风格": {
+      "label": "视觉风格",
+      "description": "整体艺术风格设定",
+      "options": [
+        {"label": "写实风格，细腻逼真", "en": "realistic style, detailed and lifelike"},
+        {"label": "日系动漫风，赛璐璐", "en": "Japanese anime style, cel-shaded"},
+        {"label": "油画质感，厚重笔触", "en": "oil painting texture, thick brushstrokes"},
+        {"label": "水彩风格，轻盈透明", "en": "watercolor style, light and transparent"},
+        {"label": "厚涂CG，数字绘画", "en": "thick paint CG, digital art"},
+        {"label": "线稿素描，简洁黑白", "en": "line art sketch, clean black and white"},
+        {"label": "低多边形3D，风格化", "en": "low poly 3D, stylized"},
+        {"label": "皮克斯风格，圆润可爱", "en": "Pixar style, round and cute"},
+        {"label": "赛博朋克风，高科技低生活", "en": "cyberpunk style, high tech low life"},
+        {"label": "新艺术装饰风，穆夏风", "en": "Art Nouveau, Mucha style"},
+        {"label": "水墨画风，东方韵味", "en": "ink wash painting, oriental charm"},
+        {"label": "波普艺术，鲜艳色块", "en": "pop art, vibrant color blocks"}
+      ]
+    },
+    "质量等级": {
+      "label": "质量等级",
+      "description": "输出质量级别",
+      "options": [
+        {"label": "标准", "en": "detailed, high quality"},
+        {"label": "高质量", "en": "masterpiece, best quality, ultra-detailed, high resolution"},
+        {"label": "超高质量", "en": "masterpiece, best quality, ultra-detailed, extremely detailed, 8k, photorealistic"},
+        {"label": "大师级", "en": "masterpiece, best quality, ultra-detailed, extremely detailed, 8k, 4k, photorealistic, professional photography, studio lighting, perfect anatomy"}
+      ]
+    }
+  },
+  "negative_prompts": {
+    "标准": "low quality, worst quality, normal quality, lowres, pixelated, blurry, bad anatomy, bad hands, bad feet, missing fingers, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, ugly, bad proportions, extra limbs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, mutated, bad body, unnatural body, long body, duplicate, morbid, mutilated, out of frame, disfigured, gross proportions, missing arms, missing legs, extra arms, extra legs, cloned face, username, watermark, signature, text",
+    "高质量": "(worst quality:2.0), (low quality:2.0), (normal quality:1.8), (lowres:1.8), (bad anatomy:1.8), (bad hands:1.8), (text:1.8), (error:1.8), (missing fingers:1.8), (extra digit:1.8), (fewer digits:1.8), (cropped:1.8), (jpeg artifacts:1.8), (signature:1.8), (watermark:1.8), (username:1.8), (blurry:1.8), (artist name:1.8), (out of focus:1.8), (ugly:1.8), (duplicate:1.8), (morbid:1.8), (mutilated:1.8), (extra fingers:1.8), (mutated hands:1.8), (poorly drawn hands:1.8), (poorly drawn face:1.8), (mutation:1.8), (deformed:1.8), (bad proportions:1.8), (extra limbs:1.8), (cloned face:1.8), (disfigured:1.8), (gross proportions:1.8), (malformed limbs:1.8), (missing arms:1.8), (missing legs:1.8), (extra arms:1.8), (extra legs:1.8), (fused fingers:1.8), (too many fingers:1.8), (long neck:1.8), (cross-eyed:1.8)",
+    "简单": "low quality, worst quality, blurry"
+  },
+  "presets": {
+    "古风仕女": {
+      "场景类型": "日式庭院，樱花飘落，木质廊道",
+      "动作姿态": "端杯品茶，优雅姿态",
+      "服饰": "和服，蝴蝶结腰带，木屐",
+      "情绪氛围": "宁静祥和，内心平静如水"
+    },
+    "都市时尚": {
+      "场景类型": "现代都市街道，霓虹灯光，雨后湿滑路面",
+      "动作姿态": "单手叉腰，自信站姿",
+      "服饰": "长款风衣，皮靴，围巾",
+      "情绪氛围": "欢快愉悦，笑容灿烂"
+    },
+    "科幻战士": {
+      "场景类型": "未来科幻都市，全息投影，飞行器穿梭",
+      "动作姿态": "挥剑姿势，动态张力",
+      "服饰": "科幻装甲服，发光纹路",
+      "情绪氛围": "紧张刺激，剑拔弩张"
+    },
+    "梦幻森林": {
+      "场景类型": "魔法森林，发光植物，神秘雾气",
+      "动作姿态": "张开双臂，迎风而立",
+      "服饰": "波斯米亚长裙，编织凉鞋",
+      "情绪氛围": "梦幻缥缈，如入仙境"
+    },
+    "冬日雪景": {
+      "场景类型": "雪山之巅，云雾缭绕，日出金光",
+      "动作姿态": "执伞回眸，雨中漫步",
+      "服饰": "针织毛衣，毛线帽，围巾",
+      "情绪氛围": "宁静祥和，内心平静如水"
+    },
+    "赛博朋克": {
+      "场景类型": "赛博朋克小巷，霓虹广告牌，蒸汽弥漫",
+      "动作姿态": "单手叉腰，自信站姿",
+      "服饰": "黑色皮衣，金属铆钉",
+      "情绪氛围": "神秘莫测，朦胧氛围"
+    },
+    "海洋奇缘": {
+      "场景类型": "水下世界，珊瑚礁，鱼群环绕",
+      "动作姿态": "轻盈跳跃，裙摆飞扬",
+      "服饰": "泳装沙滩裙，草帽墨镜",
+      "情绪氛围": "天真烂漫，童趣盎然"
+    },
+    "魔法学院": {
+      "场景类型": "图书馆大厅，高耸书架，柔光洒落",
+      "动作姿态": "低头写字，专注神情",
+      "服饰": "奇幻法师袍，魔法书腰挂",
+      "情绪氛围": "神秘莫测，朦胧氛围"
+    }
+  },
+  "trigger_words": {
+    "核心标签": [
+      {"label": "单人物 (1girl)", "en": "1girl"},
+      {"label": "单男性 (1boy)", "en": "1boy"},
+      {"label": "双女性 (2girls)", "en": "2girls"},
+      {"label": "双男性 (2boys)", "en": "2boys"},
+      {"label": "男女配对 (1boy, 1girl)", "en": "1boy, 1girl"},
+      {"label": "群体 (multiple people)", "en": "multiple people"},
+      {"label": "无人场景 (no humans)", "en": "no humans"},
+      {"label": "solo", "en": "solo"}
+    ],
+    "角色类型": [
+      {"label": "骑士 (knight)", "en": "knight"},
+      {"label": "法师 (mage)", "en": "mage"},
+      {"label": "精灵 (elf)", "en": "elf"},
+      {"label": "天使 (angel)", "en": "angel"},
+      {"label": "恶魔 (demon)", "en": "demon"},
+      {"label": "吸血鬼 (vampire)", "en": "vampire"},
+      {"label": "狼人 (werewolf)", "en": "werewolf"},
+      {"label": "猫耳娘 (catgirl)", "en": "catgirl"},
+      {"label": "兔耳娘 (bunny girl)", "en": "bunny girl"},
+      {"label": "狐娘 (fox girl)", "en": "fox girl"},
+      {"label": "机器人 (robot)", "en": "robot"},
+      {"label": "仿生人 (android)", "en": "android"},
+      {"label": "女仆 (maid)", "en": "maid"},
+      {"label": "执事 (butler)", "en": "butler"},
+      {"label": "护士 (nurse)", "en": "nurse"},
+      {"label": "学生 (student)", "en": "student"},
+      {"label": "教师 (teacher)", "en": "teacher"},
+      {"label": "警察 (police)", "en": "police officer"},
+      {"label": "偶像 (idol)", "en": "idol"},
+      {"label": "魔法少女 (magical girl)", "en": "magical girl"},
+      {"label": "公主 (princess)", "en": "princess"},
+      {"label": "女王 (queen)", "en": "queen"},
+      {"label": "女神 (goddess)", "en": "goddess"},
+      {"label": "武士 (samurai)", "en": "samurai"},
+      {"label": "忍者 (ninja)", "en": "ninja"}
+    ]
+  },
+  "nsfw_tags": {
+    "label": "NSFW标签（需手动启用）",
+    "description": "为控制生图健康而单独设立的标签，默认禁用",
+    "enabled": false,
+    "options": [
+      {"label": "裸体 (naked)", "en": "naked"},
+      {"label": "内衣 (lingerie)", "en": "lingerie"},
+      {"label": "比基尼 (bikini)", "en": "bikini"},
+      {"label": "湿衣服 (wet clothes)", "en": "wet clothes"},
+      {"label": "透明服装 (see-through)", "en": "see-through clothing"}
+    ]
+  }
+}

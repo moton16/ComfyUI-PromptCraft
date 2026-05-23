@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "services": [
+    {
+      "id": "default",
+      "name": "默认服务",
+      "api_url": "https://api.siliconflow.cn/v1/chat/completions",
+      "api_key": "",
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "temperature": 0.7,
+      "max_tokens": 300
+    }
+  ],
+  "current": {
+    "enhance": {
+      "service_id": "default",
+      "model": ""
+    },
+    "agent": {
+      "service_id": "default",
+      "model": ""
+    }
+  }
+}
