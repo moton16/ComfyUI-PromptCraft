@@ -312,8 +312,8 @@ moton-promptcraft/
 ## ❓ 常见问题
 
 <details>
-<summary><b>Q: 节点下拉菜单中为什么看不到 NSFW 标签？</b></summary>
-需要在节点中勾选「特殊内容」开关，NSFW 标签才会显示。
+<summary><b>Q: 节点下拉菜单中为什么看不到 特殊内容 标签？</b></summary>
+需要在节点中勾选「特殊内容」开关，特殊内容 标签才会显示。
 </details>
 
 <details>

@@ -2,11 +2,11 @@
 LLM客户端 - 支持OpenAI兼容API
 支持：OpenAI兼容端口自行加载api等
 使用 config_manager 统一管理配置
+V1.2.1 — 使用 httpx 实现可中断的 API 调用
 """
 
 import json
-import urllib.request
-import urllib.error
+import httpx
 import traceback
 from pathlib import Path
 
@@ -161,19 +161,20 @@ class LLMClient:
             payload.update(build_thinking_suppression(model, disable_thinking=True))
 
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                api_url,
-                data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                method="POST"
-            )
+            from comfy.model_management import InterruptProcessingException
 
-            with urllib.request.urlopen(req, timeout=30) as response:
-                result = json.loads(response.read().decode("utf-8"))
+            # 使用 httpx 发送请求，支持中断检测
+            with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+                resp = client.post(
+                    api_url,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {api_key}"
+                    }
+                )
+                resp.raise_for_status()
+                result = resp.json()
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})
@@ -189,19 +190,14 @@ class LLMClient:
             print(f"[LLMClient] API响应格式异常: {json.dumps(result, ensure_ascii=False)[:300]}")
             return None
 
-        except urllib.error.HTTPError as e:
-            error_body = ""
-            try:
-                error_body = e.read().decode("utf-8")[:500]
-            except Exception:
-                pass
-            print(f"[LLMClient] HTTP错误 {e.code}: {error_body}")
+        except httpx.TimeoutException as e:
+            print(f"[LLMClient] 请求超时: {e}")
             return None
-        except urllib.error.URLError as e:
-            print(f"[LLMClient] 网络错误: {e.reason}")
+        except httpx.HTTPStatusError as e:
+            print(f"[LLMClient] HTTP错误 {e.response.status_code}: {e.response.text[:500]}")
             return None
-        except json.JSONDecodeError as e:
-            print(f"[LLMClient] JSON解析错误: {e}")
+        except httpx.RequestError as e:
+            print(f"[LLMClient] 网络错误: {e}")
             return None
         except Exception as e:
             print(f"[LLMClient] 未知错误: {e}")
@@ -235,29 +231,26 @@ class LLMClient:
         }
 
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                api_url,
-                data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                method="POST"
-            )
-            
-            with urllib.request.urlopen(req, timeout=15) as response:
-                result = json.loads(response.read().decode("utf-8"))
-            
+            with httpx.Client(timeout=httpx.Timeout(15.0, connect=10.0)) as client:
+                resp = client.post(
+                    api_url,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {api_key}"
+                    }
+                )
+                resp.raise_for_status()
+                result = resp.json()
+
             return True, f"连接成功! 模型: {model}"
-            
-        except urllib.error.HTTPError as e:
-            error_body = ""
-            try:
-                error_body = e.read().decode("utf-8")[:300]
-            except Exception:
-                pass
-            return False, f"HTTP {e.code}: {error_body}"
+
+        except httpx.TimeoutException as e:
+            return False, f"请求超时: {e}"
+        except httpx.HTTPStatusError as e:
+            return False, f"HTTP {e.response.status_code}: {e.response.text[:300]}"
+        except httpx.RequestError as e:
+            return False, f"网络错误: {e}"
         except Exception as e:
             return False, str(e)
 
@@ -300,39 +293,43 @@ class LLMClient:
             payload.update(build_thinking_suppression(model, disable_thinking=True))
 
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                api_url, data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                method="POST"
-            )
-
-            with urllib.request.urlopen(req, timeout=120) as response:
-                has_content = False
-                for raw_line in response:
-                    line = raw_line.decode("utf-8").strip()
-                    if not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data_str)
-                        delta = chunk["choices"][0].get("delta", {})
-                        content = delta.get("content", "")
-                        if content:
-                            has_content = True
-                            yield content
-                        elif not has_content:
-                            # Fallback: capture reasoning_content if content is empty
-                            reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
-                            if reasoning and not filter_output:
-                                yield reasoning
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
+            with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
+                with client.stream(
+                    "POST", api_url, json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {api_key}"
+                    }
+                ) as response:
+                    response.raise_for_status()
+                    has_content = False
+                    for line in response.iter_lines():
+                        line = line.strip()
+                        if not line.startswith("data: "):
+                            continue
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_str)
+                            delta = chunk["choices"][0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                has_content = True
+                                yield content
+                            elif not has_content:
+                                # Fallback: capture reasoning_content if content is empty
+                                reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
+                                if reasoning and not filter_output:
+                                    yield reasoning
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
+        except httpx.TimeoutException as e:
+            yield f"\n[Error: 请求超时 {e}]"
+        except httpx.HTTPStatusError as e:
+            yield f"\n[Error: HTTP {e.response.status_code}]"
+        except httpx.RequestError as e:
+            yield f"\n[Error: 网络错误 {e}]"
         except Exception as e:
             yield f"\n[Error: {e}]"
 
@@ -398,17 +395,16 @@ class LLMClient:
             payload.update(build_thinking_suppression(model, disable_thinking=True))
 
         try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                api_url, data=data,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=30) as response:
-                result = json.loads(response.read().decode("utf-8"))
+            with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+                resp = client.post(
+                    api_url, json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {api_key}",
+                    }
+                )
+                resp.raise_for_status()
+                result = resp.json()
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})
@@ -423,6 +419,12 @@ class LLMClient:
             print(f"[LLMClient] Agent 响应格式异常")
             return None
 
+        except httpx.TimeoutException as e:
+            print(f"[LLMClient] Agent 调用超时: {e}")
+            return None
+        except httpx.HTTPStatusError as e:
+            print(f"[LLMClient] Agent HTTP错误: {e.response.status_code}")
+            return None
         except Exception as e:
             print(f"[LLMClient] Agent 调用错误: {e}")
             return None

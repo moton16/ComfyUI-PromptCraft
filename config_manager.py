@@ -62,6 +62,7 @@ class ConfigManager:
         self.negative_prompt_path = os.path.join(self.user_config_dir, "negative_prompt.json")
         self.prompt_history_path = os.path.join(self.user_config_dir, "prompt_history.json")
         self.lora_favorites_path = os.path.join(self.user_config_dir, "lora_favorites.json")
+        self.llm_hint_path = os.path.join(self.user_config_dir, "llm_hint.json")
 
         # 内置模板路径（只读，用于初始化）
         self.sfw_template_path = os.path.join(self.templates_dir, "sfw_prompts.json")
@@ -603,6 +604,36 @@ class ConfigManager:
         return self.save_prompt_history(data)
 
     # ==================== LoRA 收藏 CRUD ====================
+
+    # ==================== 大模型提示词记忆 CRUD ====================
+
+    def load_llm_hint(self, force_reload: bool = False) -> str:
+        """加载用户保存的大模型提示词"""
+        if not force_reload and hasattr(self, '_llm_hint_cache') and self._llm_hint_cache is not None:
+            return self._llm_hint_cache
+        try:
+            if os.path.exists(self.llm_hint_path):
+                with open(self.llm_hint_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self._llm_hint_cache = data.get("hint", "")
+            else:
+                self._llm_hint_cache = ""
+        except Exception as e:
+            self._log(f"加载大模型提示词失败: {e}")
+            self._llm_hint_cache = ""
+        return self._llm_hint_cache
+
+    def save_llm_hint(self, hint: str) -> bool:
+        """保存用户的大模型提示词"""
+        try:
+            data = {"hint": hint, "version": "1.0.0"}
+            success = self._atomic_write_json(self.llm_hint_path, data)
+            if success:
+                self._llm_hint_cache = hint
+            return success
+        except Exception as e:
+            self._log(f"保存大模型提示词失败: {e}")
+            return False
 
     def load_lora_favorites(self, force_reload: bool = False) -> list:
         if not force_reload and hasattr(self, '_favorites_cache') and self._favorites_cache is not None:

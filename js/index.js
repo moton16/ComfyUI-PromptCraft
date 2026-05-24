@@ -29,7 +29,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.0 Mod7';
+const VERSION = '1.2.1 Mod1';
 
 // ==================== 工具函数 ====================
 
@@ -1087,7 +1087,7 @@ function filterAllComboWidgetsOnNode(node) {
 }
 
 /**
- * 随机填充所有分类下拉
+ * 随机填充所有分类下拉（质量等级不参与随机填充）
  */
 async function randomFillAll(node) {
     if (!node || !node.widgets) return;
@@ -1096,8 +1096,12 @@ async function randomFillAll(node) {
     const specialWidget = node.widgets.find(w => w.name === '特殊内容');
     const specialEnabled = specialWidget ? Boolean(specialWidget.value) : false;
 
+    // 质量等级不参与随机填充
+    const SKIP_RANDOM = ['质量等级'];
+
     for (const widget of node.widgets) {
         if (!CATEGORY_COMBO_NAMES.includes(widget.name)) continue;
+        if (SKIP_RANDOM.includes(widget.name)) continue;
 
         // 跳过已选择 "——" 的栏目，保持原样不填充
         if (widget.value === '——' || widget.value === '') continue;
@@ -1134,10 +1138,132 @@ async function randomFillAll(node) {
         node.graph.setDirtyCanvas(true, true);
     }
 
-    log('🎲 随机填充完成');
+    log('🎲 随机填充完成（质量等级保持不变）');
 }
 
 // ==================== 扩展注册 ====================
+
+// 画布 API 状态提示
+const LLM_STATUS_ICONS = {
+    calling: '⏳',
+    success: '✅',
+    error: '❌',
+    interrupted: '⚠️'
+};
+
+const LLM_STATUS_COLORS = {
+    calling: '#f0ad4e',
+    success: '#5cb85c',
+    error: '#d9534f',
+    interrupted: '#ff9800'
+};
+
+// 创建浮动状态提示
+function showLlmStatusToast(status, message) {
+    const existing = document.getElementById('promptcraft-llm-status-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'promptcraft-llm-status-toast';
+    toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 99999;
+        padding: 12px 20px; border-radius: 8px;
+        background: ${LLM_STATUS_COLORS[status] || '#333'}; color: white;
+        font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: promptcraft-fadeIn 0.3s ease-out;
+        display: flex; align-items: center; gap: 8px;
+    `;
+    toast.innerHTML = `<span style="font-size:16px">${LLM_STATUS_ICONS[status] || '⏳'}</span><span>${escHtml(message)}</span>`;
+
+    document.body.appendChild(toast);
+
+    // 自动消失
+    const duration = status === 'calling' ? 0 : 3000;
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.style.animation = 'promptcraft-fadeOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    return toast;
+}
+
+// 添加动画样式
+if (!document.getElementById('promptcraft-toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'promptcraft-toast-styles';
+    style.textContent = `
+        @keyframes promptcraft-fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes promptcraft-fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+    `;
+    document.head.appendChild(style);
+}
+
+// 监听后端 LLM 状态事件
+api.addEventListener('promptcraft.llm_status', (event) => {
+    const { status, message } = event.detail;
+    log(`LLM 状态: ${status} - ${message}`);
+
+    // 显示浮动提示
+    if (status !== 'calling') {
+        showLlmStatusToast(status, message);
+    }
+
+    // 更新所有 PromptEnhancer 节点的状态指示
+    if (app.graph && app.graph._nodes) {
+        app.graph._nodes.forEach(node => {
+            if (node.type === 'PromptEnhancer') {
+                updateNodeLlmStatus(node, status, message);
+            }
+        });
+    }
+});
+
+// 更新节点上的 LLM 状态指示
+function updateNodeLlmStatus(node, status, message) {
+    // 移除旧的状态指示
+    const existing = node._llmStatusWidget;
+    if (existing) {
+        const idx = node.widgets?.indexOf(existing);
+        if (idx >= 0) node.widgets.splice(idx, 1);
+    }
+
+    // 创建新的状态 widget
+    if (status === 'calling') {
+        const widget = node.addWidget('text', '🔍 LLM状态', '⏳ 调用中...', () => {}, {});
+        widget.disabled = true;
+        node._llmStatusWidget = widget;
+    } else if (status === 'success') {
+        const widget = node.addWidget('text', '🔍 LLM状态', '✅ 成功', () => {}, {});
+        widget.disabled = true;
+        node._llmStatusWidget = widget;
+        // 3秒后自动移除
+        setTimeout(() => {
+            const idx = node.widgets?.indexOf(widget);
+            if (idx >= 0) node.widgets.splice(idx, 1);
+            node.setSize(node.computeSize());
+            node.graph?.setDirtyCanvas(true);
+        }, 3000);
+    } else if (status === 'error' || status === 'interrupted') {
+        const icon = status === 'error' ? '❌' : '⚠️';
+        const widget = node.addWidget('text', '🔍 LLM状态', `${icon} ${message}`, () => {}, {});
+        widget.disabled = true;
+        node._llmStatusWidget = widget;
+        // 5秒后自动移除
+        setTimeout(() => {
+            const idx = node.widgets?.indexOf(widget);
+            if (idx >= 0) node.widgets.splice(idx, 1);
+            node.setSize(node.computeSize());
+            node.graph?.setDirtyCanvas(true);
+        }, 5000);
+    }
+
+    // 刷新节点大小
+    node.setSize(node.computeSize());
+    node.graph?.setDirtyCanvas(true);
+}
 
 app.registerExtension({
     name: 'Moton.PromptCraft',

@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from .config_manager import config_manager
 from .llm_client import LLMClient
+from server import PromptServer
 
 
 class PromptEnhancer:
@@ -156,20 +157,10 @@ class PromptEnhancer:
         return {
             "required": {
                 # === 用户基础输入 ===
-                "自定义前缀": ("STRING", {
-                    "multiline": False,
-                    "default": "",
-                    "placeholder": "在提示词最前面添加的内容..."
-                }),
                 "用户Prompt": ("STRING", {
                     "multiline": True,
                     "default": "",
                      "placeholder": "输入你的基础Prompt（将拼接在库标签之前）..."
-                }),
-                "自定义后缀": ("STRING", {
-                    "multiline": False,
-                    "default": "",
-                    "placeholder": "在提示词最后面添加的内容..."
                 }),
 
                 # === 主体设定 ===
@@ -219,7 +210,7 @@ class PromptEnhancer:
                 # === 大模型提示词 ===
                 "大模型提示词": ("STRING", {
                     "multiline": True,
-                    "default": "",
+                    "default": config_manager.load_llm_hint(),
                     "placeholder": "输入对LLM大模型的特殊要求（仅在启用语言大模型时生效）..."
                 }),
             },
@@ -247,7 +238,7 @@ class PromptEnhancer:
             "场景类型", "动作姿态", "服饰", "情绪氛围",
             "机位角度", "镜头类型",
             "特效镜头", "镜头滤镜", "光源类型", "光线类型",
-            "视觉风格", "质量等级"
+            "视觉风格"
         ]
 
         def _is_random_marker(val):
@@ -302,12 +293,7 @@ class PromptEnhancer:
         # LoRA prompt 放在最前面
         prompt_elements.extend(lora_prompt_elements)
 
-        # 1. 自定义前缀
-        自定义前缀 = kwargs.get("自定义前缀", "").strip()
-        if 自定义前缀:
-            prompt_elements.append(自定义前缀)
-
-        # 2. 处理预设配置
+        # 1. 处理预设配置
         预设配置 = kwargs.get("预设配置", self.NO_SELECTION)
         if 预设配置 and 预设配置 != self.NO_SELECTION:
             sfw = self._load_prompt_library()
@@ -383,11 +369,6 @@ class PromptEnhancer:
             if mapped:
                 prompt_elements.append(mapped)
 
-        # 10. 自定义后缀
-        自定义后缀 = kwargs.get("自定义后缀", "").strip()
-        if 自定义后缀:
-            prompt_elements.append(自定义后缀)
-
         # ========== 拼接正面提示词 ==========
         if prompt_elements:
             positive_prompt = ", ".join(prompt_elements)
@@ -400,19 +381,67 @@ class PromptEnhancer:
         if llm_client.is_enabled():
             if kwargs.get("语言大模型接入", False):
                 print(f"[PromptCraft] 正在调用大模型增强...")
+                # 发送状态事件到前端：调用中
+                PromptServer.instance.send_sync("promptcraft.llm_status", {
+                    "status": "calling",
+                    "message": "正在调用大模型..."
+                })
                 扩写模式 = kwargs.get("扩写模式", "基础扩写")
                 is_detailed = (扩写模式 == "详细扩写")
                 llm_hint = kwargs.get("大模型提示词", "").strip()
+
+                # 保存大模型提示词到持久化存储
+                if llm_hint:
+                    try:
+                        config_manager.save_llm_hint(llm_hint)
+                    except Exception:
+                        pass
 
                 # LoRA 标记保护：用 /// 包裹 LoRA 标签，LLM 不得修改
                 lora_tag_str = ""
                 if lora_prompt_elements:
                     lora_tag_str = "///" + ", ".join(lora_prompt_elements) + "///"
 
-                enhanced = llm_client.enhance_prompt(
-                    positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
-                    lora_tags=lora_tag_str
-                )
+                # 使用线程执行 LLM 调用，支持中断检测
+                import threading
+                result_container = {}
+
+                def _llm_call(container):
+                    try:
+                        container['result'] = llm_client.enhance_prompt(
+                            positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
+                            lora_tags=lora_tag_str
+                        )
+                    except Exception as e:
+                        container['error'] = str(e)
+
+                thread = threading.Thread(target=_llm_call, args=(result_container,))
+                thread.start()
+
+                # 轮询等待结果，同时检查中断
+                while thread.is_alive():
+                    thread.join(timeout=0.5)
+                    if not thread.is_alive():
+                        break
+                    # 检查 ComfyUI 中断信号
+                    try:
+                        import nodes
+                        nodes.before_node_execution()
+                    except KeyboardInterrupt:
+                        print("[PromptCraft] ⚠ 用户中断 LLM 调用")
+                        PromptServer.instance.send_sync("promptcraft.llm_status", {
+                            "status": "interrupted",
+                            "message": "LLM调用已中断"
+                        })
+                        return (positive_prompt, negative_prompt, "LLM调用被用户中断")
+                    except Exception:
+                        pass
+
+                if 'error' in result_container:
+                    print(f"[PromptCraft] LLM调用异常: {result_container['error']}")
+                    enhanced = None
+                else:
+                    enhanced = result_container.get('result')
                 if enhanced and enhanced.strip():
                     result = enhanced.strip()
                     # 后验证：检查 LoRA 标签是否被 LLM 改写或丢弃
@@ -430,8 +459,18 @@ class PromptEnhancer:
                     positive_prompt = result
                     llm_enhanced = True
                     print(f"[PromptCraft] 大模型增强成功")
+                    # 发送状态事件到前端：成功
+                    PromptServer.instance.send_sync("promptcraft.llm_status", {
+                        "status": "success",
+                        "message": "大模型增强成功"
+                    })
                 else:
                     print(f"[PromptCraft] 大模型增强失败，使用原始prompt")
+                    # 发送状态事件到前端：失败
+                    PromptServer.instance.send_sync("promptcraft.llm_status", {
+                        "status": "error",
+                        "message": "大模型增强失败，使用原始prompt"
+                    })
             else:
                 print(f"[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")
         else:
