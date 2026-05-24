@@ -1,34 +1,36 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-节点-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.1.2-brightgreen?style=for-the-badge" alt="Version 1.1.2"/>
+  <img src="https://img.shields.io/badge/版本-v1.2.1-brightgreen?style=for-the-badge" alt="Version 1.2.1"/>
   <img src="https://img.shields.io/badge/状态-正式发布-ff69b4?style=for-the-badge" alt="Stable"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
 
 <h1 align="center">🎨 PromptCraft</h1>
-<h3 align="center">— ComfyUI 全维度提示词增强节点 —</h3>
+<h3 align="center">— ComfyUI 全维度提示词增强 · LoRA 群组管理 · AI Agent —</h3>
 
 <p align="center">
-  <b>告别提示词荒 · 12+ 维度标签分类 · 双库切换 · 权重控制 · LLM 大模型增强</b>
+  <b>提示词荒终结者 · 15+ 维度标签 · 双库切换 · 权重控制 · LLM 增强 · LoRA 全栈管理 · AI Agent 自然语言操控</b>
 </p>
 
 <p align="center">
-  <i>将你从「不知道写什么 prompt」的迷茫中解放出来，一键生成专业级 Stable Diffusion 提示词</i>
+  <i>从提示词生成到 LoRA 编排，从大模型增强到自然语言驱动，一个插件覆盖 AI 绘画全链路</i>
 </p>
 
 ---
 
 ## 📖 总览
 
-**PromptCraft** 是一款功能丰富的 ComfyUI 自定义节点，旨在解决 AI 绘画中的「提示词荒」问题。它内置了覆盖 **12+ 维度**、**数百个中英文对照标签**的专业 Prompt 库，支持 **双库独立管理**、**权重精细化控制**、**LLM 大模型细节增强**，并提供 **ComfyUI 全局设置面板深度集成**。
+**PromptCraft** 是一款功能丰富的 ComfyUI 自定义节点插件，从解决「提示词荒」出发，逐步演进为覆盖提示词生成、LoRA 管理、大模型集成、AI Agent 的全链路工具。
 
-> 无论是新手还是老手，PromptCraft 都能帮你稳定产出高质量、多样化的提示词，让每次生成都充满惊喜。
+核心能力包括：内置 **15+ 维度**、**数百个中英文对照标签**的专业 Prompt 库，**LoRA 群组管理 + 画布内联栈**，**多服务 LLM 接入与智能思维链控制**，以及 **AI Agent 自然语言驱动工作流操控**。
+
+> 无论是提示词创作、LoRA 编排，还是用自然语言管理整个工作流，PromptCraft 都能帮你高效完成。
 
 ---
 
 ## ✨ 功能特性
 
-### 🎯 核心能力
+### 🎯 提示词核心
 
 | 特性 | 说明 |
 |------|------|
@@ -37,15 +39,42 @@
 | **⚖️ 独立权重控制** | 四大核心分类（场景/动作/服饰/情绪）可独立设置 0.0~2.0 权重，生成 SD 原生 `(tag:weight)` 语法 |
 | **📦 预设配置** | 内置多套预设（古风仕女、都市时尚、科幻战士等），一键应用四维组合 |
 | **🔄 缓存智能管理** | 文件变更自动检测，修改 Prompt 库后无需重启即可生效 |
+| **📝 LoRA Prompt 注入** | 每个 LoRA 可携带专属 prompt 组，在 PromptEnhancer 中最前端注入，LLM 不覆盖 |
+
+### 🎛️ LoRA 全栈管理
+
+- **Model & LoRA Group Loader** — 底模切换 + LoRA 群组一键加载
+  - 支持 Checkpoint 下拉选择，或选「None」透传上游 MODEL
+  - LoRA 栈画布内联显示，个体 LoRA + 群组引用混合排列、拖拽排序
+  - 每条目独立开关 + Model/CLIP 双权重输入
+  - 群组引用实时解析（后端执行时展开），始终使用最新群组配置
+  - 统一倍率滑块（0.0~2.0×），群组内所有 LoRA 权重一键缩放
+  - 群组缺失 LoRA 自动跳过并警告，不中断执行
+- **LoRA Hub 统一管理面板** — 浏览、群组、Agent 三 Tab 布局
+  - LoRA Tab：文件夹树导航 + 模糊搜索 + 收藏 + 详情查看
+  - 群组 Tab：新建/重命名/删除/搜索 + LoRA 拖拽添加/排序/权重编辑
+  - 支持 LoRA 配置导入/导出（JSON 文件）
+- **LoRA Prompt Loader** — 底模切换 + LoRA 栈 + 文本合并，输出纯文本
+  - 可连接 CLIP Text Encode Pro 合并编码，与标准 CheckpointLoader 管线兼容
 
 ### 🤖 LLM 大模型增强
 
-- 支持 **OpenAI 兼容 API**（推荐使用deepseek-v4-flash大模型）
-- 可配置 API URL、API Key、模型名称
+- 支持 **OpenAI 兼容 API**（推荐 DeepSeek / GLM / Qwen 等大模型）
+- **多服务配置** — 可配置多个 API 服务，独立管理 URL / Key / 模型
 - Temperature（温度/创造度）与 Max Tokens 可调
 - **一键连接测试** — 设置面板内置测试按钮
 - **双规则系统** — SFW 基础扩写 / NSFW 详细扩写，独立开关控制
+- **智能思维链控制** — 根据模型名称自动发送思维链关闭参数（支持 GLM / Qwen / DeepSeek / Gemini / Grok 等），过滤响应中的思维链输出
 - **大模型提示词输入框** — 可在节点内向 LLM 传入额外定制指令
+
+### 🤖 AI Agent
+
+- **自然语言驱动** — 用中文描述需求，Agent 自动翻译为结构化操作
+- **8 种操作类型** — `lora_add` / `lora_remove` / `lora_toggle` / `lora_weight` / `checkpoint` / `prompt_set` / `category_set` / `query`
+- **双入口** — LoRA Hub 侧栏 Agent Tab + 画布浮动对话框
+- **消息气泡交互** — 区分用户/Agent 角色，操作结果卡片实时反馈（成功/失败/跳过）
+- **快捷指令按钮** — 常用操作一键触发，无需手打命令
+- **System Prompt 硬编码** — 前端不可编辑，确保 LLM 行为一致性
 
 ### 📚 双 Prompt 库管理
 
@@ -61,7 +90,7 @@
 
 | 功能 | 类型 |
 |------|------|
-| 🤖 大模型连接配置 | 文本/布尔/滑块输入 |
+| 🤖 多服务 API 配置 | 文本/布尔/滑块输入 |
 | 🧪 大模型 API 连接测试 | 按钮触发 |
 | ⛔ 负面 Prompt 编辑器 | 按钮弹窗 |
 | 📝 提示词规则管理器 | 按钮弹窗 |
@@ -72,9 +101,10 @@
 ### 🛡️ 安全与健壮性
 
 - **API Key 掩码保护** — 设置面板中显示掩码，不会明文暴露
-- **原子性写入** — 防止写入中断导致配置文件损坏
+- **原子性写入** — 临时文件 + rename，防止写入中断导致配置文件损坏
 - **自动模板同步** — 内置模板更新时自动同步到用户配置
-- **双库缓存隔离** — SFW/NSFW 独立缓存与失效检测
+- **双库缓存隔离** — SFW/NSFW 独立缓存与 mtime 失效检测
+- **LoRA Sidecar 缓存** — `.pc-info-info.json` 缓存计算结果，带版本号强制刷新
 
 ---
 
@@ -103,7 +133,7 @@ git clone https://github.com/your-repo/moton-promptcraft.git
 
 ### 首次配置
 
-1. 重启 ComfyUI 后，在节点列表**prompt**栏下可找到，或搜索 **"PromptCraft"** 即可找到节点
+1. 重启 ComfyUI 后，在节点列表搜索 **"PromptCraft"** 即可找到全部节点
 2. **（可选）** 打开 ComfyUI 设置 → 找到 **PromptCraft** 配置区域
 3. 填入 LLM API URL、API Key 和模型名称（如需要使用大模型增强）
 4. 将节点拖入画布，选择标签或直接使用随机模式，点击生成
@@ -112,7 +142,19 @@ git clone https://github.com/your-repo/moton-promptcraft.git
 
 ## 📖 使用指南
 
-### 🔰 基础使用
+### 🔰 节点一览
+
+PromptCraft 提供 5 个 ComfyUI 节点：
+
+| 节点 | 类型 | 说明 |
+|------|------|------|
+| **PromptCraft** | 提示词 | 核心提示词生成节点，15+ 维度标签 + 权重控制 + LLM 增强 |
+| **Model & LoRA Group Loader** | 模型加载 | 底模切换 + LoRA 群组/栈管理，输出 MODEL + CLIP + VAE + lora_prompt_data |
+| **LoRA Prompt Loader** | 文本工具 | LoRA 栈管理 + 底模切换，输出纯文本（positive_text / negative_text） |
+| **CLIP Text Encode Pro** | 编码器 | 官方 CLIPTextEncode 升级版，额外支持 text2 输入合并编码 |
+| **AI Chat** | 对话 | 点击按钮打开 Agent 聊天面板，自然语言驱动 LoRA/模型操作 |
+
+### 🎨 PromptCraft 核心节点
 
 1. 在 ComfyUI 画布右键 → **Add Node** → 搜索 `PromptCraft`
 2. 节点输入区包含以下模块：
@@ -140,7 +182,7 @@ git clone https://github.com/your-repo/moton-promptcraft.git
    │                                                          │
    │ ⚙️ 控制                                                  │
    │   预设配置 · 特殊内容开关 · 语言大模型接入 · 扩写模式       │
-   │   大模型提示词 · 负面提示词类型                             │
+   │   大模型提示词 · 负面提示词类型 · lora_prompt_data 输入     │
    └─────────────────────────────────────────────────────────┘
    ```
 
@@ -148,6 +190,28 @@ git clone https://github.com/your-repo/moton-promptcraft.git
    - **正面提示词** — 拼接后的完整正向提示词
    - **负面提示词** — 根据选择模板生成的负面提示词
    - **完整信息** — 调试用摘要（包含长度、大模型状态、特殊内容状态）
+
+### 🎛️ LoRA 管理工作流
+
+**推荐管线 A — 模型加载型：**
+
+```
+CheckpointLoader → ModelLoraGroupLoader → KSampler
+                          ↓
+                    PromptCraft (lora_prompt_data 输入)
+```
+
+ModelLoraGroupLoader 同时输出 MODEL/CLIP/VAE 和 lora_prompt_data，一条线搞定模型加载和 prompt 注入。
+
+**推荐管线 B — 纯文本型：**
+
+```
+CheckpointLoader → LoraPromptLoader → CLIPTextEncodePro → KSampler
+                          ↓
+                    PromptCraft (lora_prompt_data 输入)
+```
+
+LoraPromptLoader 输出纯文本，通过 CLIPTextEncodePro 合并编码，更灵活。
 
 ### 🎲 随机模式详解
 
@@ -169,17 +233,16 @@ git clone https://github.com/your-repo/moton-promptcraft.git
 3. 选择扩写模式：「基础扩写」或「详细扩写」
 4. （可选）在「大模型提示词」输入框中填写对 LLM 的特殊要求
 5. 运行时系统将先拼接库标签，再发送给 LLM 进行细节增强
+6. 思维链自动控制 — 系统根据模型名称自动关闭思维链输出（支持 GLM-4.x / Qwen3 / DeepSeek / Gemini / Grok 等）
 
-### 🔞 特殊内容模式
+### 🤖 AI Agent 使用
 
-1. 在节点中勾选「特殊内容」开关
-2. 各分类下拉菜单将追加显示 NSFW 库中的标签
-3. 可选择特定标签，或使用随机模式在 NSFW 库范围内抽取
-
-### 📦 预设配置
-
-1. 在 Prompt 库编辑器中创建预设组合（包含场景/动作/服饰/情绪设置）
-2. 在节点中选择该预设，一键应用所有配置
+1. 在 LoRA Hub 面板切换到 **Agent Tab**，或在画布点击 AI Chat 节点的按钮
+2. 用自然语言描述需求，例如：
+   - "帮我换成赛博朋克风格的 LoRA，权重 0.8"
+   - "把所有 LoRA 权重降到 0.5"
+   - "当前工作流状态是什么？"
+3. Agent 自动解析为结构化操作，执行后返回结果卡片
 
 ---
 
@@ -202,11 +265,14 @@ git clone https://github.com/your-repo/moton-promptcraft.git
 
 ```
 <ComfyUI用户目录>/default/prompt_enhancer/
-├── llm_config.json           # LLM API 配置
+├── llm_config.json           # LLM API 配置（多服务）
 ├── llm_system_prompt.json    # System Prompt 规则配置
 ├── sfw_prompts.json          # SFW Prompt 库（用户可编辑）
 ├── nsfw_prompts.json         # NSFW Prompt 库（用户可编辑）
-└── negative_prompt.json      # 自定义负面提示词
+├── negative_prompt.json      # 自定义负面提示词
+├── lora_groups.json          # LoRA 群组配置
+├── lora_prompts.json         # LoRA Prompt 组配置
+└── service_config.json       # 多服务 API 配置
 ```
 
 ### 内置模板目录（只读参考）
@@ -228,44 +294,84 @@ git clone https://github.com/your-repo/moton-promptcraft.git
 
 ```
 moton-promptcraft/
-├── __init__.py               # 插件入口，节点注册
-├── prompt_enhancer.py        # 核心节点（INPUT_TYPES、生成逻辑）
-├── config_manager.py         # 配置管理器（单例，持久化 CRUD）
-├── llm_client.py             # OpenAI 兼容 LLM 客户端
-├── api_routes.py             # aiohttp API 路由（前端通信接口）
-├── server.py                 # 已废弃（路由迁移至 api_routes.py）
-├── CHANGELOG.md              # 更新日志
-├── README.md                 # 本文档
+├── __init__.py                   # 插件入口，节点注册 + 配置初始化
+├── prompt_enhancer.py            # 核心节点（INPUT_TYPES、生成逻辑、权重控制）
+├── model_lora_loader.py          # Model & LoRA Group Loader 节点
+├── lora_prompt_loader.py         # LoRA Prompt Loader 节点
+├── clip_text_encode_pro.py       # CLIP Text Encode Pro 节点
+├── ai_chat.py                    # AI Chat 节点
+├── config_manager.py             # 配置管理器（单例，持久化 CRUD）
+├── llm_client.py                 # OpenAI 兼容 LLM 客户端 + 思维链控制
+├── api_routes.py                 # aiohttp API 路由（前端通信接口）
+├── lora_group_manager.py         # LoRA 群组管理器（CRUD + 磁盘扫描）
+├── lora_prompt_manager.py        # LoRA Prompt 组管理器
+├── lora_scanner.py               # LoRA 磁盘扫描 + sidecar 缓存
+├── thinking_control.py           # 思维链自动控制（按模型匹配规则）
+├── agent_prompt.py               # Agent System Prompt 定义
+├── CHANGELOG.md                  # 更新日志
+├── README.md                     # 本文档
 ├── js/
-│   └── index.js              # 前端全部逻辑（LiteGraph 钩子、设置面板、弹窗）
-├── data/                     # 内置模板数据
+│   ├── index.js                  # 前端主入口（LiteGraph 钩子、设置面板）
+│   ├── chat_panel.js             # AI Agent 浮动对话框
+│   ├── control_panel.js          # 设置面板内容生成器
+│   ├── lora_group/
+│   │   ├── index.js              # LoRA Group 前端注册入口
+│   │   ├── api.js                # LoRA/群组 API 调用封装
+│   │   ├── stack_api.js          # 栈状态管理模块
+│   │   ├── canvas_widget.js      # 画布内联 LoRA 栈 Widget
+│   │   ├── hub_panel.js          # LoRA Hub 统一管理面板
+│   │   ├── agent_panel.js        # Agent 对话面板
+│   │   ├── agent_executor.js     # Agent 操作执行器
+│   │   ├── service_config.js     # 多服务 API 配置面板
+│   │   └── styles.css            # Hub 面板样式
+│   └── lora_prompt_loader/
+│       └── index.js              # LoRA Prompt Loader 前端注册
+├── data/                         # 内置模板数据
 │   ├── sfw_prompts.json
 │   ├── nsfw_prompts.json
 │   ├── llm_config.json
 │   ├── llm_system_prompt.json
 │   └── default_prompts.json
-└── skills/                   # Agent 技能存储
+└── design/                       # 设计文档与原型
 ```
 
 ---
 
 ## 📊 代码统计
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `js/index.js` | ~1,586 | 前端全部逻辑：LiteGraph 钩子、设置面板注册、弹窗 UI、按钮注入、回退面板 |
-| `prompt_enhancer.py` | ~595 | ComfyUI 节点核心：INPUT_TYPES、生成逻辑、分类解析、权重控制 |
-| `config_manager.py` | ~434 | 配置管理单例：CRUD、原子性写入、缓存管理、自动恢复 |
-| `llm_client.py` | ~232 | LLM API 客户端：OpenAI 兼容、连接测试、自动路径补全 |
-| `api_routes.py` | ~229 | API 路由：配置读写、库编辑、系统规则管理 |
-| `__init__.py` | ~65 | 插件入口：节点注册、配置初始化、旧版迁移 |
-| **总计** | **~3,141** | — |
+| 类别 | 行数 | 文件数 |
+|------|------|--------|
+| Python 后端 | ~4,100 | 15 |
+| JavaScript 前端 | ~4,850 | 12 |
+| CSS 样式 | ~2,850 | 1 |
+| **总计** | **~11,800** | **28** |
 
 ---
 
 ## 📝 版本历史
 
-### v1.1.2 (2026-05-16) — 当前版本
+### v1.2.1 (2026-05-24) — 当前版本
+
+- 🔧 **调整**：LoRA Prompt Loader 底模加载逻辑修正
+- 🔧 **调整**：LoRA 应用问题修复，隐藏 widget 改为 optional input 方式
+- 🐛 **修复**：Prompt 组过滤与群组引用展开逻辑修正
+
+### v1.2.0 (2026-05-21) — 大版本更新
+
+- 🚀 **新增**：Model & LoRA Group Loader 节点 — 底模切换 + LoRA 群组一键加载
+- 🚀 **新增**：LoRA 栈模式 — 画布内联 LoRA 列表，个体 + 群组混合排列
+- 🚀 **新增**：LoRA Hub 统一管理面板 — 浏览/群组/Agent 三 Tab
+- 🚀 **新增**：LoRA Prompt 组系统 — 每个 LoRA 可携带专属 prompt
+- 🚀 **新增**：AI Agent 模块 — 自然语言驱动 LoRA/模型操作
+- 🚀 **新增**：LoRA Prompt Loader + CLIP Text Encode Pro 节点
+- 🚀 **新增**：AI Chat 节点
+- 🚀 **新增**：智能思维链控制 — 根据模型自动关闭思维链
+- 🚀 **新增**：多服务 API 配置
+- 🚀 **新增**：14+ API 端点（群组 CRUD / LoRA 扫描 / Agent 等）
+- 🔧 **调整**：前端模块化重构，LoRA 相关代码拆分为独立文件
+- 🔧 **调整**：版本号统一升级至 v1.2.0
+
+### v1.1.2 (2026-05-16)
 
 - 🔧 **调整**：删除了部分语义重叠的 Prompt 组，精简 UI
 - 🔧 **调整**：改进大模型 API 调用测试方式
@@ -290,10 +396,6 @@ moton-promptcraft/
 - ComfyUI 设置面板深度集成
 - 库内容、大模型规则支持自定义修改
 
-### v1.0.x Beta (2026-05-11)
-
-内部测试版本，已合并到 v1.1.0 正式版。
-
 完整更新日志请参阅 [CHANGELOG.md](./CHANGELOG.md)。
 
 ---
@@ -306,14 +408,16 @@ moton-promptcraft/
 4. **空库自动恢复** — 若用户库被误删为空，自动从内置模板恢复
 5. **LLM 需要自备 Key** — 大模型增强功能需要自行配置 OpenAI 兼容的 API Key
 6. **子组仅支持核心分类** — 子组随机功能目前仅对场景类型、动作姿态、服饰、情绪氛围四个核心分类生效
+7. **LoRA 文件位置** — LoRA 扫描从 `ComfyUI\models\loras` 读取，无需手动导入
+8. **Agent 操作范围** — AI Agent 目前仅支持 LoRA 栈和底模操作，暂不支持画布节点连线
 
 ---
 
 ## ❓ 常见问题
 
 <details>
-<summary><b>Q: 节点下拉菜单中为什么看不到 特殊内容 标签？</b></summary>
-需要在节点中勾选「特殊内容」开关，特殊内容 标签才会显示。
+<summary><b>Q: 节点下拉菜单中为什么看不到特殊内容标签？</b></summary>
+需要在节点中勾选「特殊内容」开关，特殊内容标签才会显示。
 </details>
 
 <details>
@@ -329,6 +433,21 @@ moton-promptcraft/
 <details>
 <summary><b>Q: LLM 增强不生效怎么办？</b></summary>
 请检查：① 设置面板中是否已启用大模型 ② API URL、API Key、模型是否填写正确 ③ 节点中是否勾选了「语言大模型接入」④ 可使用设置面板中的「测试 API 连接」按钮验证配置。
+</details>
+
+<details>
+<summary><b>Q: ModelLoraGroupLoader 和 LoraPromptLoader 有什么区别？</b></summary>
+建议使用ModelLoraGroupLoader，LoraPromptLoader是此前设计的旧节点，不再进行维护
+</details>
+
+<details>
+<summary><b>Q: AI Agent 支持哪些操作？</b></summary>
+目前支持 8 种操作：添加/移除/切换/调权 LoRA、切换底模、设置提示词、设置分类选择、查询当前状态。暂不支持操作画布连线，未来会进行进一步优化。
+</details>
+
+<details>
+<summary><b>Q: 群组引用和个体 LoRA 有什么区别？</b></summary>
+群组引用是已保存的 LoRA 集合，后端执行时实时展开为具体 LoRA 列表；个体 LoRA 是直接添加的单个 LoRA。两者可在栈中混合排列，群组引用以紫色名称标识。
 </details>
 
 ---
@@ -355,7 +474,7 @@ moton-promptcraft/
 ---
 
 <p align="center">
-  <b>✨ PromptCraft — 让每次创作都不缺灵感 ✨</b>
+  <b>✨ PromptCraft — 从提示词到工作流，让每次创作都不缺灵感 ✨</b>
   <br>
-  <i>如果这个节点帮到了你，欢迎给项目点个 ⭐</i>
+  <i>如果这个插件帮到了你，欢迎给项目点个 ⭐</i>
 </p>
