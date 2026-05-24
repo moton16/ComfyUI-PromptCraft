@@ -29,7 +29,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.1 Mod1';
+const VERSION = '1.2.1 Mod3';
 
 // ==================== 工具函数 ====================
 
@@ -857,6 +857,7 @@ function registerSettings() {
 const FALLBACK_PANEL_ID = 'moton-pe-fallback-panel';
 
 function ensureFallbackPanel() {
+    if (localStorage.getItem('moton-pe-panel-hidden') === 'true') return;
     if (document.getElementById(FALLBACK_PANEL_ID)) return;
 
     const storageKey = 'moton-pe-panel-state';
@@ -884,9 +885,9 @@ function ensureFallbackPanel() {
 
     // Quick access buttons
     const QUICK_BUTTONS = [
-        { text: '⊘ 负面 Prompt', fn: openNegativePromptEditor },
         { text: '📐 规则管理器', fn: openRuleManager },
         { text: '▤ 库编辑器', fn: openLibraryEditor },
+        { text: '⏱ Prompt 历史', fn: openPromptHistory },
     ];
 
     QUICK_BUTTONS.forEach(({ text, fn }) => {
@@ -914,8 +915,47 @@ function ensureFallbackPanel() {
     document.addEventListener('mousemove', (e) => { if(!dragging)return; container.style.left=Math.max(0,Math.min(ox+e.clientX-sx,window.innerWidth-40))+'px'; container.style.top=Math.max(0,Math.min(oy+e.clientY-sy,window.innerHeight-40))+'px'; });
     document.addEventListener('mouseup', () => { if(!dragging)return; dragging=false; container.style.cursor='grab'; try{localStorage.setItem(storageKey,JSON.stringify({x:container.offsetLeft,y:container.offsetTop}));}catch{} });
 
+    // 右键菜单：关闭浮窗
+    container.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const oldMenu = document.getElementById('moton-pe-ctx-menu');
+        if (oldMenu) oldMenu.remove();
+
+        const menu = document.createElement('div');
+        menu.id = 'moton-pe-ctx-menu';
+        menu.style.cssText = `position:fixed; left:${e.clientX}px; top:${e.clientY}px; z-index:99999; background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:4px; box-shadow:0 4px 16px rgba(0,0,0,0.12); min-width:140px; font-family:'Segoe UI',Arial,sans-serif;`;
+
+        const closeBtn = document.createElement('div');
+        closeBtn.textContent = '关闭浮窗';
+        closeBtn.style.cssText = 'padding:6px 12px; cursor:pointer; font-size:12px; color:#666; border-radius:4px; transition:all 0.15s;';
+        closeBtn.onmouseenter = () => { closeBtn.style.background = '#f5f5f5'; closeBtn.style.color = '#333'; };
+        closeBtn.onmouseleave = () => { closeBtn.style.background = ''; closeBtn.style.color = '#666'; };
+        closeBtn.onclick = () => {
+            container.remove();
+            localStorage.setItem('moton-pe-panel-hidden', 'true');
+            menu.remove();
+            alert('浮窗已关闭，可通过 PromptCraft 设置面板重新开启');
+        };
+        menu.appendChild(closeBtn);
+
+        document.body.appendChild(menu);
+        const closeMenu = (ev) => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    });
+
     document.body.appendChild(container);
     log('◆ 浮动快捷面板已创建');
+}
+
+function toggleFallbackPanel(visible) {
+    if (visible) {
+        localStorage.removeItem('moton-pe-panel-hidden');
+        ensureFallbackPanel();
+    } else {
+        const panel = document.getElementById(FALLBACK_PANEL_ID);
+        if (panel) panel.remove();
+        localStorage.setItem('moton-pe-panel-hidden', 'true');
+    }
 }
 
 // ==================== 增强 multiline 输入框高度（LiteGraph Widget 级别） ====================
@@ -984,10 +1024,10 @@ function syncTextareaAppearance(node, targetHeight) {
  * 这些是节点 INPUT_TYPES 中定义为 combo/下拉的字段名
  */
 const CATEGORY_COMBO_NAMES = [
-    '场景类型', '动作姿态', '服饰', '情绪氛围',
+    '场景类型', '动作姿态', '服饰细节', '表情状态',
     '机位角度', '镜头类型',
-    '特效镜头', '镜头滤镜', '光源类型', '光线类型',
-    '视觉风格', '质量等级'
+    '特效镜头', '镜头滤镜', '光线类型',
+    '视觉风格', '质量等级', '时间设定', '情绪表达(忌与表情状态同时随机)'
 ];
 
 /**
@@ -1331,7 +1371,6 @@ app.registerExtension({
 
 // 0. 控制面板 → 子面板事件桥接
 window.addEventListener('promptcraft:open-rule-manager', () => openRuleManager());
-window.addEventListener('promptcraft:open-negative-editor', () => openNegativePromptEditor());
 window.addEventListener('promptcraft:open-library-editor', () => openLibraryEditor());
 window.addEventListener('promptcraft:open-history', () => openPromptHistory());
 window.addEventListener('promptcraft:open-services', () => openServiceConfigModal());
@@ -1343,6 +1382,9 @@ window.addEventListener('promptcraft:open-hub', () => {
     } else {
         alert('请先在画布上添加一个 LoRA Group 节点');
     }
+});
+window.addEventListener('promptcraft:toggle-panel', (e) => {
+    toggleFallbackPanel(e.detail.visible);
 });
 
 // 1. 加载 NSFW 标签缓存

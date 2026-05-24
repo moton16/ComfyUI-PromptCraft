@@ -378,7 +378,7 @@ class ConfigManager:
     @staticmethod
     def _get_default_services_config() -> dict:
         return {
-            "version": "2.0.0",
+            "version": "3.0.0",
             "services": [
                 {
                     "id": "default",
@@ -391,7 +391,9 @@ class ConfigManager:
                 }
             ],
             "current": {
-                "enhance": {"service_id": "default", "model": ""},
+                "enhance_basic": {"service_id": "default", "model": ""},
+                "enhance_detail": {"service_id": "default", "model": ""},
+                "enhance_normal": {"service_id": "default", "model": ""},
                 "agent": {"service_id": "default", "model": ""},
             }
         }
@@ -430,6 +432,16 @@ class ConfigManager:
         except Exception as e:
             self._log(f"加载服务配置失败: {e}")
             self._svc_cache = self._get_default_services_config()
+        # 迁移旧版 current 结构（enhance → enhance_basic）
+        current = self._svc_cache.get("current", {})
+        if "enhance" in current and "enhance_basic" not in current:
+            enhance_val = current.pop("enhance")
+            current["enhance_basic"] = enhance_val
+            current.setdefault("enhance_detail", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
+            current.setdefault("enhance_normal", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
+            self._svc_cache["current"] = current
+            self._atomic_write_json(self.llm_services_path, self._svc_cache)
+            self._log("已迁移 enhance → enhance_basic/enhance_detail/enhance_normal")
         return self._svc_cache
 
     def save_services_config(self, data: dict) -> bool:
@@ -497,7 +509,7 @@ class ConfigManager:
         return True
 
     def set_current_service(self, category: str, service_id: str, model: str = "") -> bool:
-        if category not in ("enhance", "agent"):
+        if category not in ("enhance_basic", "enhance_detail", "enhance_normal", "agent"):
             return False
         cfg = self.load_services_config()
         cfg["current"][category] = {"service_id": service_id, "model": model}

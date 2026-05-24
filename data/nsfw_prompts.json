@@ -95,8 +95,8 @@
       "options": [
       ]
     },
-    "服饰": {
-      "label": "服饰",
+    "服饰细节": {
+      "label": "服饰细节",
       "description": "特殊内容 - 服装与配饰",
       "options": [
         {"label": "全裸叉腿", "en": "fully naked, legs spread wide, pussy clearly visible, breasts clearly visible, wet with arousal"},
@@ -129,8 +129,8 @@
         {"label": "紧身衣真空拉链全开", "en": "latex bodysuit zipper fully open from crotch to neck, nothing underneath, peeled open revealing breasts and pussy, shiny latex reflection"}
       ]
     },
-    "情绪氛围": {
-      "label": "情绪氛围",
+    "表情状态": {
+      "label": "表情状态",
       "description": "特殊内容 - 氛围与情绪",
       "options": [
         {"label": "高潮潮红面颊滚烫", "en": "climax_blush, flushed_cheeks, heavy_breathing, parted_lips, distant_lust_eyes, tears, blushing_neck"},
@@ -179,14 +179,6 @@
         {"label": "特殊滤镜示例2", "en": "special filter example 2"}
       ]
     },
-    "光源类型": {
-      "label": "光源类型",
-      "description": "特殊内容 - 光源（仅供学习测试，用户自行填充内容）",
-      "options": [
-        {"label": "特殊光源示例1", "en": "special light source example 1"},
-        {"label": "特殊光源示例2", "en": "special light source example 2"}
-      ]
-    },
     "光线类型": {
       "label": "光线类型",
       "description": "特殊内容 - 光线（仅供学习测试，用户自行填充内容）",
@@ -209,6 +201,30 @@
       "options": [
         {"label": "特殊质量示例1", "en": "special quality example 1"},
         {"label": "特殊质量示例2", "en": "special quality example 2"}
+      ]
+    },
+    "负面提示词": {
+      "label": "负面提示词",
+      "description": "特殊内容 - 负面提示词模板",
+      "options": [
+        {"label": "特殊负面示例1", "en": "special negative example 1"},
+        {"label": "特殊负面示例2", "en": "special negative example 2"}
+      ]
+    },
+    "时间设定": {
+      "label": "时间设定",
+      "description": "特殊内容 - 时间设定（仅供学习测试，用户自行填充内容）",
+      "options": [
+        {"label": "特殊时间示例1", "en": "special time setting example 1"},
+        {"label": "特殊时间示例2", "en": "special time setting example 2"}
+      ]
+    },
+    "情绪表达": {
+      "label": "情绪表达",
+      "description": "特殊内容 - 情绪表达（忌与表情状态同时随机）",
+      "options": [
+        {"label": "特殊情绪示例1", "en": "special emotion example 1"},
+        {"label": "特殊情绪示例2", "en": "special emotion example 2"}
       ]
     }
   }

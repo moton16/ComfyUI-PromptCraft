@@ -31,12 +31,15 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.2.1</span>
+            <span class="pc-brand-ver">v1.2.1 Mod3</span>
         </div>
     `;
 
     // Section: API Services
     root.appendChild(buildApiSection());
+
+    // Section: Floating Panel Switch
+    root.appendChild(buildPanelSwitch());
 
     // Section: Prompt Tools
     root.appendChild(buildToolsSection());
@@ -52,6 +55,31 @@ export function createSettingsContent() {
 
 // ==================== Section Builders ====================
 
+function buildPanelSwitch() {
+    const card = createSectionCard('◆', '浮动面板');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+    const isHidden = localStorage.getItem('moton-pe-panel-hidden') === 'true';
+    row.innerHTML = `
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#666;">
+            <input type="checkbox" id="pc-panel-switch" ${isHidden ? '' : 'checked'} style="cursor:pointer;">
+            显示浮动快捷面板
+        </label>
+        <span style="font-size:11px;color:#aaa;">画布右下角的 ◆ 快捷入口，右键可关闭</span>
+    `;
+    card.body.appendChild(row);
+
+    card.root.addEventListener('change', (e) => {
+        if (e.target.id === 'pc-panel-switch') {
+            const visible = e.target.checked;
+            window.dispatchEvent(new CustomEvent('promptcraft:toggle-panel', { detail: { visible } }));
+        }
+    });
+
+    return card.root;
+}
+
+
 function buildApiSection() {
     const card = createSectionCard('⬡', 'API 服务配置');
 
@@ -60,8 +88,16 @@ function buildApiSection() {
     catRow.className = 'pc-cat-row';
     catRow.innerHTML = `
         <div class="pc-cat-item">
-            <span class="pc-cat-label">提示词增强</span>
-            <select class="pc-cat-select" data-cat="enhance"><option>加载中...</option></select>
+            <span class="pc-cat-label">基础扩写</span>
+            <select class="pc-cat-select" data-cat="enhance_basic"><option>加载中...</option></select>
+        </div>
+        <div class="pc-cat-item">
+            <span class="pc-cat-label">详细扩写</span>
+            <select class="pc-cat-select" data-cat="enhance_detail"><option>加载中...</option></select>
+        </div>
+        <div class="pc-cat-item">
+            <span class="pc-cat-label">普通扩写</span>
+            <select class="pc-cat-select" data-cat="enhance_normal"><option>加载中...</option></select>
         </div>
         <div class="pc-cat-item">
             <span class="pc-cat-label">AI Agent</span>
@@ -116,14 +152,6 @@ function buildToolsSection() {
     const grid = document.createElement('div');
     grid.className = 'pc-tool-grid';
     grid.innerHTML = `
-        <div class="pc-tool-card" data-action="open-negative">
-            <div class="pc-tool-icon">⊘</div>
-            <div class="pc-tool-info">
-                <div class="pc-tool-name">负面提示词</div>
-                <div class="pc-tool-desc">编辑自定义负面标签</div>
-            </div>
-            <span class="pc-tool-arrow">→</span>
-        </div>
         <div class="pc-tool-card" data-action="open-rules">
             <div class="pc-tool-icon">📐</div>
             <div class="pc-tool-info">
@@ -161,7 +189,6 @@ function buildToolsSection() {
 
     card.root.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
-        if (action === 'open-negative') window.dispatchEvent(new CustomEvent('promptcraft:open-negative-editor'));
         if (action === 'open-rules') window.dispatchEvent(new CustomEvent('promptcraft:open-rule-manager'));
         if (action === 'open-library') window.dispatchEvent(new CustomEvent('promptcraft:open-library-editor'));
         if (action === 'open-history') window.dispatchEvent(new CustomEvent('promptcraft:open-history'));
@@ -203,7 +230,7 @@ function buildAboutSection() {
     card.innerHTML = `
         <div class="pc-section-body">
             <div class="pc-about-row">
-                <span>PromptCraft v1.2.1</span>
+                <span>PromptCraft v1.2.1 Mod3</span>
                 <span class="pc-about-dot"></span>
                 <span>Author: Moton</span>
             </div>
@@ -237,7 +264,7 @@ async function loadApiSectionData(svcListEl, catRowEl) {
         const { services, current } = res.data;
 
         // Populate category selects
-        for (const cat of ['enhance', 'agent']) {
+        for (const cat of ['enhance_basic', 'enhance_detail', 'enhance_normal', 'agent']) {
             const sel = catRowEl.querySelector(`.pc-cat-select[data-cat="${cat}"]`);
             if (!sel) continue;
             sel.innerHTML = '';
@@ -255,10 +282,14 @@ async function loadApiSectionData(svcListEl, catRowEl) {
         for (const svc of services) {
             const mini = document.createElement('div');
             mini.className = 'pc-svc-mini';
-            const isEnhance = current.enhance?.service_id === svc.id;
+            const isBasic = current.enhance_basic?.service_id === svc.id;
+            const isDetail = current.enhance_detail?.service_id === svc.id;
+            const isNormal = current.enhance_normal?.service_id === svc.id;
             const isAgent = current.agent?.service_id === svc.id;
             let badges = '';
-            if (isEnhance) badges += '<span class="pc-svc-badge pc-svc-badge-amber">增强</span>';
+            if (isBasic) badges += '<span class="pc-svc-badge pc-svc-badge-amber">基础扩写</span>';
+            if (isDetail) badges += '<span class="pc-svc-badge pc-svc-badge-amber">详细扩写</span>';
+            if (isNormal) badges += '<span class="pc-svc-badge pc-svc-badge-amber">普通扩写</span>';
             if (isAgent) badges += '<span class="pc-svc-badge pc-svc-badge-teal">Agent</span>';
             mini.innerHTML = `
                 <span class="pc-svc-mini-name">${escHtml(svc.name)}</span>
