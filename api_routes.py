@@ -7,6 +7,7 @@ Moton's Prompt Enhancer 设置面板 API 路由
 import json
 import asyncio
 import threading
+import functools
 from aiohttp import web
 from server import PromptServer
 from .config_manager import config_manager
@@ -28,6 +29,31 @@ def get_result_json(success: bool, data=None, error: str = None) -> dict:
     if error:
         result["error"] = error
     return result
+
+
+def api_handler(log_msg=None):
+    """API 路由装饰器：统一 try/except + 响应格式
+
+    用法:
+        @PromptServer.instance.routes.get(f"{API_PREFIX}/xxx")
+        @api_handler("获取 XXX")
+        async def xxx(request):
+            return config_manager.load_xxx()
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(request):
+            try:
+                data = await func(request)
+                return web.json_response(get_result_json(True, data))
+            except ValueError as e:
+                return web.json_response(get_result_json(False, error=str(e)), status=400)
+            except Exception as e:
+                if log_msg:
+                    print(f"{PREFIX} {log_msg}失败: {e}")
+                return web.json_response(get_result_json(False, error=str(e)), status=500)
+        return wrapper
+    return decorator
 
 
 # ==================== 设置摘要 API ====================
@@ -511,10 +537,6 @@ async def api_toggle_lora_favorite(request):
     except Exception as e:
         return web.json_response(get_result_json(False, error=str(e)), status=500)
 
-
-print(f"{PREFIX} LoRA 群组管理 API 路由已注册")
-print(f"{PREFIX} LoRA Prompt 管理 API 路由已注册")
-print(f"{PREFIX} 设置面板 API 路由已注册: {API_PREFIX}")
 
 from .lora_group_manager import lora_group_manager
 from .lora_scanner import LoraScanner

@@ -4,12 +4,12 @@ LoRA 群组管理器 — 群组配置的 CRUD 操作
 """
 
 import os
-import json
 import time
 from datetime import datetime
+from .cache_utils import MtimeCacheMixin
 
 
-class LoraGroupManager:
+class LoraGroupManager(MtimeCacheMixin):
     """LoRA 群组配置的 CRUD 管理器（单例）"""
 
     _instance = None
@@ -27,59 +27,36 @@ class LoraGroupManager:
 
         from .config_manager import config_manager
         self.user_dir = config_manager.user_config_dir
-        self.groups_path = os.path.join(self.user_dir, "lora_groups.json")
+        self._cache_file = os.path.join(self.user_dir, "lora_groups.json")
+        self.groups_path = self._cache_file
 
-        self._cache = None
-        self._cache_mtime = 0
-
+        self._init_mtime_cache()
         self._ensure_file_exists()
-        print(f"[PromptCraft] LoRA 群组管理器已初始化: {self.groups_path}")
+        print(f"[PromptCraft] LoRA 群组管理器已初始化: {self._cache_file}")
 
     def _log(self, msg):
         print(f"[PromptCraft] {msg}", flush=True)
 
     def _ensure_file_exists(self):
-        if not os.path.exists(self.groups_path):
+        if not os.path.exists(self._cache_file):
             self._save_raw({"version": "1.0.0", "groups": {}})
 
     def _save_raw(self, data):
         from .config_manager import config_manager
-        config_manager._atomic_write_json(self.groups_path, data)
+        config_manager._atomic_write_json(self._cache_file, data)
 
     # ==================== 加载 ====================
 
     def load_groups(self) -> dict:
         """加载群组配置（带 mtime 缓存）"""
-        if not os.path.exists(self.groups_path):
+        if not os.path.exists(self._cache_file):
             self._ensure_file_exists()
-        try:
-            mtime = os.path.getmtime(self.groups_path)
-        except OSError:
-            mtime = 0
-
-        if self._cache is not None and mtime == self._cache_mtime:
-            return self._cache
-
-        try:
-            with open(self.groups_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self._cache = data.get("groups", {})
-            self._cache_mtime = mtime
-        except Exception as e:
-            self._log(f"加载群组配置失败: {e}")
-            self._cache = {}
-            self._cache_mtime = 0
-        return self._cache
+        return self._load_json_with_cache(key="groups")
 
     def save_groups(self, groups: dict):
         """原子写入群组配置"""
         data = {"version": "1.0.0", "groups": groups}
-        self._save_raw(data)
-        self._cache = groups
-        try:
-            self._cache_mtime = os.path.getmtime(self.groups_path)
-        except OSError:
-            self._cache_mtime = 0
+        self._save_json_and_update_cache(data)
 
     # ==================== 查询 ====================
 

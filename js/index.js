@@ -1201,69 +1201,12 @@ if (!document.getElementById('promptcraft-toast-styles')) {
     document.head.appendChild(style);
 }
 
-// 监听后端 LLM 状态事件
+// 监听后端 LLM 状态事件（仅使用浮动 Toast，不修改画布节点）
 api.addEventListener('promptcraft.llm_status', (event) => {
     const { status, message } = event.detail;
     log(`LLM 状态: ${status} - ${message}`);
-
-    // 显示浮动提示
-    if (status !== 'calling') {
-        showLlmStatusToast(status, message);
-    }
-
-    // 更新所有 PromptEnhancer 节点的状态指示
-    if (app.graph && app.graph._nodes) {
-        app.graph._nodes.forEach(node => {
-            if (node.type === 'PromptEnhancer') {
-                updateNodeLlmStatus(node, status, message);
-            }
-        });
-    }
+    showLlmStatusToast(status, message);
 });
-
-// 更新节点上的 LLM 状态指示
-function updateNodeLlmStatus(node, status, message) {
-    // 移除旧的状态指示
-    const existing = node._llmStatusWidget;
-    if (existing) {
-        const idx = node.widgets?.indexOf(existing);
-        if (idx >= 0) node.widgets.splice(idx, 1);
-    }
-
-    // 创建新的状态 widget
-    if (status === 'calling') {
-        const widget = node.addWidget('text', '🔍 LLM状态', '⏳ 调用中...', () => {}, {});
-        widget.disabled = true;
-        node._llmStatusWidget = widget;
-    } else if (status === 'success') {
-        const widget = node.addWidget('text', '🔍 LLM状态', '✅ 成功', () => {}, {});
-        widget.disabled = true;
-        node._llmStatusWidget = widget;
-        // 3秒后自动移除
-        setTimeout(() => {
-            const idx = node.widgets?.indexOf(widget);
-            if (idx >= 0) node.widgets.splice(idx, 1);
-            node.setSize(node.computeSize());
-            node.graph?.setDirtyCanvas(true);
-        }, 3000);
-    } else if (status === 'error' || status === 'interrupted') {
-        const icon = status === 'error' ? '❌' : '⚠️';
-        const widget = node.addWidget('text', '🔍 LLM状态', `${icon} ${message}`, () => {}, {});
-        widget.disabled = true;
-        node._llmStatusWidget = widget;
-        // 5秒后自动移除
-        setTimeout(() => {
-            const idx = node.widgets?.indexOf(widget);
-            if (idx >= 0) node.widgets.splice(idx, 1);
-            node.setSize(node.computeSize());
-            node.graph?.setDirtyCanvas(true);
-        }, 5000);
-    }
-
-    // 刷新节点大小
-    node.setSize(node.computeSize());
-    node.graph?.setDirtyCanvas(true);
-}
 
 app.registerExtension({
     name: 'Moton.PromptCraft',

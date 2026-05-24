@@ -4,11 +4,11 @@ LoRA Prompt 管理器 — 每个 LoRA 可存储多组 prompt
 """
 
 import os
-import json
 from datetime import datetime
+from .cache_utils import MtimeCacheMixin
 
 
-class LoraPromptManager:
+class LoraPromptManager(MtimeCacheMixin):
     """LoRA prompt 组 CRUD 管理器（单例）"""
 
     _instance = None
@@ -26,56 +26,33 @@ class LoraPromptManager:
 
         from .config_manager import config_manager
         self.user_dir = config_manager.user_config_dir
-        self.prompts_path = os.path.join(self.user_dir, "lora_prompts.json")
+        self._cache_file = os.path.join(self.user_dir, "lora_prompts.json")
+        self.prompts_path = self._cache_file
 
-        self._cache = None
-        self._cache_mtime = 0
-
+        self._init_mtime_cache()
         self._ensure_file_exists()
-        print(f"[PromptCraft] LoRA Prompt 管理器已初始化: {self.prompts_path}")
+        print(f"[PromptCraft] LoRA Prompt 管理器已初始化: {self._cache_file}")
 
     def _ensure_file_exists(self):
-        if not os.path.exists(self.prompts_path):
+        if not os.path.exists(self._cache_file):
             self._save_raw({"version": "1.0.0", "loras": {}})
 
     def _save_raw(self, data):
         from .config_manager import config_manager
-        config_manager._atomic_write_json(self.prompts_path, data)
+        config_manager._atomic_write_json(self._cache_file, data)
 
     # ==================== 加载 ====================
 
     def load_all(self) -> dict:
         """加载全部 LoRA prompt 配置（带 mtime 缓存）"""
-        if not os.path.exists(self.prompts_path):
+        if not os.path.exists(self._cache_file):
             self._ensure_file_exists()
-        try:
-            mtime = os.path.getmtime(self.prompts_path)
-        except OSError:
-            mtime = 0
-
-        if self._cache is not None and mtime == self._cache_mtime:
-            return self._cache
-
-        try:
-            with open(self.prompts_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self._cache = data.get("loras", {})
-            self._cache_mtime = mtime
-        except Exception as e:
-            print(f"[PromptCraft] 加载 LoRA prompt 配置失败: {e}")
-            self._cache = {}
-            self._cache_mtime = 0
-        return self._cache
+        return self._load_json_with_cache(key="loras")
 
     def save_all(self, loras: dict):
         """原子写入全部配置"""
         data = {"version": "1.0.0", "loras": loras}
-        self._save_raw(data)
-        self._cache = loras
-        try:
-            self._cache_mtime = os.path.getmtime(self.prompts_path)
-        except OSError:
-            self._cache_mtime = 0
+        self._save_json_and_update_cache(data)
 
     # ==================== 查询 ====================
 

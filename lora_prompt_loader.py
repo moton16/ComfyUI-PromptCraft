@@ -17,14 +17,13 @@ except ImportError:
     HAS_COMFY = False
 
 from .lora_group_manager import lora_group_manager
-from .lora_scanner import LoraScanner
 from .lora_prompt_manager import lora_prompt_manager
+from .lora_utils import flatten_stack, load_single_lora, clear_cache as _clear_lora_cache
 
 
 class LoraPromptLoader:
     """底模 + LoRA 栈 + Prompt 合并加载器"""
 
-    _lora_cache = {}
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -113,7 +112,7 @@ class LoraPromptLoader:
         items = stack.get("items", [])
 
         # 3. 展平栈并加载 LoRA
-        flat_loras = self._flatten_stack(items)
+        flat_loras = flatten_stack(items)
 
         # 收集 prompt 数据
         selected_groups = {}
@@ -159,7 +158,7 @@ class LoraPromptLoader:
             if clip is None:
                 s_clip = 0
 
-            model, clip = self._load_single_lora(
+            model, clip = load_single_lora(
                 model, clip, item["lora"], s_model, s_clip)
 
         return (model, clip, vae, final_positive, final_negative)
@@ -178,54 +177,6 @@ class LoraPromptLoader:
                     negative_elements.append(neg)
         return positive_elements, negative_elements
 
-    def _flatten_stack(self, items):
-        """将栈条目展平为个体 LoRA 列表（group ref 递归展开）"""
-        flat = []
-        for item in items:
-            if item.get("type") == "group":
-                group_data = lora_group_manager.get_group(item["group_name"])
-                if group_data is None:
-                    print(f"[PromptCraft] 警告: 群组 '{item['group_name']}' 不存在，跳过")
-                    continue
-
-                validation = LoraScanner.validate_group(group_data)
-                if validation["missing"]:
-                    for miss in validation["missing"]:
-                        print(f"[PromptCraft] 警告: LoRA 文件不存在，跳过: {miss['lora']}")
-
-                stack_weight = item.get("weight", 1.0)
-                stack_clip = item.get("clip_weight", 1.0)
-                stack_enabled = item.get("enabled", True)
-
-                for lora_item in validation["valid"]:
-                    if not lora_item.get("enabled", True):
-                        continue
-                    flat.append({
-                        "type": "lora",
-                        "lora": lora_item["lora"],
-                        "weight": lora_item["weight"] * stack_weight,
-                        "clip_weight": lora_item["clip_weight"] * stack_clip,
-                        "enabled": stack_enabled,
-                        "selected_group": item.get("selected_group"),
-                    })
-            else:
-                flat.append(item)
-        return flat
-
-    @classmethod
-    def _load_single_lora(cls, model, clip, lora_name, strength_model, strength_clip):
-        """加载单个 LoRA（带字典缓存）"""
-        lora_path = folder_paths.get_full_path_or_raise("loras", lora_name)
-
-        if lora_path not in cls._lora_cache:
-            cls._lora_cache[lora_path] = comfy.utils.load_torch_file(
-                lora_path, safe_load=True)
-
-        lora = cls._lora_cache[lora_path]
-        model_lora, clip_lora = comfy.sd.load_lora_for_models(
-            model, clip, lora, strength_model, strength_clip)
-        return model_lora, clip_lora
-
     @classmethod
     def clear_cache(cls):
-        cls._lora_cache.clear()
+        _clear_lora_cache()
