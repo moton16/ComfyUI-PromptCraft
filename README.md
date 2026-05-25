@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-节点-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.2.1-brightgreen?style=for-the-badge" alt="Version 1.2.1"/>
+  <img src="https://img.shields.io/badge/版本-v1.2.2-brightgreen?style=for-the-badge" alt="Version 1.2.2"/>
   <img src="https://img.shields.io/badge/状态-正式发布-ff69b4?style=for-the-badge" alt="Stable"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -350,7 +350,12 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.2.1 (2026-05-24) — 当前版本
+### v1.2.2 (2026-05-26) — 当前版本
+
+- 🔧 **更新**：Prompt库整合优化，整合V1.2.1测试改进版内容
+- 🔧 **优化**：提升使用稳定性
+
+### v1.2.1 (2026-05-24)
 
 - 🔧 **调整**：LoRA Prompt Loader 底模加载逻辑修正
 - 🔧 **调整**：LoRA 应用问题修复，隐藏 widget 改为 optional input 方式

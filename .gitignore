@@ -1,5 +1,9 @@
 __pycache__/
+design/
+docs/
+.claude/
 *.pyc
 *.pyo
 .env
 *.log
+

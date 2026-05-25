@@ -1,0 +1,95 @@
+#!/bin/bash
+# PromptCraft 版本号一键更新脚本
+# 用法:
+#   ./update_version.sh 1.3.0              # 更新版本号，清除 Mod
+#   ./update_version.sh 1.3.0 Mod1         # 更新版本号 + Mod 后缀
+#   ./update_version.sh 1.3.0 Mod1 "新功能描述"  # 同时在 README 版本历史中插入新条目
+
+set -e
+
+if [ -z "$1" ]; then
+    echo "用法: ./update_version.sh <版本号> [Mod后缀] [版本描述]"
+    echo "示例: ./update_version.sh 1.3.0 Mod1 \"新增AI Agent模块\""
+    exit 1
+fi
+
+NEW_VER="$1"
+MOD_SUFFIX="${2:-}"
+DATE=$(date +%Y-%m-%d)
+
+# 构建各格式的版本字符串
+VER_V="v${NEW_VER}"          # v1.3.0
+VER_UPPER="V${NEW_VER}"      # V1.3.0
+
+if [ -n "$MOD_SUFFIX" ]; then
+    FULL_UPPER="${VER_UPPER} ${MOD_SUFFIX}"   # V1.3.0 Mod1
+else
+    FULL_UPPER="${VER_UPPER}"                  # V1.3.0
+fi
+
+echo "========================================="
+echo " PromptCraft 版本更新"
+echo " 新版本: ${FULL_UPPER}"
+echo " 日期:   ${DATE}"
+echo "========================================="
+echo ""
+
+# --- 1. __init__.py ---
+INIT_FILE="__init__.py"
+if [ -f "$INIT_FILE" ]; then
+    # 匹配 V1.x.x 或 V1.x.x ModN
+    sed -i -E "s/V[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)?/$(echo "${FULL_UPPER}" | sed 's/[&/\]/\\&/g')/g" "$INIT_FILE"
+    echo "[OK] ${INIT_FILE}"
+else
+    echo "[SKIP] ${INIT_FILE} 不存在"
+fi
+
+# --- 2. js/control_panel.js ---
+JS_FILE="js/control_panel.js"
+if [ -f "$JS_FILE" ]; then
+    sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VER_V}/g" "$JS_FILE"
+    echo "[OK] ${JS_FILE}"
+else
+    echo "[SKIP] ${JS_FILE} 不存在"
+fi
+
+# --- 3. README.md badge ---
+README_FILE="README.md"
+if [ -f "$README_FILE" ]; then
+    # 更新 badge 中的版本号
+    sed -i -E "s/版本-v[0-9]+\.[0-9]+\.[0-9]+/版本-${VER_V}/g" "$README_FILE"
+    sed -i -E "s/Version [0-9]+\.[0-9]+\.[0-9]+/Version ${NEW_VER}/g" "$README_FILE"
+
+    # 更新版本历史标题中的"当前版本"
+    # 将旧的"当前版本"标记去掉
+    sed -i -E "s/### v[0-9]+\.[0-9]+\.[0-9]+ \([0-9-]+\) — 当前版本/### ${VER_V} (${DATE}) — 当前版本/" "$README_FILE"
+
+    echo "[OK] ${README_FILE}"
+else
+    echo "[SKIP] ${README_FILE} 不存在"
+fi
+
+# --- 4. CHANGELOG.md (根目录) ---
+ROOT_CHANGELOG="CHANGELOG.md"
+if [ -f "$ROOT_CHANGELOG" ]; then
+    # 更新第一个版本标题行
+    sed -i -E "1,10s/## \*\*v[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*\([0-9-]+\)\*\*/## **${VER_V}  (${DATE})**/" "$ROOT_CHANGELOG"
+    echo "[OK] ${ROOT_CHANGELOG}"
+else
+    echo "[SKIP] ${ROOT_CHANGELOG} 不存在"
+fi
+
+# --- 5. docs/CHANGELOG.md ---
+DOCS_CHANGELOG="docs/CHANGELOG.md"
+if [ -f "$DOCS_CHANGELOG" ]; then
+    # 更新第一个版本标题行
+    sed -i -E "1,10s/## V[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)? \([0-9-]+\)/## ${FULL_UPPER} (${DATE})/" "$DOCS_CHANGELOG"
+    echo "[OK] ${DOCS_CHANGELOG}"
+else
+    echo "[SKIP] ${DOCS_CHANGELOG} 不存在"
+fi
+
+echo ""
+echo "========================================="
+echo " 更新完成! 当前版本: ${FULL_UPPER}"
+echo "========================================="
