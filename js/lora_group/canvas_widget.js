@@ -7,6 +7,7 @@
 import * as StackAPI from './stack_api.js';
 import * as GroupAPI from './api.js';
 import { openHubPanel, setHubRefreshCallback } from './hub_panel.js';
+import { t } from '../i18n.js';
 
 const NODE_WIDTH = 320;
 
@@ -57,12 +58,12 @@ function createStackWidget(node) {
     el.innerHTML = `
         <div class="lsw-header" data-role="header">
             <div class="lsw-header-left">
-                <span class="lsw-title">LoRA 栈</span>
+                <span class="lsw-title">${t('hub.lora_stack')}</span>
                 <span class="lsw-count" data-role="count">0</span>
             </div>
             <div class="lsw-header-right">
-                <button class="lsw-header-btn" data-action="add-lora" title="从磁盘添加 LoRA">+</button>
-                <button class="lsw-header-btn" data-action="add-group" title="添加群组引用">
+                <button class="lsw-header-btn" data-action="add-lora" title="${t('canvas.add_lora_title')}">+</button>
+                <button class="lsw-header-btn" data-action="add-group" title="${t('canvas.add_group_title')}">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
                         <rect x="1" y="1" width="6" height="6" rx="1"/>
                         <rect x="9" y="1" width="6" height="6" rx="1"/>
@@ -70,12 +71,12 @@ function createStackWidget(node) {
                         <rect x="9" y="9" width="6" height="6" rx="1"/>
                     </svg>
                 </button>
-                <button class="lsw-hub-btn" data-action="open-hub" title="打开 LoRA Hub 管理面板">⚙ Hub</button>
+                <button class="lsw-hub-btn" data-action="open-hub" title="${t('canvas.open_hub_title')}">⚙ Hub</button>
             </div>
         </div>
         <div class="lsw-stack" data-role="stack"></div>
         <div class="lsw-empty" data-role="empty">
-            <span class="lsw-empty-text">点击 + 添加 LoRA 或群组，或打开 ⚙ Hub 管理</span>
+            <span class="lsw-empty-text">${t('hub.click_to_add')}</span>
         </div>
     `;
 
@@ -183,24 +184,24 @@ function createLoraRowHTML(item, idx) {
     const name = item.lora.split('/').pop().replace(/\.safetensors$/, '');
     const safeName = escapeAttr(name);
     const selGroup = item.selected_group || '';
-    const groupLabel = selGroup === '__none__' ? '无' : (selGroup ? escapeHtml(selGroup) : '全部');
+    const groupLabel = selGroup === '__none__' ? t('canvas.none') : (selGroup ? escapeHtml(selGroup) : t('canvas.all'));
     return `
-        <div class="lsw-grip" draggable="true" title="拖拽排序">⠿</div>
-        <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? '禁用' : '启用'}"></div>
+        <div class="lsw-grip" draggable="true" title="${t('hub.drag_sort')}">⠿</div>
+        <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? t('hub.disable') : t('hub.enable')}"></div>
         <div class="lsw-info">
             <div class="lsw-name" title="${safeName}">${escapeHtml(name)}</div>
-            <div class="lsw-prompt-sel" data-action="select-group" data-idx="${idx}" title="选择 Prompt 组">
+            <div class="lsw-prompt-sel" data-action="select-group" data-idx="${idx}" title="${t('hub.select_prompt_group')}">
                 <span class="lsw-prompt-sel-label">${groupLabel}</span>
                 <span class="lsw-prompt-sel-arrow">▾</span>
             </div>
         </div>
         <div class="lsw-weights">
             <div class="lsw-w-group">
-                <span class="lsw-w-label">模型</span>
+                <span class="lsw-w-label">${t('hub.field_model')}</span>
                 <div class="lsw-w-arrows">
                     <button class="lsw-w-arrow" data-action="w-up" data-field="weight" data-idx="${idx}" title="+0.05">▲</button>
                     <input class="lsw-w" type="number" step="0.05" min="0" max="2"
-                           value="${item.weight}" data-field="weight" data-idx="${idx}" title="模型权重" />
+                           value="${item.weight}" data-field="weight" data-idx="${idx}" title="${t('hub.model_weight')}" />
                     <button class="lsw-w-arrow" data-action="w-down" data-field="weight" data-idx="${idx}" title="-0.05">▼</button>
                 </div>
             </div>
@@ -209,22 +210,22 @@ function createLoraRowHTML(item, idx) {
                 <div class="lsw-w-arrows">
                     <button class="lsw-w-arrow" data-action="w-up" data-field="clip_weight" data-idx="${idx}" title="+0.05">▲</button>
                     <input class="lsw-w" type="number" step="0.05" min="0" max="2"
-                           value="${item.clip_weight}" data-field="clip_weight" data-idx="${idx}" title="CLIP 权重" />
+                           value="${item.clip_weight}" data-field="clip_weight" data-idx="${idx}" title="${t('hub.clip_weight')}" />
                     <button class="lsw-w-arrow" data-action="w-down" data-field="clip_weight" data-idx="${idx}" title="-0.05">▼</button>
                 </div>
             </div>
         </div>
-        <button class="lsw-edit-btn" data-action="edit-prompt" data-lora="${escapeAttr(item.lora)}" title="在 Hub 中编辑 Prompt">✎</button>
-        <button class="lsw-remove" data-action="remove" title="移除">×</button>
+        <button class="lsw-edit-btn" data-action="edit-prompt" data-lora="${escapeAttr(item.lora)}" title="${t('hub.open_hub')}">✎</button>
+        <button class="lsw-remove" data-action="remove" title="${t('hub.remove')}">×</button>
     `;
 }
 
 function createGroupRowHTML(item, idx) {
     const safeName = escapeAttr(item.group_name);
     return `
-        <div class="lsw-grip" draggable="true" title="拖拽排序">⠿</div>
-        <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? '禁用' : '启用'}"></div>
-        <div class="lsw-group-badge" title="群组: ${safeName}">
+        <div class="lsw-grip" draggable="true" title="${t('hub.drag_sort')}">⠿</div>
+        <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? t('hub.disable') : t('hub.enable')}"></div>
+        <div class="lsw-group-badge" title="${t('hub.group_ref')} ${safeName}">
             <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
                 <rect x="1" y="1" width="6" height="6" rx="1"/>
                 <rect x="9" y="1" width="6" height="6" rx="1"/>
@@ -235,11 +236,11 @@ function createGroupRowHTML(item, idx) {
         <div class="lsw-name lsw-group-name">${escapeHtml(item.group_name)}</div>
         <div class="lsw-weights">
             <div class="lsw-w-group">
-                <span class="lsw-w-label">模型</span>
+                <span class="lsw-w-label">${t('hub.field_model')}</span>
                 <div class="lsw-w-arrows">
                     <button class="lsw-w-arrow" data-action="w-up" data-field="weight" data-idx="${idx}" title="+0.05">▲</button>
                     <input class="lsw-w" type="number" step="0.05" min="0" max="2"
-                           value="${item.weight}" data-field="weight" data-idx="${idx}" title="整体模型权重" />
+                           value="${item.weight}" data-field="weight" data-idx="${idx}" title="${t('hub.model_weight')}" />
                     <button class="lsw-w-arrow" data-action="w-down" data-field="weight" data-idx="${idx}" title="-0.05">▼</button>
                 </div>
             </div>
@@ -248,12 +249,12 @@ function createGroupRowHTML(item, idx) {
                 <div class="lsw-w-arrows">
                     <button class="lsw-w-arrow" data-action="w-up" data-field="clip_weight" data-idx="${idx}" title="+0.05">▲</button>
                     <input class="lsw-w" type="number" step="0.05" min="0" max="2"
-                           value="${item.clip_weight}" data-field="clip_weight" data-idx="${idx}" title="整体 CLIP 权重" />
+                           value="${item.clip_weight}" data-field="clip_weight" data-idx="${idx}" title="${t('hub.clip_weight')}" />
                     <button class="lsw-w-arrow" data-action="w-down" data-field="clip_weight" data-idx="${idx}" title="-0.05">▼</button>
                 </div>
             </div>
         </div>
-        <button class="lsw-remove" data-action="remove" title="移除">×</button>
+        <button class="lsw-remove" data-action="remove" title="${t('hub.remove')}">×</button>
     `;
 }
 
@@ -363,7 +364,7 @@ function handleStackDblClick(node) {
             const labelEl = promptSel.querySelector('.lsw-prompt-sel-label');
             if (labelEl) {
                 const orig = labelEl.textContent;
-                labelEl.textContent = '已复制!';
+                labelEl.textContent = t('hub.copied');
                 labelEl.style.color = '#00cd72';
                 setTimeout(() => {
                     labelEl.textContent = orig;
@@ -471,10 +472,10 @@ async function showAddLoraMenu(node, anchorBtn) {
     menu.className = 'lsw-dropdown';
     menu.innerHTML = `
         <div class="lsw-dropdown-search">
-            <input class="lsw-dropdown-input" placeholder="搜索 LoRA..." data-role="search" />
+            <input class="lsw-dropdown-input" placeholder="${t('canvas.search_lora')}" data-role="search" />
         </div>
         <div class="lsw-dropdown-list" data-role="list">
-            <div class="lsw-dropdown-loading">加载中...</div>
+            <div class="lsw-dropdown-loading">${t('common.loading')}</div>
         </div>
     `;
 
@@ -497,7 +498,7 @@ async function showAddLoraMenu(node, anchorBtn) {
         ]);
     } catch {
         menu.querySelector('[data-role="list"]').innerHTML =
-            '<div class="lsw-dropdown-loading" style="color:#ff4444;">加载失败</div>';
+            `<div class="lsw-dropdown-loading" style="color:#ff4444;">${t('hub.load_failed')}</div>`;
         return;
     }
     const favSet = new Set(favorites);
@@ -515,7 +516,7 @@ async function showAddLoraMenu(node, anchorBtn) {
         if (favFiles.length > 0 && !menu.querySelector('[data-role="search"]').value.trim()) {
             const header = document.createElement('div');
             header.className = 'lsw-dropdown-header';
-            header.innerHTML = '<span style="color:#c8842a;font-size:11px;font-weight:600;">★ 收藏</span>';
+            header.innerHTML = `<span style="color:#c8842a;font-size:11px;font-weight:600;">★ ${t('canvas.favorites')}</span>`;
             listEl.appendChild(header);
         }
 
@@ -527,7 +528,7 @@ async function showAddLoraMenu(node, anchorBtn) {
                 favSectionDone = true;
                 const sep = document.createElement('div');
                 sep.className = 'lsw-dropdown-header';
-                sep.innerHTML = '<span style="color:#999;font-size:11px;">全部 LoRA</span>';
+                sep.innerHTML = `<span style="color:#999;font-size:11px;">${t('canvas.all_lora')}</span>`;
                 listEl.appendChild(sep);
             }
 
@@ -539,7 +540,7 @@ async function showAddLoraMenu(node, anchorBtn) {
             const starBtn = document.createElement('span');
             starBtn.className = 'lsw-fav-star' + (isFav ? ' lsw-fav-active' : '');
             starBtn.textContent = isFav ? '★' : '☆';
-            starBtn.title = isFav ? '取消收藏' : '收藏';
+            starBtn.title = isFav ? t('hub.unfavorite') : t('hub.favorite');
             starBtn.style.cssText = 'cursor:pointer; font-size:13px; color:' + (isFav ? '#c8842a' : '#ccc') + '; flex-shrink:0; width:16px; text-align:center;';
             starBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -573,7 +574,7 @@ async function showAddLoraMenu(node, anchorBtn) {
             listEl.appendChild(item);
         }
         if (shown.length === 0) {
-            listEl.innerHTML = '<div class="lsw-dropdown-loading">无匹配</div>';
+            listEl.innerHTML = `<div class="lsw-dropdown-loading">${t('canvas.no_match')}</div>`;
         }
     }
 
@@ -608,8 +609,8 @@ async function showAddGroupMenu(node, anchorBtn) {
     menu.className = 'lsw-dropdown';
     menu.innerHTML = `
         <div class="lsw-dropdown-header">
-            <span>群组引用</span>
-            <button class="lsw-dropdown-manage" data-action="manage">打开 Hub</button>
+            <span>${t('canvas.group_ref')}</span>
+            <button class="lsw-dropdown-manage" data-action="manage">${t('canvas.open_hub')}</button>
         </div>
         <div class="lsw-dropdown-list" data-role="list"></div>
     `;
@@ -626,7 +627,7 @@ async function showAddGroupMenu(node, anchorBtn) {
     const listEl = menu.querySelector('[data-role="list"]');
 
     if (entries.length === 0) {
-        listEl.innerHTML = '<div class="lsw-dropdown-loading">暂无群组<br><span style="font-size:10px;color:#777;">在 LoRA Hub 中创建</span></div>';
+        listEl.innerHTML = `<div class="lsw-dropdown-loading">${t('canvas.no_groups')}<br><span style="font-size:10px;color:#777;">${t('canvas.create_in_hub')}</span></div>`;
     } else {
         for (const [name, info] of entries) {
             const item = document.createElement('div');
@@ -679,7 +680,7 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
 
     const menu = document.createElement('div');
     menu.className = 'lsw-dropdown';
-    menu.innerHTML = '<div class="lsw-dropdown-loading">加载中...</div>';
+    menu.innerHTML = `<div class="lsw-dropdown-loading">${t('common.loading')}</div>`;
 
     const rect = anchorEl.getBoundingClientRect();
     menu.style.position = 'fixed';
@@ -704,10 +705,10 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
     let html = '<div class="lsw-dropdown-list">';
 
     // "All" option
-    html += `<div class="lsw-dropdown-item ${!currentSel ? 'lsw-dropdown-item-active' : ''}" data-group="">全部组</div>`;
+    html += `<div class="lsw-dropdown-item ${!currentSel ? 'lsw-dropdown-item-active' : ''}" data-group="">${t('canvas.all_groups')}</div>`;
 
     // "None" option — load LoRA weight but inject no prompts
-    html += `<div class="lsw-dropdown-item lsw-dropdown-item-none ${currentSel === '__none__' ? 'lsw-dropdown-item-active' : ''}" data-group="__none__">无 (不注入 Prompt)</div>`;
+    html += `<div class="lsw-dropdown-item lsw-dropdown-item-none ${currentSel === '__none__' ? 'lsw-dropdown-item-active' : ''}" data-group="__none__">${t('canvas.no_inject')}</div>`;
 
     for (const g of groups) {
         const active = g.name === currentSel ? 'lsw-dropdown-item-active' : '';
@@ -715,7 +716,7 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
     }
 
     if (groups.length === 0) {
-        html += '<div class="lsw-dropdown-loading" style="padding:8px;">暂无 Prompt 组<br><span style="font-size:10px;color:#777;">在 Hub 中为此 LoRA 创建</span></div>';
+        html += `<div class="lsw-dropdown-loading" style="padding:8px;">${t('canvas.no_prompt_group')}<br><span style="font-size:10px;color:#777;">${t('canvas.create_hint')}</span></div>`;
     }
 
     html += '</div>';
@@ -730,7 +731,7 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
         // Update the label in the row
         const labelEl = anchorEl.querySelector('.lsw-prompt-sel-label');
         if (labelEl) {
-            labelEl.textContent = groupName === '__none__' ? '无' : (groupName || '全部');
+            labelEl.textContent = groupName === '__none__' ? t('canvas.none') : (groupName || t('canvas.all'));
         }
         menu.remove();
     });

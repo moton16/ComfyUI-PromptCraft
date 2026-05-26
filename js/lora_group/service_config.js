@@ -4,6 +4,7 @@
  */
 
 import { api } from '../../../../scripts/api.js';
+import { t } from '../i18n.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 
@@ -35,7 +36,7 @@ function buildModal() {
     header.innerHTML = `
         <div class="lsc-header-title">
             <span class="lsc-header-icon">◈</span>
-            <span>API 服务配置</span>
+            <span>${t('service_config.title')}</span>
         </div>
         <button class="lsc-close-btn" data-action="close">×</button>
     `;
@@ -46,12 +47,12 @@ function buildModal() {
     catBar.className = 'lsc-cat-bar';
     catBar.innerHTML = `
         <div class="lsc-cat-item">
-            <span class="lsc-cat-label">提示词增强</span>
-            <select class="lsc-cat-select" data-category="enhance"><option>加载中...</option></select>
+            <span class="lsc-cat-label">${t('service_config.prompt_enhance')}</span>
+            <select class="lsc-cat-select" data-category="enhance"><option>${t('service_config.status.loading')}</option></select>
         </div>
         <div class="lsc-cat-item">
             <span class="lsc-cat-label">AI Agent</span>
-            <select class="lsc-cat-select" data-category="agent"><option>加载中...</option></select>
+            <select class="lsc-cat-select" data-category="agent"><option>${t('service_config.status.loading')}</option></select>
         </div>
     `;
     modal.appendChild(catBar);
@@ -64,13 +65,13 @@ function buildModal() {
     const sidebar = document.createElement('div');
     sidebar.className = 'lsc-sidebar';
     sidebar.innerHTML = `<div class="lsc-service-list" data-role="service-list"></div>
-        <button class="lsc-add-btn" data-action="add-service">+ 添加服务</button>`;
+        <button class="lsc-add-btn" data-action="add-service">+ ${t('settings.add_service')}</button>`;
     body.appendChild(sidebar);
 
     // Detail
     const detail = document.createElement('div');
     detail.className = 'lsc-detail';
-    detail.innerHTML = `<div class="lsc-detail-placeholder">选择左侧服务进行编辑</div>`;
+    detail.innerHTML = `<div class="lsc-detail-placeholder">${t('service_config.detail_placeholder')}</div>`;
     body.appendChild(detail);
 
     modal.appendChild(body);
@@ -142,17 +143,17 @@ async function loadServicesData(backdrop) {
             const isEnhance = current.enhance?.service_id === svc.id;
             const isAgent = current.agent?.service_id === svc.id;
             let badges = '';
-            if (isEnhance) badges += '<span class="lsc-badge lsc-badge-amber">增强</span>';
+            if (isEnhance) badges += `<span class="lsc-badge lsc-badge-amber">${t('service_config.badge.enhance')}</span>`;
             if (isAgent) badges += '<span class="lsc-badge lsc-badge-copper">Agent</span>';
             card.innerHTML = `
                 <div class="lsc-svc-card-name">${escHtml(svc.name)}</div>
-                <div class="lsc-svc-card-url">${escHtml(svc.api_url || '未配置')}</div>
+                <div class="lsc-svc-card-url">${escHtml(svc.api_url || t('settings.not_configured'))}</div>
                 <div class="lsc-svc-card-badges">${badges}</div>
             `;
             listEl.appendChild(card);
         }
     } catch (e) {
-        console.error('[PromptCraft] 加载服务配置失败:', e);
+        console.error('[PromptCraft] ' + t('service_config.status.load_config_failed'), e);
     }
 }
 
@@ -170,19 +171,19 @@ async function selectService(backdrop, svcId) {
         detail.innerHTML = `
             <div class="lsc-detail-form">
                 <div class="lsc-field">
-                    <label>服务名称</label>
+                    <label>${t('service_config.service_name')}</label>
                     <input class="lsc-input" data-field="name" value="${escAttr(svc.name)}" />
                 </div>
                 <div class="lsc-field">
-                    <label>API 端点 URL</label>
+                    <label>${t('service_config.api_endpoint')}</label>
                     <input class="lsc-input" data-field="api_url" value="${escAttr(svc.api_url)}" placeholder="https://api.example.com/v1/chat/completions" />
                 </div>
                 <div class="lsc-field">
                     <label>API Key</label>
-                    <input class="lsc-input" type="password" data-field="api_key" data-masked="true" value="" placeholder="${svc.api_key ? '已设置（留空则保留原值）' : '输入 API Key'}" />
+                    <input class="lsc-input" type="password" data-field="api_key" data-masked="true" value="" placeholder="${svc.api_key ? t('service_config.api_key_placeholder_set') : t('service_config.api_key_placeholder_unset')}" />
                 </div>
                 <div class="lsc-field">
-                    <label>模型名称</label>
+                    <label>${t('service_config.model_name')}</label>
                     <input class="lsc-input" data-field="model" value="${escAttr(svc.model)}" placeholder="gpt-4o-mini / deepseek-chat" />
                 </div>
                 <div class="lsc-field-row">
@@ -199,20 +200,20 @@ async function selectService(backdrop, svcId) {
                     <div class="lsc-field lsc-field-half">
                         <label class="lsc-toggle-label">
                             <input type="checkbox" class="lsc-toggle" data-field="disable_thinking" ${svc.disable_thinking !== false ? 'checked' : ''} />
-                            <span>关闭思维链</span>
+                            <span>${t('service_config.disable_thinking')}</span>
                         </label>
                     </div>
                     <div class="lsc-field lsc-field-half">
                         <label class="lsc-toggle-label">
                             <input type="checkbox" class="lsc-toggle" data-field="filter_thinking_output" ${svc.filter_thinking_output !== false ? 'checked' : ''} />
-                            <span>过滤思维链输出</span>
+                            <span>${t('service_config.filter_thinking')}</span>
                         </label>
                     </div>
                 </div>
                 <div class="lsc-actions">
-                    <button class="lsc-btn lsc-btn-primary" data-action="test-service">🧪 测试连接</button>
-                    <button class="lsc-btn lsc-btn-save" data-action="save-service">💾 保存</button>
-                    <button class="lsc-btn lsc-btn-danger" data-action="delete-service">删除服务</button>
+                    <button class="lsc-btn lsc-btn-primary" data-action="test-service">🧪 ${t('service_config.test_connection')}</button>
+                    <button class="lsc-btn lsc-btn-save" data-action="save-service">💾 ${t('service_config.save')}</button>
+                    <button class="lsc-btn lsc-btn-danger" data-action="delete-service">${t('service_config.delete_service')}</button>
                 </div>
                 <div class="lsc-status" data-role="status"></div>
             </div>
@@ -226,7 +227,7 @@ async function selectService(backdrop, svcId) {
             });
         }
     } catch (e) {
-        console.error('[PromptCraft] 加载服务详情失败:', e);
+        console.error('[PromptCraft] ' + t('service_config.status.load_detail_failed'), e);
     }
 }
 
@@ -263,48 +264,48 @@ async function handleSaveService(backdrop, svcId) {
     try {
         const res = await apiRequest('PUT', `/services/${svcId}`, data);
         if (res.success) {
-            setStatus(backdrop, '已保存 ✓');
+            setStatus(backdrop, t('service_config.status.saved'));
             loadServicesData(backdrop);
         } else {
-            setStatus(backdrop, '保存失败: ' + (res.error || ''), true);
+            setStatus(backdrop, t('service_config.status.save_failed', { error: res.error || '' }), true);
         }
     } catch (e) {
-        setStatus(backdrop, '保存异常: ' + e.message, true);
+        setStatus(backdrop, t('service_config.status.save_exception', { error: e.message }), true);
     }
 }
 
 async function handleAddService(backdrop) {
     try {
-        const res = await apiRequest('POST', '/services', { name: '新服务' });
+        const res = await apiRequest('POST', '/services', { name: t('settings.new_service') });
         if (res.success) {
             await loadServicesData(backdrop);
             selectService(backdrop, res.data.id);
         }
     } catch (e) {
-        console.error('[PromptCraft] 添加服务失败:', e);
+        console.error('[PromptCraft] ' + t('service_config.status.add_failed'), e);
     }
 }
 
 async function handleDeleteService(backdrop, svcId) {
     if (!svcId) return;
-    if (!confirm('确定删除此服务？')) return;
+    if (!confirm(t('service_config.confirm_delete'))) return;
     try {
         const res = await apiRequest('DELETE', `/services/${svcId}`);
         if (res.success) {
             loadServicesData(backdrop);
             const detail = backdrop.querySelector('.lsc-detail');
-            detail.innerHTML = '<div class="lsc-detail-placeholder">服务已删除</div>';
+            detail.innerHTML = `<div class="lsc-detail-placeholder">${t('service_config.deleted')}</div>`;
         } else {
-            alert(res.error || '删除失败');
+            alert(res.error || t('service_config.status.delete_failed'));
         }
     } catch (e) {
-        alert('删除异常: ' + e.message);
+        alert(t('service_config.status.delete_exception', { error: e.message }));
     }
 }
 
 async function handleTestService(backdrop, svcId) {
     if (!svcId) return;
-    setStatus(backdrop, '测试中...');
+    setStatus(backdrop, t('service_config.testing'));
     try {
         // If API key was modified, send inline config for testing
         const apiKeyInput = backdrop.querySelector('[data-field="api_key"]');
@@ -314,18 +315,18 @@ async function handleTestService(backdrop, svcId) {
             body.config = collectFormData(backdrop);
             // Ensure required fields for test
             if (!body.config.api_url) {
-                setStatus(backdrop, '❌ 请先填写 API 端点 URL', true);
+                setStatus(backdrop, t('service_config.fill_endpoint'), true);
                 return;
             }
         }
         const res = await apiRequest('POST', `/services/${svcId}/test`, body);
         if (res.success) {
-            setStatus(backdrop, '✅ ' + (res.data?.message || '连接成功'));
+            setStatus(backdrop, t('service_config.connection_success', { name: res.data?.message || '' }));
         } else {
-            setStatus(backdrop, '❌ ' + (res.error || '连接失败'), true);
+            setStatus(backdrop, t('service_config.connection_failed', { name: res.error || '' }), true);
         }
     } catch (e) {
-        setStatus(backdrop, '❌ ' + e.message, true);
+        setStatus(backdrop, t('service_config.connection_failed', { name: e.message }), true);
     }
 }
 

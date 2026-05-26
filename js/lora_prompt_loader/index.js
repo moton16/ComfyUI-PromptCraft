@@ -7,6 +7,7 @@ import { app } from '../../../../scripts/app.js';
 import { initCanvasWidget, refreshGroupStatus } from '../lora_group/canvas_widget.js';
 import { openHubPanel } from '../lora_group/hub_panel.js';
 import * as StackAPI from '../lora_group/stack_api.js';
+import { t } from '../i18n.js';
 
 app.registerExtension({
     name: 'Comfy.MotonPromptCraft.LoraPromptLoader',
@@ -52,11 +53,11 @@ app.registerExtension({
                     callback: () => openHubPanel(this),
                 },
                 {
-                    content: '🔄 刷新栈状态',
+                    content: t('lora_group.refresh_stack'),
                     callback: () => refreshGroupStatus(this),
                 },
                 {
-                    content: '🗑 清空栈',
+                    content: t('lora_group.clear_stack'),
                     callback: () => {
                         const stack = StackAPI.getStack(this.id);
                         stack.items = [];

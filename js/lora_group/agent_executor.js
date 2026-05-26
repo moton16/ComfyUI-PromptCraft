@@ -4,6 +4,7 @@
  */
 
 import * as StackAPI from './stack_api.js';
+import { t } from '../i18n.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 
@@ -27,7 +28,7 @@ export function executeOperations(operations, node) {
                 results.push({ action: op.action, success: false, message: e.message });
             }
         } else {
-            results.push({ action: op.action, success: false, message: `未知操作: ${op.action}` });
+            results.push({ action: op.action, success: false, message: t('agent.unknown_action', { action: op.action }) });
         }
     }
     return results;
@@ -46,7 +47,7 @@ export function isDangerousOperation(action) {
  * @returns {{ operations?: Array, clarification?: string, error?: string }}
  */
 export function parseAgentResponse(responseText) {
-    if (!responseText) return { error: '空响应' };
+    if (!responseText) return { error: t('agent.empty_response') };
 
     // 去除 markdown 代码块包裹
     let jsonStr = responseText.trim();
@@ -62,9 +63,9 @@ export function parseAgentResponse(responseText) {
         if (parsed.operations && Array.isArray(parsed.operations)) {
             return { operations: parsed.operations };
         }
-        return { error: '响应格式异常：缺少 operations 数组' };
+        return { error: t('agent.response_format_error') };
     } catch (e) {
-        return { error: `JSON 解析失败: ${e.message}` };
+        return { error: t('agent.json_parse_error', { error: e.message }) };
     }
 }
 
@@ -73,46 +74,46 @@ export function parseAgentResponse(responseText) {
 const HANDLERS = {
     lora_add(params, node) {
         const { lora_path, weight = 1.0, clip_weight = 1.0 } = params;
-        if (!lora_path) throw new Error('缺少 lora_path 参数');
+        if (!lora_path) throw new Error(t('agent.missing_param', { param: 'lora_path' }));
         const added = StackAPI.addLora(node.id, lora_path, weight, clip_weight);
         if (!added) {
-            return { message: `LoRA 已存在于栈中: ${shortName(lora_path)}` };
+            return { message: t('agent.lora_exists', { name: shortName(lora_path) }) };
         }
-        return { message: `已添加 ${shortName(lora_path)}`, lora: lora_path, weight, clip_weight };
+        return { message: t('agent.lora_added', { name: shortName(lora_path) }), lora: lora_path, weight, clip_weight };
     },
 
     lora_remove(params, node) {
         const { lora_path } = params;
-        if (!lora_path) throw new Error('缺少 lora_path 参数');
+        if (!lora_path) throw new Error(t('agent.missing_param', { param: 'lora_path' }));
         const stack = StackAPI.getStack(node.id);
         const item = stack.items.find(i => i.type === 'lora' && i.lora === lora_path);
-        if (!item) throw new Error(`LoRA 不在栈中: ${shortName(lora_path)}`);
+        if (!item) throw new Error(t('agent.lora_not_in_stack', { name: shortName(lora_path) }));
         StackAPI.removeItem(node.id, item.id);
-        return { message: `已移除 ${shortName(lora_path)}`, lora: lora_path };
+        return { message: t('agent.lora_removed', { name: shortName(lora_path) }), lora: lora_path };
     },
 
     lora_toggle(params, node) {
         const { lora_path } = params;
-        if (!lora_path) throw new Error('缺少 lora_path 参数');
+        if (!lora_path) throw new Error(t('agent.missing_param', { param: 'lora_path' }));
         const stack = StackAPI.getStack(node.id);
         const item = stack.items.find(i => i.type === 'lora' && i.lora === lora_path);
-        if (!item) throw new Error(`LoRA 不在栈中: ${shortName(lora_path)}`);
+        if (!item) throw new Error(t('agent.lora_not_in_stack', { name: shortName(lora_path) }));
         const newState = StackAPI.toggleEnabled(node.id, item.id);
         return {
-            message: `${shortName(lora_path)} ${newState ? '已启用' : '已禁用'}`,
+            message: t('agent.lora_toggled', { name: shortName(lora_path), state: newState ? t('agent.state_enabled') : t('agent.state_disabled') }),
             lora: lora_path, enabled: newState,
         };
     },
 
     lora_weight(params, node) {
         const { lora_path, weight, clip_weight } = params;
-        if (!lora_path) throw new Error('缺少 lora_path 参数');
+        if (!lora_path) throw new Error(t('agent.missing_param', { param: 'lora_path' }));
         const stack = StackAPI.getStack(node.id);
         const item = stack.items.find(i => i.type === 'lora' && i.lora === lora_path);
-        if (!item) throw new Error(`LoRA 不在栈中: ${shortName(lora_path)}`);
+        if (!item) throw new Error(t('agent.lora_not_in_stack', { name: shortName(lora_path) }));
         StackAPI.updateWeight(node.id, item.id, weight, clip_weight);
         return {
-            message: `${shortName(lora_path)} 权重已更新`,
+            message: t('agent.lora_weight_updated', { name: shortName(lora_path) }),
             lora: lora_path,
             weight: weight !== undefined ? weight : item.weight,
             clip_weight: clip_weight !== undefined ? clip_weight : item.clip_weight,
@@ -121,32 +122,32 @@ const HANDLERS = {
 
     checkpoint(params, node) {
         const { checkpoint_name } = params;
-        if (!checkpoint_name) throw new Error('缺少 checkpoint_name 参数');
+        if (!checkpoint_name) throw new Error(t('agent.missing_param', { param: 'checkpoint_name' }));
         // 查找 checkpoint widget 并更新
         const widget = node.widgets?.find(w => w.name === 'checkpoint');
-        if (!widget) throw new Error('未找到 checkpoint 选择器');
+        if (!widget) throw new Error(t('agent.checkpoint_not_found'));
 
         // 检查 checkpoint 是否在选项中
         const options = widget.options?.values || [];
         if (options.length > 0 && !options.includes(checkpoint_name)) {
-            throw new Error(`Checkpoint 不存在: ${checkpoint_name}`);
+            throw new Error(t('agent.checkpoint_not_exist', { name: checkpoint_name }));
         }
         widget.value = checkpoint_name;
-        return { message: `已切换底模: ${checkpoint_name}`, checkpoint: checkpoint_name };
+        return { message: t('agent.checkpoint_switched', { name: checkpoint_name }), checkpoint: checkpoint_name };
     },
 
     prompt_set(params, node) {
         const { text } = params;
-        if (!text) throw new Error('缺少 text 参数');
+        if (!text) throw new Error(t('agent.missing_param', { param: 'text' }));
         // 查找 PromptEnhancer 节点的 prompt widget（通过工作流查找）
         // 这里暂时记录消息，实际操作需要跨节点
-        return { message: `提示词已设置: ${text.substring(0, 50)}...`, text };
+        return { message: t('agent.prompt_set', { text: text.substring(0, 50) }), text };
     },
 
     category_set(params, node) {
         const { category, label } = params;
-        if (!category || !label) throw new Error('缺少 category 或 label 参数');
-        return { message: `已选择 ${category}: ${label}`, category, label };
+        if (!category || !label) throw new Error(t('agent.missing_param', { param: 'category/label' }));
+        return { message: t('agent.category_selected', { category, label }), category, label };
     },
 
     query(params, node) {
@@ -211,7 +212,7 @@ export async function callAgent(instruction, currentState) {
     });
     const json = await res.json();
     if (!json.success) {
-        throw new Error(json.error || 'Agent 请求失败');
+        throw new Error(json.error || t('agent.request_error'));
     }
     return json.data.response;
 }

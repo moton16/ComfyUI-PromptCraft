@@ -397,7 +397,7 @@ class PromptEnhancer:
                 # 发送状态事件到前端：调用中
                 PromptServer.instance.send_sync("promptcraft.llm_status", {
                     "status": "calling",
-                    "message": "正在调用大模型..."
+                    "messageKey": "llm.status_calling"
                 })
                 is_detailed = (扩写模式 == "详细扩写")
                 llm_hint = kwargs.get("大模型提示词", "").strip()
@@ -443,7 +443,7 @@ class PromptEnhancer:
                         print("[PromptCraft] ⚠ 用户中断 LLM 调用")
                         PromptServer.instance.send_sync("promptcraft.llm_status", {
                             "status": "interrupted",
-                            "message": "LLM调用已中断"
+                            "messageKey": "llm.status_interrupted"
                         })
                         return (positive_prompt, negative_prompt, "LLM调用被用户中断")
                     except Exception:
@@ -474,14 +474,14 @@ class PromptEnhancer:
                     # 发送状态事件到前端：成功
                     PromptServer.instance.send_sync("promptcraft.llm_status", {
                         "status": "success",
-                        "message": "大模型增强成功"
+                        "messageKey": "llm.status_success"
                     })
                 else:
                     print(f"[PromptCraft] 大模型增强失败，使用原始prompt")
                     # 发送状态事件到前端：失败
                     PromptServer.instance.send_sync("promptcraft.llm_status", {
                         "status": "error",
-                        "message": "大模型增强失败，使用原始prompt"
+                        "messageKey": "llm.status_failed"
                     })
             else:
                 print(f"[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")

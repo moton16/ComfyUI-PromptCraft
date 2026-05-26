@@ -7,6 +7,7 @@
 import * as API from './api.js';
 import * as StackAPI from './stack_api.js';
 import { createAgentPanel } from './agent_panel.js';
+import { t } from '../i18n.js';
 
 // ==================== 公共入口 ====================
 
@@ -90,8 +91,8 @@ class HubPanel {
                 <h2 class="lhub-title">LoRA Hub</h2>
             </div>
             <div class="lhub-header-right">
-                <button class="lhub-btn lhub-btn-sm" data-action="export" title="导出群组配置">↑ 导出</button>
-                <button class="lhub-close-btn" data-action="close" title="关闭">×</button>
+                <button class="lhub-btn lhub-btn-sm" data-action="export" title="${t('hub.export_title')}">${t('hub.export')}</button>
+                <button class="lhub-close-btn" data-action="close" title="${t('hub.close')}">×</button>
             </div>
         `;
         modal.appendChild(header);
@@ -116,7 +117,7 @@ class HubPanel {
         const footer = document.createElement('div');
         footer.className = 'lhub-footer';
         footer.innerHTML = `
-            <div class="lhub-footer-stack" data-role="footer-stack">当前栈: <span data-role="stack-count">0</span> 项</div>
+            <div class="lhub-footer-stack" data-role="footer-stack">${t('hub.stack_count', { count: 0 })}</div>
         `;
         modal.appendChild(footer);
 
@@ -147,14 +148,14 @@ class HubPanel {
                     <span class="lhub-tab-icon">◆</span> LoRA
                 </button>
                 <button class="lhub-tab" data-tab="group">
-                    <span class="lhub-tab-icon">✦</span> 群组
+                    <span class="lhub-tab-icon">✦</span> ${t('hub.tab_group')}
                 </button>
                 <button class="lhub-tab" data-tab="agent">
                     <span class="lhub-tab-icon">◈</span> Agent
                 </button>
             </div>
             <div class="lhub-search">
-                <input class="lhub-search-input" placeholder="搜索..." data-role="sidebar-search" />
+                <input class="lhub-search-input" data-role="sidebar-search" />
             </div>
             <div class="lhub-list" data-role="sidebar-list"></div>
             <div class="lhub-sidebar-footer" data-role="sidebar-footer"></div>
@@ -237,8 +238,8 @@ class HubPanel {
         const searchEl = this.sidebar.querySelector('[data-role="sidebar-search"]');
         const listEl = this.sidebar.querySelector('[data-role="sidebar-list"]');
 
-        this.sidebar.querySelectorAll('.lhub-tab').forEach(t => {
-            t.classList.toggle('lhub-tab-active', t.dataset.tab === tab);
+        this.sidebar.querySelectorAll('.lhub-tab').forEach(btn => {
+            btn.classList.toggle('lhub-tab-active', btn.dataset.tab === tab);
         });
 
         if (tab === 'agent') {
@@ -251,7 +252,7 @@ class HubPanel {
             searchEl.style.display = '';
             listEl.style.display = '';
             searchEl.value = '';
-            searchEl.placeholder = tab === 'lora' ? '搜索 LoRA...' : '搜索群组...';
+            searchEl.placeholder = tab === 'lora' ? t('hub.search_lora') : t('hub.search_group');
             this._renderSidebarList();
             this._renderSidebarFooter();
         }
@@ -261,7 +262,7 @@ class HubPanel {
 
     _renderSidebarList() {
         const listEl = this.sidebar.querySelector('[data-role="sidebar-list"]');
-        listEl.innerHTML = '<div class="lhub-loading">加载中...</div>';
+        listEl.innerHTML = `<div class="lhub-loading">${t('common.loading')}</div>`;
 
         if (this.activeTab === 'lora') {
             this._renderLoraList(listEl);
@@ -277,7 +278,7 @@ class HubPanel {
                 this.folderTree = data;
                 this.allLoras = data.all || [];
             } catch {
-                listEl.innerHTML = '<div class="lhub-empty-msg">加载失败</div>';
+                listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.load_failed')}</div>`;
                 return;
             }
         }
@@ -289,7 +290,7 @@ class HubPanel {
             try {
                 const results = await API.searchLoras(this.searchQuery);
                 if (results.length === 0) {
-                    listEl.innerHTML = '<div class="lhub-empty-msg">无匹配 LoRA</div>';
+                    listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.no_match')}</div>`;
                     this._onSidebarRendered?.();
                     return;
                 }
@@ -310,7 +311,7 @@ class HubPanel {
                     listEl.appendChild(this._createLoraItem(file));
                 }
             } catch {
-                listEl.innerHTML = '<div class="lhub-empty-msg">搜索失败</div>';
+                listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.search_failed')}</div>`;
             }
             this._onSidebarRendered?.();
             return;
@@ -344,7 +345,7 @@ class HubPanel {
             }
             const item = document.createElement('span');
             item.className = 'lhub-breadcrumb-item';
-            item.textContent = part === '/' ? '根目录' : part;
+            item.textContent = part === '/' ? t('hub.root_dir') : part;
             item.addEventListener('click', () => {
                 this.currentPath = this.currentPath.slice(0, i + 1);
                 this._renderSidebarList();
@@ -383,7 +384,7 @@ class HubPanel {
                 const favHeader = document.createElement('div');
                 favHeader.className = 'lhub-folder-item';
                 favHeader.style.cssText = 'color:#c8842a; font-size:11px; font-weight:600; padding:4px 8px; cursor:default;';
-                favHeader.textContent = `★ 收藏 (${favFiles.length})`;
+                favHeader.textContent = t('hub.favorites', { count: favFiles.length });
                 listEl.appendChild(favHeader);
                 for (const file of favFiles) {
                     listEl.appendChild(this._createLoraItem(file));
@@ -416,13 +417,13 @@ class HubPanel {
         star.className = 'lhub-fav-star' + (isFav ? ' lhub-fav-active' : '');
         star.textContent = isFav ? '★' : '☆';
         star.style.cssText = 'cursor:pointer; font-size:12px; color:' + (isFav ? '#c8842a' : '#ccc') + '; flex-shrink:0; margin-right:2px;';
-        star.title = isFav ? '取消收藏' : '收藏';
+        star.title = isFav ? t('hub.unfavorite') : t('hub.favorite');
         star.addEventListener('click', async (e) => {
             e.stopPropagation();
             const nowFav = await this._toggleFavorite(file);
             star.textContent = nowFav ? '★' : '☆';
             star.style.color = nowFav ? '#c8842a' : '#ccc';
-            star.title = nowFav ? '取消收藏' : '收藏';
+            star.title = nowFav ? t('hub.unfavorite') : t('hub.favorite');
             item.classList.toggle('lhub-lora-item-fav', nowFav);
         });
 
@@ -447,7 +448,7 @@ class HubPanel {
 
             const entries = Object.entries(groups);
             if (entries.length === 0) {
-                listEl.innerHTML = '<div class="lhub-empty-msg">暂无群组<br>点击下方按钮创建</div>';
+                listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.no_groups')}</div>`;
                 return;
             }
 
@@ -461,13 +462,13 @@ class HubPanel {
                     <span class="lhub-group-icon">✦</span>
                     <div class="lhub-group-info">
                         <div class="lhub-group-name">${escapeHtml(info.label || name)}</div>
-                        <div class="lhub-group-meta">${info.count || 0} 个 LoRA</div>
+                        <div class="lhub-group-meta">${t('hub.lora_count', { count: info.count || 0 })}</div>
                     </div>
                 `;
                 listEl.appendChild(item);
             }
         } catch {
-            listEl.innerHTML = '<div class="lhub-empty-msg">加载失败</div>';
+            listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.load_failed')}</div>`;
         }
     }
 
@@ -476,7 +477,7 @@ class HubPanel {
         footer.innerHTML = '';
         if (this.activeTab === 'group') {
             footer.innerHTML = `
-                <button class="lhub-btn lhub-btn-primary lhub-btn-full" data-footer-action="create-group">+ 新建群组</button>
+                <button class="lhub-btn lhub-btn-primary lhub-btn-full" data-footer-action="create-group">${t('hub.new_group')}</button>
             `;
         }
     }
@@ -529,9 +530,7 @@ class HubPanel {
                 <div class="lhub-welcome-icon">◆</div>
                 <div class="lhub-welcome-title">LoRA Hub</div>
                 <div class="lhub-welcome-desc">
-                    从左侧浏览 LoRA 磁盘文件，点击查看详情并编辑 Prompt<br>
-                    切换到「群组」Tab 管理群组<br>
-                    切换到「Agent」Tab 用自然语言控制
+                    ${t('hub.welcome_desc')}
                 </div>
             </div>
         `;
@@ -553,7 +552,7 @@ class HubPanel {
         this.sidebar.querySelector(`[data-lora-path="${CSS.escape(loraPath)}"]`)?.classList.add('lhub-selected');
 
         // Show loading
-        this.content.innerHTML = '<div class="lhub-loading" style="padding:40px;text-align:center;color:#999;">加载中...</div>';
+        this.content.innerHTML = `<div class="lhub-loading" style="padding:40px;text-align:center;color:#999;">${t('common.loading')}</div>`;
 
         // Load data in parallel
         let promptData, allGroups, loraInfo;
@@ -597,35 +596,35 @@ class HubPanel {
                 ${infoCardHTML}
 
                 <div class="lhub-detail-section">
-                    <div class="lhub-section-title">Prompt 组</div>
+                    <div class="lhub-section-title">${t('hub.prompt_groups')}</div>
                     <div class="lhub-prompt-groups" data-role="prompt-groups">
                         ${this._renderPromptGroupsHTML(promptGroups)}
                     </div>
                     <div class="lhub-prompt-actions">
-                        <button class="lhub-btn lhub-btn-primary" data-action="add-prompt-group">+ 新建 Prompt 组</button>
+                        <button class="lhub-btn lhub-btn-primary" data-action="add-prompt-group">${t('hub.new_prompt_group')}</button>
                     </div>
                 </div>
 
                 <div class="lhub-detail-section">
-                    <div class="lhub-section-title">所属群组</div>
+                    <div class="lhub-section-title">${t('hub.belong_groups')}</div>
                     <div class="lhub-membership">
                         ${membershipGroups.length > 0
                             ? membershipGroups.map(g => `<span class="lhub-membership-tag">${escapeHtml(g)}</span>`).join('')
-                            : '<span class="lhub-muted">未加入任何群组</span>'}
+                            : `<span class="lhub-muted">${t('hub.not_in_group')}</span>`}
                     </div>
                     <div class="lhub-add-to-group" style="margin-top:8px;">
                         <select class="lhub-select" data-role="group-select">
-                            <option value="">添加到群组...</option>
+                            <option value="">${t('hub.add_to_group')}</option>
                             ${memberOf.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('')}
                         </select>
-                        <button class="lhub-btn lhub-btn-sm" data-action="add-to-group">添加</button>
+                        <button class="lhub-btn lhub-btn-sm" data-action="add-to-group">${t('hub.add')}</button>
                     </div>
                 </div>
 
                 ${trainWordsHTML}
 
                 <div class="lhub-detail-section">
-                    <button class="lhub-btn lhub-btn-primary" data-action="add-to-stack">+ 添加到当前栈</button>
+                    <button class="lhub-btn lhub-btn-primary" data-action="add-to-stack">${t('hub.add_to_stack')}</button>
                 </div>
             </div>
         `;
@@ -659,10 +658,10 @@ class HubPanel {
                     </div>
                 </div>
                 <div class="lhub-info-fields">
-                    ${hashShort ? `<div class="lhub-info-field"><span class="lhub-field-label">Hash</span><span class="lhub-field-value"><span class="lhub-hash-text">${escapeHtml(hashShort)}</span><button class="lhub-hash-copy" data-full-hash="${escapeAttr(hashFull)}" title="复制完整 hash">复制</button></span></div>` : ''}
-                    ${modelBadge ? `<div class="lhub-info-field"><span class="lhub-field-label">模型</span><span class="lhub-field-value">${modelBadge}</span></div>` : ''}
+                    ${hashShort ? `<div class="lhub-info-field"><span class="lhub-field-label">${t('hub.field_hash')}</span><span class="lhub-field-value"><span class="lhub-hash-text">${escapeHtml(hashShort)}</span><button class="lhub-hash-copy" data-full-hash="${escapeAttr(hashFull)}" title="${t('hub.copy_hash')}">${t('hub.copy')}</button></span></div>` : ''}
+                    ${modelBadge ? `<div class="lhub-info-field"><span class="lhub-field-label">${t('hub.field_model')}</span><span class="lhub-field-value">${modelBadge}</span></div>` : ''}
                     ${clipSkip ? `<div class="lhub-info-field"><span class="lhub-field-label">CLIP</span><span class="lhub-field-value">Skip ${escapeHtml(clipSkip)}</span></div>` : ''}
-                    ${description ? `<div class="lhub-info-field lhub-info-field-full"><span class="lhub-field-label">描述</span><span class="lhub-field-value lhub-field-desc">${escapeHtml(description)}</span></div>` : ''}
+                    ${description ? `<div class="lhub-info-field lhub-info-field-full"><span class="lhub-field-label">${t('hub.field_desc')}</span><span class="lhub-field-value lhub-field-desc">${escapeHtml(description)}</span></div>` : ''}
                 </div>
             </div>
         `;
@@ -674,17 +673,17 @@ class HubPanel {
         const chipsHTML = words.map((w, i) => {
             const word = w.word || w;
             const count = w.count || '';
-            const tip = count ? `出现 ${count} 次` : '';
+            const tip = count ? t('hub.occurrence', { count }) : '';
             return `<span class="lhub-chip lhub-chip-${i % 5}" data-word="${escapeAttr(word)}" ${tip ? `data-tip="${escapeAttr(tip)}"` : ''}><span class="lhub-chip-word">${escapeHtml(word)}</span>${count ? `<span class="lhub-chip-count">${count}</span>` : ''}</span>`;
         }).join('');
 
         return `
             <div class="lhub-train-section">
                 <div class="lhub-train-head">
-                    <span class="lhub-section-title-inline">训练词 / 触发词</span>
+                    <span class="lhub-section-title-inline">${t('hub.training_words')}</span>
                     <div class="lhub-train-btns">
-                        <button class="lhub-train-copy-all" data-action="copy-selected-words">复制</button>
-                        <button class="lhub-train-copy-all" data-action="copy-all-words">全部复制</button>
+                        <button class="lhub-train-copy-all" data-action="copy-selected-words">${t('hub.copy')}</button>
+                        <button class="lhub-train-copy-all" data-action="copy-all-words">${t('hub.copy_all')}</button>
                     </div>
                 </div>
                 <div class="lhub-chip-box">${chipsHTML}</div>
@@ -706,10 +705,10 @@ class HubPanel {
                 const hash = btn.dataset.fullHash;
                 if (hash) {
                     navigator.clipboard?.writeText(hash).catch(() => {});
-                    btn.textContent = '已复制 ✓';
+                    btn.textContent = t('hub.copied_check');
                     btn.classList.add('lhub-hash-copied');
                     setTimeout(() => {
-                        btn.textContent = '复制';
+                        btn.textContent = t('hub.copy');
                         btn.classList.remove('lhub-hash-copied');
                     }, 1000);
                 }
@@ -723,7 +722,7 @@ class HubPanel {
                 if (selected.length === 0) return;
                 navigator.clipboard?.writeText(selected.join(' , ')).catch(() => {});
                 const orig = btn.textContent;
-                btn.textContent = '已复制 ✓';
+                btn.textContent = t('hub.copied_check');
                 setTimeout(() => { btn.textContent = orig; }, 1000);
             });
         });
@@ -735,7 +734,7 @@ class HubPanel {
                 if (words.length) {
                     navigator.clipboard?.writeText(words.join(' , ')).catch(() => {});
                     const orig = btn.textContent;
-                    btn.textContent = '已复制 ✓';
+                    btn.textContent = t('hub.copied_check');
                     setTimeout(() => { btn.textContent = orig; }, 1000);
                 }
             });
@@ -744,25 +743,25 @@ class HubPanel {
 
     _renderPromptGroupsHTML(groups) {
         if (!groups || groups.length === 0) {
-            return '<div class="lhub-muted" style="padding:12px;">暂无 Prompt 组</div>';
+            return `<div class="lhub-muted" style="padding:12px;">${t('hub.no_prompt_groups')}</div>`;
         }
         return groups.map(g => `
             <div class="lhub-prompt-group" data-group-name="${escapeAttr(g.name)}">
                 <div class="lhub-pg-header">
                     <span class="lhub-pg-name">${escapeHtml(g.name)}</span>
                     <div class="lhub-pg-actions">
-                        <button class="lhub-btn-icon-sm" data-action="delete-prompt-group" data-pg-name="${escapeAttr(g.name)}" title="删除">×</button>
+                        <button class="lhub-btn-icon-sm" data-action="delete-prompt-group" data-pg-name="${escapeAttr(g.name)}" title="${t('hub.delete_prompt_group')}">×</button>
                     </div>
                 </div>
                 <div class="lhub-pg-field">
-                    <label class="lhub-pg-label">正面提示词</label>
-                    <textarea class="lhub-pg-textarea" data-action="update-prompt-positive" data-pg-name="${escapeAttr(g.name)}" rows="2" placeholder="逗号分隔的提示词">${escapeHtml((g.prompts || []).join(', '))}</textarea>
+                    <label class="lhub-pg-label">${t('hub.positive_prompt')}</label>
+                    <textarea class="lhub-pg-textarea" data-action="update-prompt-positive" data-pg-name="${escapeAttr(g.name)}" rows="2" placeholder="${t('hub.comma_separated')}">${escapeHtml((g.prompts || []).join(', '))}</textarea>
                 </div>
                 <div class="lhub-pg-field">
-                    <label class="lhub-pg-label">负面提示词</label>
-                    <textarea class="lhub-pg-textarea" data-action="update-prompt-negative" data-pg-name="${escapeAttr(g.name)}" rows="1" placeholder="可选">${escapeHtml(g.negative || '')}</textarea>
+                    <label class="lhub-pg-label">${t('hub.negative_prompt')}</label>
+                    <textarea class="lhub-pg-textarea" data-action="update-prompt-negative" data-pg-name="${escapeAttr(g.name)}" rows="1" placeholder="${t('hub.optional')}">${escapeHtml(g.negative || '')}</textarea>
                 </div>
-                <button class="lhub-btn lhub-btn-sm lhub-mt-4" data-action="save-prompt-group" data-pg-name="${escapeAttr(g.name)}">保存</button>
+                <button class="lhub-btn lhub-btn-sm lhub-mt-4" data-action="save-prompt-group" data-pg-name="${escapeAttr(g.name)}">${t('common.save')}</button>
             </div>
         `).join('');
     }
@@ -781,7 +780,7 @@ class HubPanel {
         try {
             group = await API.getGroup(groupName);
         } catch (e) {
-            this.content.innerHTML = `<div class="lhub-welcome"><div class="lhub-welcome-desc">加载失败: ${escapeHtml(e.message)}</div></div>`;
+            this.content.innerHTML = `<div class="lhub-welcome"><div class="lhub-welcome-desc">${t('hub.load_failed')}: ${escapeHtml(e.message)}</div></div>`;
             return;
         }
 
@@ -791,16 +790,16 @@ class HubPanel {
             <div class="lhub-detail">
                 <div class="lhub-detail-header">
                     <div class="lhub-detail-title">${escapeHtml(group.label || groupName)}</div>
-                    <div class="lhub-detail-path">${loras.length} 个 LoRA</div>
+                    <div class="lhub-detail-path">${t('hub.lora_count', { count: loras.length })}</div>
                     <div class="lhub-detail-actions">
-                        <button class="lhub-btn lhub-btn-sm" data-action="rename-group" data-gn="${escapeAttr(groupName)}">✎ 重命名</button>
-                        <button class="lhub-btn lhub-btn-sm lhub-btn-danger" data-action="delete-group" data-gn="${escapeAttr(groupName)}">删除群组</button>
+                        <button class="lhub-btn lhub-btn-sm" data-action="rename-group" data-gn="${escapeAttr(groupName)}">${t('hub.rename')}</button>
+                        <button class="lhub-btn lhub-btn-sm lhub-btn-danger" data-action="delete-group" data-gn="${escapeAttr(groupName)}">${t('hub.delete_group')}</button>
                     </div>
                 </div>
 
                 <div class="lhub-lora-list-container">
                     <div class="lhub-group-lora-list" data-role="group-lora-list">
-                        ${loras.length === 0 ? '<div class="lhub-muted" style="padding:20px;text-align:center;">群组中暂无 LoRA，从左侧浏览器添加</div>' : ''}
+                        ${loras.length === 0 ? `<div class="lhub-muted" style="padding:20px;text-align:center;">${t('hub.no_lora_in_group')}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -824,22 +823,22 @@ class HubPanel {
             item.draggable = true;
 
             item.innerHTML = `
-                <div class="lhub-gl-drag" title="拖拽排序">⠿</div>
+                <div class="lhub-gl-drag" title="${t('hub.drag_sort')}">⠿</div>
                 <div class="lhub-gl-toggle ${enabled ? 'lhub-on' : ''}" data-action="toggle-gp" data-gn="${escapeAttr(groupName)}" data-ln="${escapeAttr(lora.lora)}"></div>
                 <div class="lhub-gl-name">${escapeHtml(name)}</div>
                 <div class="lhub-gl-weights">
                     <div class="lhub-gl-w-group">
-                        <span class="lhub-gl-w-label">模型权重</span>
+                        <span class="lhub-gl-w-label">${t('hub.model_weight')}</span>
                         <input class="lhub-gl-w-input" type="number" step="0.05" min="0" max="2"
                                value="${lora.weight}" data-field="weight" data-gn="${escapeAttr(groupName)}" data-ln="${escapeAttr(lora.lora)}" />
                     </div>
                     <div class="lhub-gl-w-group">
-                        <span class="lhub-gl-w-label">CLIP 权重</span>
+                        <span class="lhub-gl-w-label">${t('hub.clip_weight')}</span>
                         <input class="lhub-gl-w-input" type="number" step="0.05" min="0" max="2"
                                value="${lora.clip_weight}" data-field="clip_weight" data-gn="${escapeAttr(groupName)}" data-ln="${escapeAttr(lora.lora)}" />
                     </div>
                 </div>
-                <button class="lhub-gl-remove" data-action="remove-gp" data-gn="${escapeAttr(groupName)}" data-ln="${escapeAttr(lora.lora)}" title="移除">×</button>
+                <button class="lhub-gl-remove" data-action="remove-gp" data-gn="${escapeAttr(groupName)}" data-ln="${escapeAttr(lora.lora)}" title="${t('hub.remove')}">×</button>
             `;
 
             // Drag & drop
@@ -960,26 +959,26 @@ class HubPanel {
 
     async _addPromptGroup() {
         if (!this.selectedLora) return;
-        const name = prompt('输入 Prompt 组名称:');
+        const name = prompt(t('hub.prompt_group_name'));
         if (!name || !name.trim()) return;
 
         try {
             await API.addLoraPromptGroup(this.selectedLora, name.trim(), [], '');
             this._selectLora(this.selectedLora); // Refresh
         } catch (e) {
-            alert(`创建失败: ${e.message}`);
+            alert(t('hub.create_failed', { error: e.message }));
         }
     }
 
     async _deletePromptGroup(pgName) {
         if (!this.selectedLora) return;
-        if (!confirm(`删除 Prompt 组「${pgName}」？`)) return;
+        if (!confirm(t('hub.confirm_delete_pg', { name: pgName }))) return;
 
         try {
             await API.deleteLoraPromptGroup(this.selectedLora, pgName);
             this._selectLora(this.selectedLora); // Refresh
         } catch (e) {
-            alert(`删除失败: ${e.message}`);
+            alert(t('hub.delete_failed', { error: e.message }));
         }
     }
 
@@ -998,7 +997,7 @@ class HubPanel {
             const btn = this.content.querySelector(`button[data-action="save-prompt-group"][data-pg-name="${CSS.escape(pgName)}"]`);
             if (btn) {
                 const orig = btn.textContent;
-                btn.textContent = '已保存 ✓';
+                btn.textContent = t('hub.saved');
                 btn.style.background = '#00cd72';
                 btn.style.borderColor = '#00cd72';
                 setTimeout(() => {
@@ -1008,7 +1007,7 @@ class HubPanel {
                 }, 1200);
             }
         } catch (e) {
-            alert(`保存失败: ${e.message}`);
+            alert(t('hub.save_failed', { error: e.message }));
         }
     }
 
@@ -1020,15 +1019,15 @@ class HubPanel {
             this._selectLora(loraPath); // Refresh membership
         } catch (e) {
             if (e.message.includes('已在群组中')) {
-                alert('该 LoRA 已在此群组中');
+                alert(t('hub.already_in_group_desc'));
             } else {
-                alert(`添加失败: ${e.message}`);
+                alert(t('hub.add_failed', { error: e.message }));
             }
         }
     }
 
     async _createGroup() {
-        const name = prompt('输入新群组名称:');
+        const name = prompt(t('hub.input_group_name'));
         if (!name || !name.trim()) return;
 
         try {
@@ -1036,12 +1035,12 @@ class HubPanel {
             this._renderSidebarList();
             this._selectGroup(name.trim());
         } catch (e) {
-            alert(`创建失败: ${e.message}`);
+            alert(t('hub.create_failed', { error: e.message }));
         }
     }
 
     async _renameGroup(oldName) {
-        const newName = prompt(`重命名群组「${oldName}」:`, oldName);
+        const newName = prompt(t('hub.rename_group', { name: oldName }), oldName);
         if (!newName || !newName.trim() || newName === oldName) return;
 
         try {
@@ -1049,12 +1048,12 @@ class HubPanel {
             this._renderSidebarList();
             this._selectGroup(newName.trim());
         } catch (e) {
-            alert(`重命名失败: ${e.message}`);
+            alert(t('hub.rename_failed', { error: e.message }));
         }
     }
 
     async _deleteGroup(groupName) {
-        if (!confirm(`确定删除群组「${groupName}」？`)) return;
+        if (!confirm(t('hub.confirm_delete_group', { name: groupName }))) return;
 
         try {
             await API.deleteGroup(groupName);
@@ -1062,7 +1061,7 @@ class HubPanel {
             this._renderSidebarList();
             this._renderWelcome();
         } catch (e) {
-            alert(`删除失败: ${e.message}`);
+            alert(t('hub.delete_group_failed', { error: e.message }));
         }
     }
 
@@ -1103,7 +1102,7 @@ class HubPanel {
             a.click();
             URL.revokeObjectURL(url);
         } catch (e) {
-            alert(`导出失败: ${e.message}`);
+            alert(t('hub.export_failed', { error: e.message }));
         }
     }
 
@@ -1112,8 +1111,8 @@ class HubPanel {
     _updateFooter() {
         if (!this.node) return;
         const stack = StackAPI.getStack(this.node.id);
-        const countEl = this.backdrop.querySelector('[data-role="stack-count"]');
-        if (countEl) countEl.textContent = stack.items.length;
+        const footerEl = this.backdrop.querySelector('[data-role="footer-stack"]');
+        if (footerEl) footerEl.textContent = t('hub.stack_count', { count: stack.items.length });
     }
 
     // ---------- 关闭 ----------

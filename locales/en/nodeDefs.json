@@ -1,0 +1,125 @@
+{
+  "PromptEnhancer": {
+    "display_name": "PromptCraft",
+    "description": "Feature-rich prompt enhancement node with built-in library random selection + LLM detail enhancement",
+    "inputs": {
+      "用户Prompt": {
+        "name": "User Prompt",
+        "tooltip": "Enter your base prompt (will be prepended before library tags)"
+      },
+      "主体人数": { "name": "Subject Count" },
+      "场景类型": { "name": "Scene Type" },
+      "动作姿态": { "name": "Pose / Action" },
+      "服饰细节": { "name": "Clothing Details" },
+      "表情状态": { "name": "Expression" },
+      "权重_场景": { "name": "Weight · Scene" },
+      "权重_动作": { "name": "Weight · Action" },
+      "权重_服饰细节": { "name": "Weight · Clothing" },
+      "权重_状态": { "name": "Weight · Expression" },
+      "机位角度": { "name": "Camera Angle" },
+      "镜头类型": { "name": "Shot Type" },
+      "特效镜头": { "name": "Special Effects" },
+      "镜头滤镜": { "name": "Lens Filter" },
+      "光线类型": { "name": "Lighting" },
+      "视觉风格": { "name": "Visual Style" },
+      "质量等级": { "name": "Quality Level" },
+      "时间设定": { "name": "Time Setting" },
+      "情绪表达(忌与表情状态同时随机)": { "name": "Mood / Atmosphere" },
+      "预设配置": { "name": "Preset" },
+      "语言大模型接入": { "name": "Enable LLM" },
+      "扩写模式": { "name": "Enhancement Mode" },
+      "特殊内容": {
+        "name": "NSFW Content",
+        "tooltip": "Enable to show NSFW entries in dropdowns; each category can independently select random range (SFW/NSFW/All)"
+      },
+      "负面提示词类型": { "name": "Negative Prompt Type" },
+      "大模型提示词": {
+        "name": "LLM Instructions",
+        "tooltip": "Special instructions for the LLM (only effective when LLM is enabled)"
+      },
+      "lora_prompt_data": { "name": "LoRA Prompt Data" }
+    },
+    "outputs": {
+      "0": { "name": "Positive Prompt", "tooltip": "Concatenated positive prompt" },
+      "1": { "name": "Negative Prompt", "tooltip": "Concatenated negative prompt" },
+      "2": { "name": "Full Info", "tooltip": "Complete JSON info with all tags and parameters" }
+    }
+  },
+
+  "AIChat": {
+    "display_name": "AI Chat",
+    "description": "AI chat node for interactive conversations with LLM"
+  },
+
+  "ModelLoraGroupLoader": {
+    "display_name": "Model & LoRA Group Loader",
+    "description": "Load base model and apply LoRA stack (individual LoRA + group references). Frontend manages stack state, backend parses at execution.",
+    "inputs": {
+      "checkpoint": {
+        "name": "Checkpoint",
+        "tooltip": "Select base model, 'None' to use upstream MODEL"
+      },
+      "strength_multiplier": {
+        "name": "Strength Multiplier",
+        "tooltip": "Global LoRA weight multiplier"
+      },
+      "model": { "name": "MODEL" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_stack_data": { "name": "LoRA Stack Data" }
+    },
+    "outputs": {
+      "0": { "name": "model" },
+      "1": { "name": "clip" },
+      "2": { "name": "vae" },
+      "3": { "name": "LoRA Prompt Data", "tooltip": "JSON data of LoRA trigger words and prompts" }
+    }
+  },
+
+  "LoraPromptLoader": {
+    "display_name": "LoRA Prompt Loader",
+    "description": "Load base model + LoRA stack, auto-merge LoRA prompts with user text. Outputs plain STRING, directly compatible with standard CLIP encoders.",
+    "inputs": {
+      "checkpoint": {
+        "name": "Checkpoint",
+        "tooltip": "Select base model, 'None' to use upstream MODEL"
+      },
+      "strength_multiplier": {
+        "name": "Strength Multiplier",
+        "tooltip": "Global LoRA weight multiplier"
+      },
+      "positive_text": {
+        "name": "Positive Prompt",
+        "tooltip": "User positive prompt (LoRA prompts will be auto-prepended)"
+      },
+      "negative_text": {
+        "name": "Negative Prompt",
+        "tooltip": "User negative prompt (LoRA negatives will be auto-prepended)"
+      },
+      "model": { "name": "MODEL" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_stack_data": { "name": "LoRA Stack Data" }
+    },
+    "outputs": {
+      "0": { "name": "model" },
+      "1": { "name": "clip" },
+      "2": { "name": "vae" },
+      "3": { "name": "Positive Prompt", "tooltip": "Merged positive prompt text" },
+      "4": { "name": "Negative Prompt", "tooltip": "Merged negative prompt text" }
+    }
+  },
+
+  "CLIPTextEncodePro": {
+    "display_name": "CLIP Text Encode Pro",
+    "description": "Enhanced CLIP text encoder with additional text2 input. Auto-merges two text inputs before encoding to CONDITIONING.",
+    "inputs": {
+      "text1": { "name": "Text 1", "tooltip": "Primary text input" },
+      "clip": { "name": "CLIP" },
+      "text2": { "name": "Text 2", "tooltip": "Optional second text, merged with Text 1" }
+    },
+    "outputs": {
+      "0": { "name": "CONDITIONING", "tooltip": "Encoded conditioning output" }
+    }
+  }
+}

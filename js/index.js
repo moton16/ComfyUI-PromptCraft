@@ -11,6 +11,7 @@
 
 import { app } from '../../../scripts/app.js';
 import { api } from '../../../scripts/api.js';
+import { t, initI18n } from './i18n.js';
 
 // LoRA Group Manager 模块
 import './lora_group/index.js';
@@ -29,7 +30,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.3';
+const VERSION = '1.2.4';
 
 // ==================== 工具函数 ====================
 
@@ -88,11 +89,11 @@ function openNegativePromptEditor() {
             box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
         ">
             <h2 style="margin: 0 0 10px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                负面 Prompt 编辑器
+                ${t('negative_editor.title')}
             </h2>
 
             <p style="color: #999; font-size: 12px; margin: 0 0 12px 0;">
-                在此编辑自定义负面提示词。保存后，在节点中选择"负面提示词类型 → 自定义"即可使用。
+                ${t('negative_editor.desc')}
             </p>
 
             <div style="flex:1; display: flex; flex-direction: column;">
@@ -102,16 +103,16 @@ function openNegativePromptEditor() {
                     border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;
                     font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
                     box-sizing: border-box; outline: none;
-                " placeholder="输入自定义负面提示词（英文标签，逗号分隔）..."></textarea>
+                " placeholder="${t('negative_editor.placeholder')}"></textarea>
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-                <span id="mpe-negative-status" style="color: #999; font-size: 12px; flex: 1;">就绪</span>
+                <span id="mpe-negative-status" style="color: #999; font-size: 12px; flex: 1;">${t('negative_editor.status.ready')}</span>
                 <button id="mpe-negative-save" style="padding: 8px 22px; background: #333; color: #fff; border: 1px solid #333; border-radius: 7px; cursor: pointer; font-weight: 500; font-size: 13px;">
-                    保存
+                    ${t('common.save')}
                 </button>
                 <button id="mpe-negative-close" style="padding: 8px 20px; background: #fff; color: #666; border: 1px solid #e0e0e0; border-radius: 7px; cursor: pointer; font-size: 13px;">
-                    关闭
+                    ${t('common.close')}
                 </button>
             </div>
         </div>
@@ -128,31 +129,31 @@ function openNegativePromptEditor() {
     }
 
     async function loadNegative() {
-        setStatus('加载中...', false);
+        setStatus(t('negative_editor.status.loading'), false);
         try {
             const res = await request('GET', '/negative_prompt');
             if (res.success) {
                 textEl.value = (res.data && res.data.content) ? res.data.content : '';
-                setStatus('已加载');
+                setStatus(t('negative_editor.status.loaded'));
             } else {
-                setStatus('加载失败: ' + (res.error || '未知错误'), true);
+                setStatus(t('negative_editor.status.load_failed', { error: res.error || t('negative_editor.status.unknown_error') }), true);
             }
         } catch (e) {
-            setStatus('加载异常: ' + e.message, true);
+            setStatus(t('negative_editor.status.load_exception', { error: e.message }), true);
         }
     }
 
     async function saveNegative() {
-        setStatus('保存中...', false);
+        setStatus(t('negative_editor.status.saving'), false);
         try {
             const res = await request('POST', '/negative_prompt', { content: textEl.value });
             if (res.success) {
-                setStatus('✅ 负面提示词已保存');
+                setStatus(t('negative_editor.status.saved'));
             } else {
-                setStatus('保存失败: ' + (res.error || '未知错误'), true);
+                setStatus(t('negative_editor.status.save_failed', { error: res.error || t('negative_editor.status.unknown_error') }), true);
             }
         } catch (e) {
-            setStatus('保存异常: ' + e.message, true);
+            setStatus(t('negative_editor.status.save_exception', { error: e.message }), true);
         }
     }
 
@@ -195,7 +196,7 @@ function openRuleManager() {
             box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
         ">
             <h2 style="margin: 0 0 14px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                提示词规则管理器
+                ${t('rule_manager.title')}
             </h2>
 
             <div style="flex:1; overflow-y: auto; max-height: 70vh; padding-right: 4px;">
@@ -203,10 +204,10 @@ function openRuleManager() {
                 <!-- #1 基础扩写 -->
                 <div style="border: 1px solid #e8e8e8; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
                     <div style="background: #fafafa; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">#1 基础扩写</span>
+                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">${t('rule_manager.basic')}</span>
                         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #666;">
                             <input type="checkbox" id="mpe-rule-sfw-enabled" style="cursor: pointer;">
-                            启用
+                            ${t('rule_manager.enable')}
                         </label>
                     </div>
                     <div style="padding: 10px 14px;">
@@ -215,17 +216,17 @@ function openRuleManager() {
                             border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;
                             font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
                             box-sizing: border-box; outline: none;
-                        " placeholder="设置基础扩写的规则...(支持PromptCraft库占位符)"></textarea>
+                        " placeholder="${t('rule_manager.placeholder_basic')}"></textarea>
                     </div>
                 </div>
 
                 <!-- #2 详细扩写 -->
                 <div style="border: 1px solid #e8e8e8; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
                     <div style="background: #fafafa; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">#2 详细扩写</span>
+                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">${t('rule_manager.detail')}</span>
                         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #666;">
                             <input type="checkbox" id="mpe-rule-nsfw-enabled" style="cursor: pointer;">
-                            启用
+                            ${t('rule_manager.enable')}
                         </label>
                     </div>
                     <div style="padding: 10px 14px;">
@@ -234,18 +235,18 @@ function openRuleManager() {
                             border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;
                             font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
                             box-sizing: border-box; outline: none;
-                        " placeholder="设置详细扩写的规则...(支持PromptCraft库占位符)"></textarea>
+                        " placeholder="${t('rule_manager.placeholder_detail')}"></textarea>
                     </div>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-                <span id="mpe-rule-status" style="color: #999; font-size: 12px; flex: 1;">就绪</span>
+                <span id="mpe-rule-status" style="color: #999; font-size: 12px; flex: 1;">${t('rule_manager.status.ready')}</span>
                 <button id="mpe-rule-save" style="padding: 8px 22px; background: #333; color: #fff; border: 1px solid #333; border-radius: 7px; cursor: pointer; font-weight: 500; font-size: 13px;">
-                    保存
+                    ${t('common.save')}
                 </button>
                 <button id="mpe-rule-close" style="padding: 8px 20px; background: #fff; color: #666; border: 1px solid #e0e0e0; border-radius: 7px; cursor: pointer; font-size: 13px;">
-                    关闭
+                    ${t('common.close')}
                 </button>
             </div>
         </div>
@@ -265,7 +266,7 @@ function openRuleManager() {
     }
 
     async function loadRules() {
-        setStatus('加载中...', false);
+        setStatus(t('rule_manager.status.loading'), false);
         try {
             const res = await request('GET', '/system_prompt');
             if (res.success) {
@@ -274,17 +275,17 @@ function openRuleManager() {
                 ruleNsfwText.value = d.nsfw_rules || '';
                 ruleSfwEnabled.checked = d.sfw_enabled !== false;
                 ruleNsfwEnabled.checked = d.nsfw_enabled !== false;
-                setStatus('已加载');
+                setStatus(t('rule_manager.status.loaded'));
             } else {
-                setStatus('加载失败: ' + (res.error || '未知错误'), true);
+                setStatus(t('rule_manager.status.load_failed', { error: res.error || t('rule_manager.status.unknown_error') }), true);
             }
         } catch (e) {
-            setStatus('加载异常: ' + e.message, true);
+            setStatus(t('rule_manager.status.load_exception', { error: e.message }), true);
         }
     }
 
     async function saveRules() {
-        setStatus('保存中...', false);
+        setStatus(t('rule_manager.status.saving'), false);
         try {
             const payload = {
                 sfw_rules: ruleSfwText.value,
@@ -294,12 +295,12 @@ function openRuleManager() {
             };
             const res = await request('POST', '/system_prompt', payload);
             if (res.success) {
-                setStatus('✅ 规则已保存');
+                setStatus(t('rule_manager.status.saved'));
             } else {
-                setStatus('保存失败: ' + (res.error || '未知错误'), true);
+                setStatus(t('rule_manager.status.save_failed', { error: res.error || t('rule_manager.status.unknown_error') }), true);
             }
         } catch (e) {
-            setStatus('保存异常: ' + e.message, true);
+            setStatus(t('rule_manager.status.save_exception', { error: e.message }), true);
         }
     }
 
@@ -345,11 +346,11 @@ function openLibraryEditor() {
             box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
         ">
             <h2 style="margin: 0 0 10px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                Prompt 库编辑器
+                ${t('library_editor.title')}
             </h2>
 
             <p style="color: #999; font-size: 12px; margin: 0 0 8px 0;">
-                编辑 Prompt 库中的分类、选项内容，保存后自动生效。
+                ${t('library_editor.desc')}
             </p>
 
             <!-- 标签切换 -->
@@ -358,42 +359,42 @@ function openLibraryEditor() {
                     padding: 6px 16px; border: 1px solid #e0e0e0; border-radius: 7px;
                     background: #fff; color: #666; cursor: pointer; font-weight: 500;
                     font-size: 13px; font-family: inherit;
-                ">普通内容库 (SFW)</button>
+                ">${t('library_editor.tab_sfw')}</button>
                 <button id="mpe-tab-nsfw" style="
                     padding: 6px 16px; border: 1px solid #e0e0e0; border-radius: 7px;
                     background: #fff; color: #666; cursor: pointer; font-weight: 500;
                     font-size: 13px; font-family: inherit;
-                ">特殊内容库 (NSFW)</button>
+                ">${t('library_editor.tab_nsfw')}</button>
             </div>
 
             <!-- 状态栏 -->
             <div style="display:flex; gap: 8px; align-items: center; margin-bottom: 6px;">
-                <span id="mpe-status" style="color: #999; font-size: 12px; flex: 1;">就绪</span>
+                <span id="mpe-status" style="color: #999; font-size: 12px; flex: 1;">${t('library_editor.status.ready')}</span>
                 <button id="mpe-refresh" style="
                     padding: 4px 12px; background: #fff; color: #888;
                     border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 12px;
                     font-family: inherit;
-                ">刷新</button>
+                ">${t('library_editor.refresh')}</button>
             </div>
 
             <!-- 编辑表格容器 -->
             <div id="mpe-content" style="flex:1; overflow-y: auto; max-height: 60vh; border: 1px solid #e8e8e8; border-radius: 8px; background: #fafafa;">
-                <div style="padding:60px; text-align:center; color:#ccc;">加载中...</div>
+                <div style="padding:60px; text-align:center; color:#ccc;">${t('library_editor.status.loading')}</div>
             </div>
 
             <!-- 底部按钮 -->
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-                <span style="color:#bbb; font-size:11px;">编辑后点击保存，节点下拉将自动更新</span>
+                <span style="color:#bbb; font-size:11px;">${t('library_editor.save_hint')}</span>
                 <button id="mpe-save" style="
                     padding: 8px 22px; background: #333; color: #fff;
                     border: 1px solid #333; border-radius: 7px; cursor: pointer; font-weight: 500;
                     font-size: 13px;
-                ">保存</button>
+                ">${t('common.save')}</button>
                 <button id="mpe-close" style="
                     padding: 8px 20px; background: #fff; color: #666;
                     border: 1px solid #e0e0e0; border-radius: 7px; cursor: pointer;
                     font-size: 13px;
-                ">关闭</button>
+                ">${t('common.close')}</button>
             </div>
         </div>
     `;
@@ -471,7 +472,7 @@ function openLibraryEditor() {
 
     async function loadLibrary(type) {
         setActiveTab(type);
-        contentEl.innerHTML = '<div style="padding:60px; text-align:center; color:#555;">加载中...</div>';
+        contentEl.innerHTML = `<div style="padding:60px; text-align:center; color:#555;">${t('library_editor.status.loading')}</div>`;
         try {
             const res = await request('GET', `/library/${type}`);
             if (res.success) {
@@ -515,14 +516,14 @@ function openLibraryEditor() {
                     const sgs = (c && c.subgroups) || {};
                     Object.values(sgs).forEach(sg => { optCount += ((sg && sg.options) || []).length; });
                 });
-                setStatus(`${type.toUpperCase()} 库已加载 · ${catCount} 分类 / ${optCount} 选项`);
+                setStatus(t('library_editor.status.loaded', { type: type.toUpperCase(), catCount, optCount }));
             } else {
-                contentEl.innerHTML = `<div style="color:#d44;text-align:center;padding:60px 0;">加载失败: ${escHtml(res.error || '未知错误')}</div>`;
-                setStatus('加载失败', true);
+                contentEl.innerHTML = `<div style="color:#d44;text-align:center;padding:60px 0;">${t('library_editor.status.load_failed', { error: escHtml(res.error || t('negative_editor.status.unknown_error')) })}</div>`;
+                setStatus(t('library_editor.status.load_failed_short'), true);
             }
         } catch (e) {
-            contentEl.innerHTML = `<div style="color:#d44;text-align:center;padding:60px 0;">加载异常: ${escHtml(e.message)}</div>`;
-            setStatus('加载异常', true);
+            contentEl.innerHTML = `<div style="color:#d44;text-align:center;padding:60px 0;">${t('library_editor.status.load_exception', { error: escHtml(e.message) })}</div>`;
+            setStatus(t('library_editor.status.load_exception_short'), true);
         }
     }
 
@@ -531,17 +532,17 @@ function openLibraryEditor() {
             const newCategories = collectCategoriesFromTable();
             const payload = { ...currentLibData, categories: newCategories };
             JSON.stringify(payload);
-            setStatus('保存中...', false);
+            setStatus(t('library_editor.status.saving'), false);
             const res = await request('POST', `/library/${currentTab}`, payload);
             if (res.success) {
                 await request('POST', `/library/${currentTab}_reload`, {});
-                setStatus(`${currentTab.toUpperCase()} 库已保存并重载缓存 ✅`);
+                setStatus(t('library_editor.status.saved', { type: currentTab.toUpperCase() }));
                 currentLibData = payload;
             } else {
-                setStatus(`保存失败: ${res.error || '未知错误'}`, true);
+                setStatus(t('library_editor.status.save_failed', { error: res.error || t('negative_editor.status.unknown_error') }), true);
             }
         } catch (e) {
-            setStatus(`数据收集失败: ${e.message}`, true);
+            setStatus(t('library_editor.status.data_collect_failed', { error: e.message }), true);
         }
     }
 
@@ -588,31 +589,31 @@ function openPromptHistory() {
             box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
         ">
             <h2 style="margin: 0 0 6px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                Prompt 历史记录
+                ${t('history.title')}
             </h2>
 
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
-                <span style="color:#999; font-size:12px; flex:1;">点击条目可复制正面提示词</span>
+                <span style="color:#999; font-size:12px; flex:1;">${t('history.click_hint')}</span>
                 <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#666;">
-                    上限:
+                    ${t('history.limit_label')}
                     <select id="mpe-history-limit" style="background:#fafafa; color:#333; border:1px solid #e0e0e0; border-radius:5px; padding:2px 6px; font-size:12px;">
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
-                        <option value="0">无上限</option>
+                        <option value="0">${t('history.no_limit')}</option>
                     </select>
                 </label>
-                <button id="mpe-history-clear" style="padding:4px 12px; background:#fff; color:#d44; border:1px solid #e0e0e0; border-radius:6px; cursor:pointer; font-size:12px;">清空历史</button>
+                <button id="mpe-history-clear" style="padding:4px 12px; background:#fff; color:#d44; border:1px solid #e0e0e0; border-radius:6px; cursor:pointer; font-size:12px;">${t('history.clear_all')}</button>
             </div>
 
             <div id="mpe-history-list" style="flex:1; overflow-y:auto; max-height:60vh; border:1px solid #e8e8e8; border-radius:8px; background:#fafafa;">
-                <div style="padding:60px; text-align:center; color:#ccc;">加载中...</div>
+                <div style="padding:60px; text-align:center; color:#ccc;">${t('history.status.loading')}</div>
             </div>
 
             <div style="display:flex; gap:10px; align-items:center; margin-top:12px; padding-top:12px; border-top:1px solid #f0f0f0;">
-                <span id="mpe-history-status" style="color:#999; font-size:12px; flex:1;">就绪</span>
-                <button id="mpe-history-close" style="padding:8px 20px; background:#fff; color:#666; border:1px solid #e0e0e0; border-radius:7px; cursor:pointer; font-size:13px;">关闭</button>
+                <span id="mpe-history-status" style="color:#999; font-size:12px; flex:1;">${t('history.status.ready')}</span>
+                <button id="mpe-history-close" style="padding:8px 20px; background:#fff; color:#666; border:1px solid #e0e0e0; border-radius:7px; cursor:pointer; font-size:13px;">${t('common.close')}</button>
             </div>
         </div>
     `;
@@ -640,7 +641,7 @@ function openPromptHistory() {
     }
 
     async function loadHistory() {
-        setStatus('加载中...', false);
+        setStatus(t('history.status.loading'), false);
         try {
             const res = await request('GET', '/prompt_history');
             if (res.success) {
@@ -649,8 +650,8 @@ function openPromptHistory() {
                 limitSelect.value = String(data.limit ?? 50);
 
                 if (entries.length === 0) {
-                    listEl.innerHTML = '<div style="padding:60px; text-align:center; color:#ccc;">暂无历史记录</div>';
-                    setStatus('暂无记录');
+                    listEl.innerHTML = `<div style="padding:60px; text-align:center; color:#ccc;">${t('history.empty')}</div>`;
+                    setStatus(t('history.no_record'));
                     return;
                 }
 
@@ -680,8 +681,8 @@ function openPromptHistory() {
                             ${negPreview ? `<div style="color:#999; font-size:11px; margin-top:2px;">Neg: ${escHtml(negPreview)}</div>` : ''}
                         </div>
                         <div style="display:flex; gap:4px; flex-shrink:0;">
-                            <button class="mpe-hist-copy" data-idx="${idx}" style="padding:3px 8px; background:#fff; color:#666; border:1px solid #e0e0e0; border-radius:5px; cursor:pointer; font-size:11px;" title="复制正面提示词">复制</button>
-                            <button class="mpe-hist-del" data-id="${escHtml(entry.id)}" style="padding:3px 8px; background:#fff; color:#d44; border:1px solid #e0e0e0; border-radius:5px; cursor:pointer; font-size:11px;" title="删除">×</button>
+                            <button class="mpe-hist-copy" data-idx="${idx}" style="padding:3px 8px; background:#fff; color:#666; border:1px solid #e0e0e0; border-radius:5px; cursor:pointer; font-size:11px;" title="${t('history.copy_positive')}">${t('common.copy')}</button>
+                            <button class="mpe-hist-del" data-id="${escHtml(entry.id)}" style="padding:3px 8px; background:#fff; color:#d44; border:1px solid #e0e0e0; border-radius:5px; cursor:pointer; font-size:11px;" title="${t('common.delete')}">×</button>
                         </div>
                     `;
 
@@ -689,7 +690,7 @@ function openPromptHistory() {
                     item.addEventListener('click', (e) => {
                         if (e.target.closest('.mpe-hist-copy') || e.target.closest('.mpe-hist-del')) return;
                         navigator.clipboard?.writeText(entry.positive || '').catch(() => {});
-                        setStatus('已复制正面提示词');
+                        setStatus(t('history.copied_positive'));
                     });
 
                     // Copy button
@@ -697,9 +698,9 @@ function openPromptHistory() {
                         e.stopPropagation();
                         navigator.clipboard?.writeText(entry.positive || '').catch(() => {});
                         const btn = e.target;
-                        btn.textContent = '已复制';
+                        btn.textContent = t('common.copied');
                         btn.style.color = '#00cd72';
-                        setTimeout(() => { btn.textContent = '复制'; btn.style.color = ''; }, 1000);
+                        setTimeout(() => { btn.textContent = t('common.copy'); btn.style.color = ''; }, 1000);
                     });
 
                     // Delete button
@@ -713,12 +714,12 @@ function openPromptHistory() {
                     listEl.appendChild(item);
                 });
 
-                setStatus(`共 ${entries.length} 条记录`);
+                setStatus(t('history.count', { count: entries.length }));
             } else {
-                setStatus('加载失败', true);
+                setStatus(t('history.status.load_failed'), true);
             }
         } catch (e) {
-            setStatus('加载异常: ' + e.message, true);
+            setStatus(t('history.status.load_exception', { error: e.message }), true);
         }
     }
 
@@ -726,16 +727,16 @@ function openPromptHistory() {
     limitSelect.addEventListener('change', async () => {
         const limit = parseInt(limitSelect.value);
         await request('PUT', '/prompt_history/limit', { limit });
-        setStatus(`上限已设为 ${limit === 0 ? '无上限' : limit}`);
+        setStatus(t('history.limit_set', { value: limit === 0 ? t('history.limit_none') : limit }));
         loadHistory();
     });
 
     // Clear all
     dialog.querySelector('#mpe-history-clear').addEventListener('click', async () => {
-        if (!confirm('确定清空所有历史记录？')) return;
+        if (!confirm(t('history.confirm_clear'))) return;
         await request('DELETE', '/prompt_history');
         loadHistory();
-        setStatus('已清空');
+        setStatus(t('history.cleared'));
     });
 
     // Close
@@ -895,9 +896,9 @@ function ensureFallbackPanel() {
 
     // Quick access buttons
     const QUICK_BUTTONS = [
-        { text: '📐 规则管理器', fn: openRuleManager },
-        { text: '▤ 库编辑器', fn: openLibraryEditor },
-        { text: '⏱ Prompt 历史', fn: openPromptHistory },
+        { text: t('panel.rules'), fn: openRuleManager },
+        { text: t('panel.library'), fn: openLibraryEditor },
+        { text: t('panel.history'), fn: openPromptHistory },
     ];
 
     QUICK_BUTTONS.forEach(({ text, fn }) => {
@@ -936,7 +937,7 @@ function ensureFallbackPanel() {
         menu.style.cssText = `position:fixed; left:${e.clientX}px; top:${e.clientY}px; z-index:99999; background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:4px; box-shadow:0 4px 16px rgba(0,0,0,0.12); min-width:140px; font-family:'Segoe UI',Arial,sans-serif;`;
 
         const closeBtn = document.createElement('div');
-        closeBtn.textContent = '关闭浮窗';
+        closeBtn.textContent = t('panel.close_floating');
         closeBtn.style.cssText = 'padding:6px 12px; cursor:pointer; font-size:12px; color:#666; border-radius:4px; transition:all 0.15s;';
         closeBtn.onmouseenter = () => { closeBtn.style.background = '#f5f5f5'; closeBtn.style.color = '#333'; };
         closeBtn.onmouseleave = () => { closeBtn.style.background = ''; closeBtn.style.color = '#666'; };
@@ -944,7 +945,7 @@ function ensureFallbackPanel() {
             container.remove();
             localStorage.setItem('moton-pe-panel-hidden', 'true');
             menu.remove();
-            alert('浮窗已关闭，可通过 PromptCraft 设置面板重新开启');
+            alert(t('panel.closed_alert'));
         };
         menu.appendChild(closeBtn);
 
@@ -1257,7 +1258,8 @@ if (!document.getElementById('promptcraft-toast-styles')) {
 
 // 监听后端 LLM 状态事件（仅使用浮动 Toast，不修改画布节点）
 api.addEventListener('promptcraft.llm_status', (event) => {
-    const { status, message } = event.detail;
+    const { status, messageKey } = event.detail;
+    const message = messageKey ? t(messageKey) : (event.detail.message || '');
     log(`LLM 状态: ${status} - ${message}`);
     showLlmStatusToast(status, message);
 });
@@ -1394,7 +1396,7 @@ window.addEventListener('promptcraft:open-hub', () => {
     if (node) {
         import('./lora_group/hub_panel.js').then(m => m.openHubPanel(node));
     } else {
-        alert('请先在画布上添加一个 LoRA Group 节点');
+        alert(t('toast.add_lora_first'));
     }
 });
 window.addEventListener('promptcraft:toggle-panel', (e) => {

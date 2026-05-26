@@ -44,7 +44,25 @@ else
     echo "[SKIP] ${INIT_FILE} 不存在"
 fi
 
-# --- 2. js/control_panel.js ---
+# --- 2. pyproject.toml ---
+PYPROJECT_FILE="pyproject.toml"
+if [ -f "$PYPROJECT_FILE" ]; then
+    sed -i -E "s/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"${NEW_VER}\"/" "$PYPROJECT_FILE"
+    echo "[OK] ${PYPROJECT_FILE}"
+else
+    echo "[SKIP] ${PYPROJECT_FILE} 不存在"
+fi
+
+# --- 3. js/index.js ---
+JS_INDEX_FILE="js/index.js"
+if [ -f "$JS_INDEX_FILE" ]; then
+    sed -i -E "s/const VERSION = '[0-9]+\.[0-9]+\.[0-9]+';/const VERSION = '${NEW_VER}';/" "$JS_INDEX_FILE"
+    echo "[OK] ${JS_INDEX_FILE}"
+else
+    echo "[SKIP] ${JS_INDEX_FILE} 不存在"
+fi
+
+# --- 4. js/control_panel.js ---
 JS_FILE="js/control_panel.js"
 if [ -f "$JS_FILE" ]; then
     sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VER_V}/g" "$JS_FILE"
@@ -53,7 +71,7 @@ else
     echo "[SKIP] ${JS_FILE} 不存在"
 fi
 
-# --- 3. README.md badge ---
+# --- 5. README.md badge ---
 README_FILE="README.md"
 if [ -f "$README_FILE" ]; then
     # 更新 badge 中的版本号
@@ -69,7 +87,7 @@ else
     echo "[SKIP] ${README_FILE} 不存在"
 fi
 
-# --- 4. CHANGELOG.md (根目录) ---
+# --- 6. CHANGELOG.md (根目录) ---
 ROOT_CHANGELOG="CHANGELOG.md"
 if [ -f "$ROOT_CHANGELOG" ]; then
     # 更新第一个版本标题行
@@ -79,7 +97,7 @@ else
     echo "[SKIP] ${ROOT_CHANGELOG} 不存在"
 fi
 
-# --- 5. docs/CHANGELOG.md ---
+# --- 7. docs/CHANGELOG.md ---
 DOCS_CHANGELOG="docs/CHANGELOG.md"
 if [ -f "$DOCS_CHANGELOG" ]; then
     # 更新第一个版本标题行

@@ -1,0 +1,125 @@
+{
+  "PromptEnhancer": {
+    "display_name": "PromptCraft",
+    "description": "功能丰富的提示词增强节点，支持内置库随机选择 + LLM 细节补充",
+    "inputs": {
+      "用户Prompt": {
+        "name": "用户 Prompt",
+        "tooltip": "输入你的基础 Prompt（将拼接在库标签之前）"
+      },
+      "主体人数": { "name": "主体人数" },
+      "场景类型": { "name": "场景类型" },
+      "动作姿态": { "name": "动作姿态" },
+      "服饰细节": { "name": "服饰细节" },
+      "表情状态": { "name": "表情状态" },
+      "权重_场景": { "name": "权重·场景" },
+      "权重_动作": { "name": "权重·动作" },
+      "权重_服饰细节": { "name": "权重·服饰" },
+      "权重_状态": { "name": "权重·状态" },
+      "机位角度": { "name": "机位角度" },
+      "镜头类型": { "name": "镜头类型" },
+      "特效镜头": { "name": "特效镜头" },
+      "镜头滤镜": { "name": "镜头滤镜" },
+      "光线类型": { "name": "光线类型" },
+      "视觉风格": { "name": "视觉风格" },
+      "质量等级": { "name": "质量等级" },
+      "时间设定": { "name": "时间设定" },
+      "情绪表达(忌与表情状态同时随机)": { "name": "情绪表达" },
+      "预设配置": { "name": "预设配置" },
+      "语言大模型接入": { "name": "语言大模型接入" },
+      "扩写模式": { "name": "扩写模式" },
+      "特殊内容": {
+        "name": "特殊内容",
+        "tooltip": "开启后下拉菜单显示 NSFW 条目；各分类可独立选择随机范围（SFW/NSFW/全量）"
+      },
+      "负面提示词类型": { "name": "负面提示词类型" },
+      "大模型提示词": {
+        "name": "大模型提示词",
+        "tooltip": "输入对 LLM 大模型的特殊要求（仅在启用语言大模型时生效）"
+      },
+      "lora_prompt_data": { "name": "LoRA Prompt 数据" }
+    },
+    "outputs": {
+      "0": { "name": "正面提示词", "tooltip": "拼接后的正面提示词" },
+      "1": { "name": "负面提示词", "tooltip": "拼接后的负面提示词" },
+      "2": { "name": "完整信息", "tooltip": "包含所有标签和参数的完整 JSON 信息" }
+    }
+  },
+
+  "AIChat": {
+    "display_name": "AI Chat",
+    "description": "AI 对话节点，支持与 LLM 进行交互式对话"
+  },
+
+  "ModelLoraGroupLoader": {
+    "display_name": "Model & LoRA Group Loader",
+    "description": "加载底模并应用 LoRA 栈（个体 LoRA + 群组引用混合）。前端管理栈状态，后端执行时解析。",
+    "inputs": {
+      "checkpoint": {
+        "name": "底模",
+        "tooltip": "选择底模，'None' 则使用上游传入的 MODEL"
+      },
+      "strength_multiplier": {
+        "name": "权重乘数",
+        "tooltip": "全局 LoRA 权重乘数"
+      },
+      "model": { "name": "MODEL" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_stack_data": { "name": "LoRA 栈数据" }
+    },
+    "outputs": {
+      "0": { "name": "model" },
+      "1": { "name": "clip" },
+      "2": { "name": "vae" },
+      "3": { "name": "LoRA Prompt 数据", "tooltip": "LoRA 触发词和提示词的 JSON 数据" }
+    }
+  },
+
+  "LoraPromptLoader": {
+    "display_name": "LoRA Prompt Loader",
+    "description": "加载底模 + LoRA 栈，自动合并 LoRA prompt 与用户文本。输出纯文本 STRING，可直接接入标准 CLIP 编码器。",
+    "inputs": {
+      "checkpoint": {
+        "name": "底模",
+        "tooltip": "选择底模，'None' 则使用上游传入的 MODEL"
+      },
+      "strength_multiplier": {
+        "name": "权重乘数",
+        "tooltip": "全局 LoRA 权重乘数"
+      },
+      "positive_text": {
+        "name": "正面提示词",
+        "tooltip": "用户正面提示词（LoRA prompt 将自动添加在最前面）"
+      },
+      "negative_text": {
+        "name": "负面提示词",
+        "tooltip": "用户负面提示词（LoRA negative 将自动添加在最前面）"
+      },
+      "model": { "name": "MODEL" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_stack_data": { "name": "LoRA 栈数据" }
+    },
+    "outputs": {
+      "0": { "name": "model" },
+      "1": { "name": "clip" },
+      "2": { "name": "vae" },
+      "3": { "name": "正面提示词", "tooltip": "合并后的正面提示词文本" },
+      "4": { "name": "负面提示词", "tooltip": "合并后的负面提示词文本" }
+    }
+  },
+
+  "CLIPTextEncodePro": {
+    "display_name": "CLIP Text Encode Pro",
+    "description": "标准 CLIP 文本编码器升级版，额外支持 text2 输入。自动合并两段文本后一起编码为 CONDITIONING。",
+    "inputs": {
+      "text1": { "name": "文本 1", "tooltip": "主文本输入" },
+      "clip": { "name": "CLIP" },
+      "text2": { "name": "文本 2", "tooltip": "可选的第二段文本，将与文本 1 合并" }
+    },
+    "outputs": {
+      "0": { "name": "CONDITIONING", "tooltip": "编码后的条件输出" }
+    }
+  }
+}

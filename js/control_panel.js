@@ -8,6 +8,7 @@
  */
 
 import { api } from '../../../scripts/api.js';
+import { t, getLang, setLang } from './i18n.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 
@@ -31,9 +32,27 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.2.3</span>
+            <span class="pc-brand-ver">v1.2.4</span>
         </div>
     `;
+
+    // Language switch
+    const langCard = createSectionCard('🌐', t('settings.language'));
+    const langRow = document.createElement('div');
+    langRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;';
+    langRow.innerHTML = `
+        <select id="pc-lang-select" style="background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:4px;padding:4px 8px;font-size:12px;cursor:pointer;">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+        </select>
+        <span style="font-size:11px;color:#888;">${t('settings.language_hint')}</span>
+    `;
+    langCard.body.appendChild(langRow);
+    root.appendChild(langCard.root);
+
+    const langSelect = langRow.querySelector('#pc-lang-select');
+    langSelect.value = getLang();
+    langSelect.addEventListener('change', () => setLang(langSelect.value));
 
     // Section: API Services
     root.appendChild(buildApiSection());
@@ -56,16 +75,16 @@ export function createSettingsContent() {
 // ==================== Section Builders ====================
 
 function buildPanelSwitch() {
-    const card = createSectionCard('◆', '浮动面板');
+    const card = createSectionCard('◆', t('settings.floating_panel'));
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
     const isHidden = localStorage.getItem('moton-pe-panel-hidden') === 'true';
     row.innerHTML = `
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#666;">
             <input type="checkbox" id="pc-panel-switch" ${isHidden ? '' : 'checked'} style="cursor:pointer;">
-            显示浮动快捷面板
+            ${t('settings.show_panel')}
         </label>
-        <span style="font-size:11px;color:#aaa;">画布右下角的 ◆ 快捷入口，右键可关闭</span>
+        <span style="font-size:11px;color:#aaa;">${t('settings.panel_hint')}</span>
     `;
     card.body.appendChild(row);
 
@@ -81,27 +100,27 @@ function buildPanelSwitch() {
 
 
 function buildApiSection() {
-    const card = createSectionCard('⬡', 'API 服务配置');
+    const card = createSectionCard('⬡', t('settings.api_services'));
 
     // Category assignment row
     const catRow = document.createElement('div');
     catRow.className = 'pc-cat-row';
     catRow.innerHTML = `
         <div class="pc-cat-item">
-            <span class="pc-cat-label">基础扩写</span>
-            <select class="pc-cat-select" data-cat="enhance_basic"><option>加载中...</option></select>
+            <span class="pc-cat-label">${t('settings.basic_enhance')}</span>
+            <select class="pc-cat-select" data-cat="enhance_basic"><option>${t('common.loading')}</option></select>
         </div>
         <div class="pc-cat-item">
-            <span class="pc-cat-label">详细扩写</span>
-            <select class="pc-cat-select" data-cat="enhance_detail"><option>加载中...</option></select>
+            <span class="pc-cat-label">${t('settings.detail_enhance')}</span>
+            <select class="pc-cat-select" data-cat="enhance_detail"><option>${t('common.loading')}</option></select>
         </div>
         <div class="pc-cat-item">
-            <span class="pc-cat-label">普通扩写</span>
-            <select class="pc-cat-select" data-cat="enhance_normal"><option>加载中...</option></select>
+            <span class="pc-cat-label">${t('settings.normal_enhance')}</span>
+            <select class="pc-cat-select" data-cat="enhance_normal"><option>${t('common.loading')}</option></select>
         </div>
         <div class="pc-cat-item">
             <span class="pc-cat-label">AI Agent</span>
-            <select class="pc-cat-select" data-cat="agent"><option>加载中...</option></select>
+            <select class="pc-cat-select" data-cat="agent"><option>${t('common.loading')}</option></select>
         </div>
     `;
     card.body.appendChild(catRow);
@@ -116,8 +135,8 @@ function buildApiSection() {
     const actionRow = document.createElement('div');
     actionRow.className = 'pc-action-row';
     actionRow.innerHTML = `
-        <button class="pc-btn-sm pc-btn-sm-primary" data-action="manage-services">管理服务 →</button>
-        <button class="pc-btn-sm" data-action="add-service">+ 添加服务</button>
+        <button class="pc-btn-sm pc-btn-sm-primary" data-action="manage-services">${t('settings.manage_services')}</button>
+        <button class="pc-btn-sm" data-action="add-service">${t('settings.add_service')}</button>
     `;
     card.body.appendChild(actionRow);
 
@@ -147,7 +166,7 @@ function buildApiSection() {
 }
 
 function buildToolsSection() {
-    const card = createSectionCard('📐', '提示词工具');
+    const card = createSectionCard('📐', t('settings.prompt_tools'));
 
     const grid = document.createElement('div');
     grid.className = 'pc-tool-grid';
@@ -155,32 +174,32 @@ function buildToolsSection() {
         <div class="pc-tool-card" data-action="open-rules">
             <div class="pc-tool-icon">📐</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name">规则管理器</div>
-                <div class="pc-tool-desc">SFW / NSFW 扩写规则</div>
+                <div class="pc-tool-name">${t('settings.rule_manager')}</div>
+                <div class="pc-tool-desc">${t('settings.rule_manager_desc')}</div>
             </div>
             <span class="pc-tool-arrow">→</span>
         </div>
         <div class="pc-tool-card" data-action="open-library">
             <div class="pc-tool-icon">▤</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name">Prompt 库</div>
-                <div class="pc-tool-desc">编辑分类和选项</div>
+                <div class="pc-tool-name">${t('settings.prompt_library')}</div>
+                <div class="pc-tool-desc">${t('settings.prompt_library_desc')}</div>
             </div>
             <span class="pc-tool-arrow">→</span>
         </div>
         <div class="pc-tool-card" data-action="open-history">
             <div class="pc-tool-icon">⏱</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name">Prompt 历史</div>
-                <div class="pc-tool-desc">查看和复用历史提示词</div>
+                <div class="pc-tool-name">${t('settings.prompt_history')}</div>
+                <div class="pc-tool-desc">${t('settings.prompt_history_desc')}</div>
             </div>
             <span class="pc-tool-arrow">→</span>
         </div>
         <div class="pc-tool-card" data-action="reload-cache">
             <div class="pc-tool-icon">↻</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name">重载缓存</div>
-                <div class="pc-tool-desc">刷新 Prompt 库到内存</div>
+                <div class="pc-tool-name">${t('settings.reload_cache')}</div>
+                <div class="pc-tool-desc">${t('settings.reload_cache_desc')}</div>
             </div>
             <span class="pc-tool-arrow">↻</span>
         </div>
@@ -207,8 +226,8 @@ function buildHubSection() {
         <div class="pc-tool-card-wide" data-action="open-hub">
             <div class="pc-tool-icon" style="font-size:22px">⬡</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name" style="font-size:14px">打开 LoRA Hub</div>
-                <div class="pc-tool-desc">管理 LoRA 栈、分组和 Prompt 组</div>
+                <div class="pc-tool-name" style="font-size:14px">${t('settings.open_lora_hub')}</div>
+                <div class="pc-tool-desc">${t('settings.lora_hub_desc')}</div>
             </div>
             <span class="pc-tool-arrow">→</span>
         </div>
@@ -230,7 +249,7 @@ function buildAboutSection() {
     card.innerHTML = `
         <div class="pc-section-body">
             <div class="pc-about-row">
-                <span>PromptCraft v1.2.3</span>
+                <span>PromptCraft v1.2.4</span>
                 <span class="pc-about-dot"></span>
                 <span>Author: Moton</span>
             </div>
@@ -287,30 +306,30 @@ async function loadApiSectionData(svcListEl, catRowEl) {
             const isNormal = current.enhance_normal?.service_id === svc.id;
             const isAgent = current.agent?.service_id === svc.id;
             let badges = '';
-            if (isBasic) badges += '<span class="pc-svc-badge pc-svc-badge-amber">基础扩写</span>';
-            if (isDetail) badges += '<span class="pc-svc-badge pc-svc-badge-amber">详细扩写</span>';
-            if (isNormal) badges += '<span class="pc-svc-badge pc-svc-badge-amber">普通扩写</span>';
+            if (isBasic) badges += `<span class="pc-svc-badge pc-svc-badge-amber">${t('settings.basic_enhance')}</span>`;
+            if (isDetail) badges += `<span class="pc-svc-badge pc-svc-badge-amber">${t('settings.detail_enhance')}</span>`;
+            if (isNormal) badges += `<span class="pc-svc-badge pc-svc-badge-amber">${t('settings.normal_enhance')}</span>`;
             if (isAgent) badges += '<span class="pc-svc-badge pc-svc-badge-teal">Agent</span>';
             mini.innerHTML = `
                 <span class="pc-svc-mini-name">${escHtml(svc.name)}</span>
-                <span class="pc-svc-mini-url">${escHtml(svc.api_url || '未配置')}</span>
+                <span class="pc-svc-mini-url">${escHtml(svc.api_url || t('settings.not_configured'))}</span>
                 ${badges}
             `;
             svcListEl.appendChild(mini);
         }
     } catch (e) {
-        console.error('[PromptCraft] 加载 API 服务列表失败:', e);
+        console.error(`[PromptCraft] ${t('settings.load_services_failed')}`, e);
     }
 }
 
 async function handleAddService(svcListEl, catRowEl) {
     try {
-        const res = await apiRequest('POST', '/services', { name: '新服务' });
+        const res = await apiRequest('POST', '/services', { name: t('settings.new_service') });
         if (res.success) {
             loadApiSectionData(svcListEl, catRowEl);
         }
     } catch (e) {
-        console.error('[PromptCraft] 添加服务失败:', e);
+        console.error(`[PromptCraft] ${t('settings.add_service_failed')}`, e);
     }
 }
 
@@ -323,7 +342,7 @@ async function handleReloadCache(cardEl) {
             setTimeout(() => cardEl.classList.remove('pc-tool-card-success'), 1200);
         }
     } catch (e) {
-        console.error('[PromptCraft] 缓存重载失败:', e);
+        console.error(`[PromptCraft] ${t('settings.cache_reload_failed')}`, e);
     }
 }
 

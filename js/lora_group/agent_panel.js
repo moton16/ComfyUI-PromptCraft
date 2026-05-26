@@ -7,6 +7,7 @@
 
 import * as Executor from './agent_executor.js';
 import { renderStack } from './canvas_widget.js';
+import { t } from '../i18n.js';
 
 // ==================== 对话状态 ====================
 
@@ -88,9 +89,9 @@ class AgentPanelUI {
         const quickBar = document.createElement('div');
         quickBar.className = 'pc-agent-quickbar';
         const shortcuts = [
-            { label: '当前状态', cmd: '显示当前节点的状态' },
-            { label: '清空栈', cmd: '清空所有 LoRA' },
-            { label: '帮助', cmd: '你能做什么？' },
+            { label: t('agent.shortcut_status'), cmd: '显示当前节点的状态' },
+            { label: t('agent.shortcut_clear'), cmd: '清空所有 LoRA' },
+            { label: t('agent.shortcut_help'), cmd: '你能做什么？' },
         ];
         for (const s of shortcuts) {
             const btn = document.createElement('button');
@@ -106,12 +107,12 @@ class AgentPanelUI {
 
         this.textarea = document.createElement('textarea');
         this.textarea.className = 'pc-agent-textarea';
-        this.textarea.placeholder = '输入自然语言指令... (Enter 发送, Shift+Enter 换行)';
+        this.textarea.placeholder = t('agent.placeholder');
         this.textarea.rows = 1;
 
         const sendBtn = document.createElement('button');
         sendBtn.className = 'pc-agent-send-btn';
-        sendBtn.textContent = '发送';
+        sendBtn.textContent = t('agent.send');
 
         inputArea.appendChild(this.textarea);
         inputArea.appendChild(sendBtn);
@@ -119,7 +120,7 @@ class AgentPanelUI {
         // 状态栏
         this.statusBar = document.createElement('div');
         this.statusBar.className = 'pc-agent-status';
-        this.statusBar.textContent = '就绪';
+        this.statusBar.textContent = t('agent.status.ready');
 
         // 组装
         this.container.appendChild(this.messagesEl);
@@ -163,7 +164,7 @@ class AgentPanelUI {
         this._appendBubble('user', instruction);
         this._scrollToBottom();
 
-        this.statusBar.textContent = 'Agent 正在思考...';
+        this.statusBar.textContent = t('agent.thinking');
         this.statusBar.className = 'pc-agent-status pc-agent-thinking';
 
         try {
@@ -177,8 +178,8 @@ class AgentPanelUI {
             const parsed = Executor.parseAgentResponse(responseText);
 
             if (parsed.error) {
-                agentMessages.push({ role: 'assistant', content: `错误: ${parsed.error}` });
-                this._appendBubble('assistant', `错误: ${parsed.error}`);
+                agentMessages.push({ role: 'assistant', content: `${t('common.error')}: ${parsed.error}` });
+                this._appendBubble('assistant', `${t('common.error')}: ${parsed.error}`);
             } else if (parsed.clarification) {
                 agentMessages.push({ role: 'assistant', content: parsed.clarification });
                 this._appendBubble('assistant', parsed.clarification);
@@ -194,24 +195,24 @@ class AgentPanelUI {
                 const failCount = results.filter(r => !r.success).length;
                 let replyText = '';
                 if (successCount > 0) {
-                    replyText += `已执行 ${successCount} 个操作。`;
+                    replyText += t('agent.ops_executed', { count: successCount });
                 }
                 if (failCount > 0) {
-                    replyText += ` ${failCount} 个操作失败。`;
+                    replyText += ` ${t('agent.ops_failed', { count: failCount })}`;
                 }
 
                 agentMessages.push({ role: 'assistant', content: replyText, operations: results });
                 this._appendBubble('assistant', replyText, results);
             }
 
-            this.statusBar.textContent = '就绪';
+            this.statusBar.textContent = t('agent.status.ready');
             this.statusBar.className = 'pc-agent-status';
 
         } catch (e) {
-            const errMsg = `请求失败: ${e.message}`;
+            const errMsg = t('agent.request_failed', { error: e.message });
             agentMessages.push({ role: 'assistant', content: errMsg });
             this._appendBubble('assistant', errMsg);
-            this.statusBar.textContent = '错误';
+            this.statusBar.textContent = t('common.error');
             this.statusBar.className = 'pc-agent-status pc-agent-error';
         }
 
@@ -225,9 +226,7 @@ class AgentPanelUI {
             <div class="pc-agent-welcome-icon">✦</div>
             <div class="pc-agent-welcome-title">PromptCraft Agent</div>
             <div class="pc-agent-welcome-desc">
-                使用自然语言控制 LoRA 栈<br>
-                试试："添加一个赛博朋克风格的 LoRA"<br>
-                或："把所有 LoRA 权重调到 0.8"
+                ${t('agent.welcome_desc')}
             </div>
         `;
         this.messagesEl.appendChild(welcome);
@@ -239,7 +238,7 @@ class AgentPanelUI {
 
         const label = document.createElement('div');
         label.className = 'pc-agent-bubble-label';
-        label.textContent = role === 'user' ? '你' : 'Agent';
+        label.textContent = role === 'user' ? t('agent.user_label') : t('agent.agent_label');
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'pc-agent-bubble-content';
@@ -279,8 +278,8 @@ class AgentPanelUI {
             const detail = document.createElement('div');
             detail.className = 'pc-agent-op-detail';
             detail.innerHTML = `
-                <div>底模: ${escapeHtml(op.state.checkpoint)}</div>
-                <div>栈内 LoRA: ${op.state.stack_count} 项</div>
+                <div>${t('agent.status_model', { model: escapeHtml(op.state.checkpoint) })}</div>
+                <div>${t('agent.status_lora_count', { count: op.state.stack_count })}</div>
                 ${op.state.stack_items.map(i =>
                     `<div class="pc-agent-op-lora">${i.enabled ? '☑' : '☐'} ${escapeHtml(i.name)} (${i.weight}/${i.clip_weight})</div>`
                 ).join('')}
@@ -302,14 +301,14 @@ class AgentPanelUI {
 
 function getActionLabel(action) {
     const labels = {
-        lora_add: '添加 LoRA',
-        lora_remove: '移除 LoRA',
-        lora_toggle: '切换 LoRA',
-        lora_weight: '修改权重',
-        checkpoint: '切换底模',
-        prompt_set: '设置提示词',
-        category_set: '设置分类',
-        query: '查询状态',
+        lora_add: t('agent.action.lora_add'),
+        lora_remove: t('agent.action.lora_remove'),
+        lora_toggle: t('agent.action.lora_toggle'),
+        lora_weight: t('agent.action.lora_weight'),
+        checkpoint: t('agent.action.checkpoint'),
+        prompt_set: t('agent.action.prompt_set'),
+        category_set: t('agent.action.category_set'),
+        query: t('agent.action.query'),
     };
     return labels[action] || action;
 }
