@@ -1,0 +1,36 @@
+[project]
+name = "ComfyUI-PromptCraft"
+description = "PromptCraft — ComfyUI Lora加载&提示词增强节点。PromptCraft — ComfyUI 全链路 AI 绘画增强插件。内置 15+ 维度中英对照标签库，告别提示词荒；LoRA 群组管理 + 画布内联栈，可编辑LoRA特殊提示词告别翻来覆去找提示词，从加载到权重调节一键搞定；LLM 大模型接入，智能扩写 + 思维链自动控制；AI Agent 自然语言驱动，用中文描述需求即可操控 LoRA 栈和底模切换。从灵感生成到模型编排，一个插件覆盖 AI 绘画工作流核心环节，持续迭代中。"
+version = "1.2.1"
+license = "MIT" 
+# classifiers = [
+#     # For OS-independent nodes (works on all operating systems)
+#     "Operating System :: OS Independent",
+#
+#     # OR for OS-specific nodes, specify the supported systems:
+#     "Operating System :: Microsoft :: Windows",  # Windows specific
+#     "Operating System :: POSIX :: Linux",  # Linux specific
+#     "Operating System :: MacOS",  # macOS specific
+#
+#     # GPU Accelerator support. Pick the ones that are supported by your extension.
+#     "Environment :: GPU :: NVIDIA CUDA",    # NVIDIA CUDA support
+#     "Environment :: GPU :: AMD ROCm",       # AMD ROCm support
+#     "Environment :: GPU :: Intel Arc",      # Intel Arc support
+#     "Environment :: NPU :: Huawei Ascend",  # Huawei Ascend support
+#     "Environment :: GPU :: Apple Metal",    # Apple Metal support
+# ]
+
+
+[project.urls]
+Repository = "https://github.com/moton16/ComfyUI-PromptCraft"
+#  Used by Comfy Registry https://registry.comfy.org
+Documentation = "https://github.com/moton16/ComfyUI-PromptCraft/wiki"
+"Bug Tracker" = "https://github.com/moton16/ComfyUI-PromptCraft/issues"
+
+[tool.comfy]
+PublisherId = "moton"
+DisplayName = "ComfyUI-PromptCraft"
+Icon = ""
+includes = [] 
+# "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
+

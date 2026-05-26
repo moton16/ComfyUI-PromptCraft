@@ -2,51 +2,60 @@
 
 ## **作者：Moton**
 
-## **v1.2.2  (2026-05-26)**
-
-### 更新
-
-- **Prompt库整合优化**：更新Prompt库，整合V1.2.1测试改进版的内容
-- **使用稳定性优化**：优化了整体使用稳定性
-
----
-
-## **v1.2.1  (2026-05-24)**
-
-### 调整
-
-- LoRA Prompt Loader 底模加载逻辑修正
-- LoRA 应用问题修复，隐藏 widget 改为 optional input 方式
-- Prompt 组过滤与群组引用展开逻辑修正
-
----
-
-## **v1.2.0  (2026-05-23)**
-
----
-
-### 🚀 新增
-
-- **全新节点「Model & LoRA Group Loader」**：底模切换 + LoRA 群组一键加载，统一倍率缩放，画布实时显示群组状态
-- **全新节点「CLIPTextEncodePro」**：双CLIP文本框，适用于不使用PromptCraft时Lora节点的连接
-- **LoRA 栈模式**：画布内联显示 LoRA 列表，个体 LoRA 与群组引用混合排列，支持拖拽排序、独立开关、Model/CLIP 双权重
-- **LoRA Prompt 组系统**：每个 LoRA 可存储多组 prompt，联动 PromptEnhancer 自动注入，正面/负面提示词分离管理
-- **统一 LoRA Hub 面板**：LoRA / 群组 / Agent 三 Tab 布局，整合搜索、文件夹导航、群组 CRUD、内联 prompt 编辑
-- **AI Agent 模块**：自然语言驱动的 LoRA/模型智能管理，支持 8 种结构化操作，Hub Agent Tab + 画布浮动对话框双入口
-- **新增 18 个 API 端点**：覆盖群组 CRUD、LoRA Prompt 读写、Agent 指令转发
-
-### 🔧 调整
-
-- **前端模块化重构**：核心逻辑拆分为独立模块（`hub_panel` / `canvas_widget` / `agent_panel` / `stack_api`），callback 注册模式解决循环依赖
-- **节点后端重构**：从群组名输入改为 JSON 栈数据驱动，群组引用运行时实时解析，LoRA 文件缓存升级为字典缓存
-- **VAE 输出修复**：`RETURN_TYPES` 增加 `"VAE"`，与标准管线完整对接
-- **推荐工作流变更**：CheckpointLoader 负责底模 → LoraPromptLoader 管理 LoRA 栈 + 输出文本 → CLIPTextEncodePro 合并编码
+## **v1.2.3  (2026-05-26)**
 
 ### 🐛 修复
 
-- 底模加载与 LoRA 应用逻辑修正，隐藏 widget 改为 optional input 避免序列化丢失
-- Prompt 组过滤与序列化逻辑修正，确保群组引用正确展开
-- LoRA 文件缺失时自动跳过并警告，不中断执行
+* **每次写更新日志都很苦恼，不知道该怎么写，直到看到了国民级应用的日志后灵感乍现**
+* **修复了一些已知问题**
+
+\---
+
+## **v1.2.2  (2026-05-26)**
+
+### 🔧 调整
+
+* **Prompt库整合优化**：更新Prompt库，整合V1.2.1测试改进版的内容
+* **修复了已知问题**：优化了整体使用稳定性
+
+\---
+
+## **v1.2.1  (2026-05-24)**
+
+### 🔧 调整
+
+* LoRA Prompt Loader 底模加载逻辑修正
+* LoRA 应用问题修复，隐藏 widget 改为 optional input 方式
+* Prompt 组过滤与群组引用展开逻辑修正
+
+\---
+
+## **v1.2.0  (2026-05-23)**
+
+\---
+
+### 🚀 新增
+
+* **全新节点「Model \& LoRA Group Loader」**：底模切换 + LoRA 群组一键加载，统一倍率缩放，画布实时显示群组状态
+* **全新节点「CLIPTextEncodePro」**：双CLIP文本框，适用于不使用PromptCraft时Lora节点的连接
+* **LoRA 栈模式**：画布内联显示 LoRA 列表，个体 LoRA 与群组引用混合排列，支持拖拽排序、独立开关、Model/CLIP 双权重
+* **LoRA Prompt 组系统**：每个 LoRA 可存储多组 prompt，联动 PromptEnhancer 自动注入，正面/负面提示词分离管理
+* **统一 LoRA Hub 面板**：LoRA / 群组 / Agent 三 Tab 布局，整合搜索、文件夹导航、群组 CRUD、内联 prompt 编辑
+* **AI Agent 模块**：自然语言驱动的 LoRA/模型智能管理，支持 8 种结构化操作，Hub Agent Tab + 画布浮动对话框双入口
+* **新增 18 个 API 端点**：覆盖群组 CRUD、LoRA Prompt 读写、Agent 指令转发
+
+### 🔧 调整
+
+* **前端模块化重构**：核心逻辑拆分为独立模块（`hub\\\_panel` / `canvas\\\_widget` / `agent\\\_panel` / `stack\\\_api`），callback 注册模式解决循环依赖
+* **节点后端重构**：从群组名输入改为 JSON 栈数据驱动，群组引用运行时实时解析，LoRA 文件缓存升级为字典缓存
+* **VAE 输出修复**：`RETURN\\\_TYPES` 增加 `"VAE"`，与标准管线完整对接
+* **推荐工作流变更**：CheckpointLoader 负责底模 → LoraPromptLoader 管理 LoRA 栈 + 输出文本 → CLIPTextEncodePro 合并编码
+
+### 🐛 修复
+
+* 底模加载与 LoRA 应用逻辑修正，隐藏 widget 改为 optional input 避免序列化丢失
+* Prompt 组过滤与序列化逻辑修正，确保群组引用正确展开
+* LoRA 文件缺失时自动跳过并警告，不中断执行
 
 ## v1.1.2 (2026-05-16)
 

@@ -29,7 +29,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.2';
+const VERSION = '1.2.3';
 
 // ==================== 工具函数 ====================
 
@@ -857,8 +857,16 @@ function registerSettings() {
 const FALLBACK_PANEL_ID = 'moton-pe-fallback-panel';
 
 function ensureFallbackPanel() {
-    if (localStorage.getItem('moton-pe-panel-hidden') === 'true') return;
-    if (document.getElementById(FALLBACK_PANEL_ID)) return;
+    const isHidden = localStorage.getItem('moton-pe-panel-hidden');
+    log(`ensureFallbackPanel: localStorage hidden = ${isHidden}`);
+    if (isHidden === 'true') {
+        log('浮窗已被用户关闭，跳过创建');
+        return;
+    }
+    if (document.getElementById(FALLBACK_PANEL_ID)) {
+        log('浮窗已存在，跳过创建');
+        return;
+    }
 
     const storageKey = 'moton-pe-panel-state';
     let saved;
@@ -866,7 +874,9 @@ function ensureFallbackPanel() {
 
     const container = document.createElement('div');
     container.id = FALLBACK_PANEL_ID;
-    container.style.cssText = `position:fixed; left:${saved.x ?? window.innerWidth - 56}px; top:${saved.y ?? window.innerHeight - 56}px; z-index:99990; cursor:grab; user-select:none; font-family:'Segoe UI',Arial,sans-serif;`;
+    const defaultX = Math.min(saved.x ?? window.innerWidth - 56, window.innerWidth - 40);
+    const defaultY = Math.min(saved.y ?? window.innerHeight - 56, window.innerHeight - 40);
+    container.style.cssText = `position:fixed; left:${Math.max(0, defaultX)}px; top:${Math.max(0, defaultY)}px; z-index:999999; cursor:grab; user-select:none; font-family:'Segoe UI',Arial,sans-serif;`;
 
     const gearBtn = document.createElement('div');
     gearBtn.style.cssText = 'width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.7); border:1px solid rgba(0,0,0,0.12); color:rgba(200,132,42,0.4); font-size:15px; line-height:30px; text-align:center; cursor:pointer; transition:all 0.25s; opacity:0.35;';
@@ -944,7 +954,11 @@ function ensureFallbackPanel() {
     });
 
     document.body.appendChild(container);
-    log('◆ 浮动快捷面板已创建');
+    log('◆ 浮动快捷面板已创建', {
+        id: FALLBACK_PANEL_ID,
+        position: { left: container.style.left, top: container.style.top },
+        zIndex: container.style.zIndex
+    });
 }
 
 function toggleFallbackPanel(visible) {
