@@ -30,7 +30,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.4';
+const VERSION = '1.2.5';
 
 // ==================== 工具函数 ====================
 
@@ -889,10 +889,10 @@ function ensureFallbackPanel() {
     const panel = document.createElement('div');
     panel.style.cssText = 'display:none; position:absolute; bottom:38px; right:0; background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:10px 12px; flex-direction:column; gap:5px; box-shadow:0 8px 32px rgba(0,0,0,0.12); min-width:200px;';
 
-    const t = document.createElement('div');
-    t.style.cssText = 'color:#c8842a; font-size:12px; font-weight:bold; margin-bottom:4px; letter-spacing:0.5px;';
-    t.textContent = '◆ PromptCraft';
-    panel.appendChild(t);
+    const panelTitle = document.createElement('div');
+    panelTitle.style.cssText = 'color:#c8842a; font-size:12px; font-weight:bold; margin-bottom:4px; letter-spacing:0.5px;';
+    panelTitle.textContent = '◆ PromptCraft';
+    panel.appendChild(panelTitle);
 
     // Quick access buttons
     const QUICK_BUTTONS = [

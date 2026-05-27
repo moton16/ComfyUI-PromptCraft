@@ -23,8 +23,12 @@ VER_UPPER="V${NEW_VER}"      # V1.3.0
 
 if [ -n "$MOD_SUFFIX" ]; then
     FULL_UPPER="${VER_UPPER} ${MOD_SUFFIX}"   # V1.3.0 Mod1
+    VER_DISPLAY="${VER_V} ${MOD_SUFFIX}"      # v1.3.0 Mod1
+    VER_BADGE="${VER_V}%20${MOD_SUFFIX}"      # v1.3.0%20Mod1 (shields.io)
 else
     FULL_UPPER="${VER_UPPER}"                  # V1.3.0
+    VER_DISPLAY="${VER_V}"                     # v1.3.0
+    VER_BADGE="${VER_V}"                       # v1.3.0
 fi
 
 echo "========================================="
@@ -65,33 +69,37 @@ fi
 # --- 4. js/control_panel.js ---
 JS_FILE="js/control_panel.js"
 if [ -f "$JS_FILE" ]; then
-    sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VER_V}/g" "$JS_FILE"
+    sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)?/${VER_DISPLAY}/g" "$JS_FILE"
     echo "[OK] ${JS_FILE}"
 else
     echo "[SKIP] ${JS_FILE} 不存在"
 fi
 
-# --- 5. README.md badge ---
-README_FILE="README.md"
-if [ -f "$README_FILE" ]; then
-    # 更新 badge 中的版本号
-    sed -i -E "s/版本-v[0-9]+\.[0-9]+\.[0-9]+/版本-${VER_V}/g" "$README_FILE"
-    sed -i -E "s/Version [0-9]+\.[0-9]+\.[0-9]+/Version ${NEW_VER}/g" "$README_FILE"
-
-    # 更新版本历史标题中的"当前版本"
-    # 将旧的"当前版本"标记去掉
-    sed -i -E "s/### v[0-9]+\.[0-9]+\.[0-9]+ \([0-9-]+\) — 当前版本/### ${VER_V} (${DATE}) — 当前版本/" "$README_FILE"
-
-    echo "[OK] ${README_FILE}"
+# --- 5a. README_zh.md ---
+README_ZH="README_zh.md"
+if [ -f "$README_ZH" ]; then
+    sed -i -E "s/版本-v[0-9]+\.[0-9]+\.[0-9]+(%20Mod[0-9]+)?/版本-${VER_BADGE}/g" "$README_ZH"
+    sed -i -E "s/### v[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)? \([0-9-]+\) — 当前版本/### ${VER_DISPLAY} (${DATE}) — 当前版本/" "$README_ZH"
+    echo "[OK] ${README_ZH}"
 else
-    echo "[SKIP] ${README_FILE} 不存在"
+    echo "[SKIP] ${README_ZH} 不存在"
+fi
+
+# --- 5b. README_en.md ---
+README_EN="README_en.md"
+if [ -f "$README_EN" ]; then
+    sed -i -E "s/Version-v[0-9]+\.[0-9]+\.[0-9]+(%20Mod[0-9]+)?/Version-${VER_BADGE}/g" "$README_EN"
+    sed -i -E "s/### v[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)? \([0-9-]+\) — Current Version/### ${VER_DISPLAY} (${DATE}) — Current Version/" "$README_EN"
+    echo "[OK] ${README_EN}"
+else
+    echo "[SKIP] ${README_EN} 不存在"
 fi
 
 # --- 6. CHANGELOG.md (根目录) ---
 ROOT_CHANGELOG="CHANGELOG.md"
 if [ -f "$ROOT_CHANGELOG" ]; then
     # 更新第一个版本标题行
-    sed -i -E "1,10s/## \*\*v[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*\([0-9-]+\)\*\*/## **${VER_V}  (${DATE})**/" "$ROOT_CHANGELOG"
+    sed -i -E "1,10s/## \*\*v[0-9]+\.[0-9]+\.[0-9]+( Mod[0-9]+)?[[:space:]]*\([0-9-]+\)\*\*/## **${VER_DISPLAY}  (${DATE})**/" "$ROOT_CHANGELOG"
     echo "[OK] ${ROOT_CHANGELOG}"
 else
     echo "[SKIP] ${ROOT_CHANGELOG} 不存在"

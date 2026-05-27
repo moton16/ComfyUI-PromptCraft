@@ -9,15 +9,30 @@ let translations = {};
 let _listeners = [];
 
 /**
- * 自动推导当前扩展的 i18n 目录 URL
- * 基于 import.meta.url 定位，不依赖硬编码目录名
+ * 推导 i18n JSON 的基础 URL
+ * 策略：遍历所有 <script> 标签，找到加载 i18n.js 的那个，取其 src 推导
  */
 function getI18nBaseUrl() {
-    const moduleUrl = new URL(import.meta.url);
-    const pathname = moduleUrl.pathname;
-    // 当前文件: /extensions/<dir>/js/i18n.js → 去掉 js/i18n.js 得到扩展根目录
-    const extRoot = pathname.replace(/\/js\/i18n\.js$/, '');
-    return `${moduleUrl.origin}${extRoot}/js/i18n`;
+    // 方法1：从 import.meta.url 推导（标准 ES 模块）
+    // ComfyUI WEB_DIRECTORY 把 js/ 下的文件映射到 /extensions/<dir>/ 下
+    // 所以 import.meta.url = .../extensions/<dir>/i18n.js（无 js/ 前缀）
+    try {
+        const u = new URL(import.meta.url);
+        if (u.protocol === 'http:' || u.protocol === 'https:') {
+            const base = u.pathname.replace(/\/i18n\.js.*$/, '');
+            return `${u.origin}${base}/i18n`;
+        }
+    } catch (_) {}
+
+    // 方法2：遍历 <link>/<script> 标签找 i18n.js 或 index.js
+    for (const el of document.querySelectorAll('[src*="i18n"], [href*="i18n"], [src*="moton-promptcraft"], [href*="moton-promptcraft"]')) {
+        const url = el.src || el.href || '';
+        const m = url.match(/(.*\/extensions\/[^/]+)\//);
+        if (m) return `${m[1]}/i18n`;
+    }
+
+    console.warn('[i18n] Cannot detect extension base URL');
+    return './i18n';
 }
 
 /**
@@ -26,12 +41,16 @@ function getI18nBaseUrl() {
 export async function initI18n() {
     currentLang = detectLang();
     const baseUrl = getI18nBaseUrl();
+    console.log(`[i18n] lang=${currentLang}, baseUrl=${baseUrl}`);
     try {
-        const resp = await fetch(`${baseUrl}/${currentLang}.json`);
+        const url = `${baseUrl}/${currentLang}.json`;
+        console.log(`[i18n] Fetching: ${url}`);
+        const resp = await fetch(url);
         if (resp.ok) {
             translations = await resp.json();
+            console.log(`[i18n] Loaded ${Object.keys(translations).length} keys`);
         } else {
-            console.warn(`[i18n] Failed to load ${currentLang}.json, status: ${resp.status}`);
+            console.warn(`[i18n] Failed: ${resp.status} ${resp.statusText}`);
             if (currentLang !== 'zh') {
                 const fallback = await fetch(`${baseUrl}/zh.json`);
                 if (fallback.ok) translations = await fallback.json();

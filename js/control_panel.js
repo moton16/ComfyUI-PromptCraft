@@ -32,7 +32,7 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.2.4</span>
+            <span class="pc-brand-ver">v1.2.5 Mod2</span>
         </div>
     `;
 
@@ -249,7 +249,7 @@ function buildAboutSection() {
     card.innerHTML = `
         <div class="pc-section-body">
             <div class="pc-about-row">
-                <span>PromptCraft v1.2.4</span>
+                <span>PromptCraft v1.2.5 Mod2</span>
                 <span class="pc-about-dot"></span>
                 <span>Author: Moton</span>
             </div>
