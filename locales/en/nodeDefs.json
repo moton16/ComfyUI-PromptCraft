@@ -40,9 +40,9 @@
       "lora_prompt_data": { "name": "LoRA Prompt Data" }
     },
     "outputs": {
-      "0": { "name": "Positive Prompt", "tooltip": "Concatenated positive prompt" },
-      "1": { "name": "Negative Prompt", "tooltip": "Concatenated negative prompt" },
-      "2": { "name": "Full Info", "tooltip": "Complete JSON info with all tags and parameters" }
+      "正面提示词": { "name": "Positive Prompt", "tooltip": "Concatenated positive prompt" },
+      "负面提示词": { "name": "Negative Prompt", "tooltip": "Concatenated negative prompt" },
+      "完整信息": { "name": "Full Info", "tooltip": "Complete JSON info with all tags and parameters" }
     }
   },
 
@@ -69,10 +69,10 @@
       "lora_stack_data": { "name": "LoRA Stack Data" }
     },
     "outputs": {
-      "0": { "name": "model" },
-      "1": { "name": "clip" },
-      "2": { "name": "vae" },
-      "3": { "name": "LoRA Prompt Data", "tooltip": "JSON data of LoRA trigger words and prompts" }
+      "model": { "name": "model" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_prompt_data": { "name": "LoRA Prompt Data", "tooltip": "JSON data of LoRA trigger words and prompts" }
     }
   },
 
@@ -102,11 +102,11 @@
       "lora_stack_data": { "name": "LoRA Stack Data" }
     },
     "outputs": {
-      "0": { "name": "model" },
-      "1": { "name": "clip" },
-      "2": { "name": "vae" },
-      "3": { "name": "Positive Prompt", "tooltip": "Merged positive prompt text" },
-      "4": { "name": "Negative Prompt", "tooltip": "Merged negative prompt text" }
+      "model": { "name": "model" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "positive_text": { "name": "Positive Prompt", "tooltip": "Merged positive prompt text" },
+      "negative_text": { "name": "Negative Prompt", "tooltip": "Merged negative prompt text" }
     }
   },
 

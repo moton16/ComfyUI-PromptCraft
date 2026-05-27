@@ -1385,7 +1385,10 @@ app.registerExtension({
 
 // ==================== 全局初始化 ====================
 
-// 0. 控制面板 → 子面板事件桥接
+// 0. 初始化 i18n（必须在所有 t() 调用之前）
+initI18n();
+
+// 1. 控制面板 → 子面板事件桥接
 window.addEventListener('promptcraft:open-rule-manager', () => openRuleManager());
 window.addEventListener('promptcraft:open-library-editor', () => openLibraryEditor());
 window.addEventListener('promptcraft:open-history', () => openPromptHistory());

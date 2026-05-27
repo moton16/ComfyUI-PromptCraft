@@ -2,6 +2,14 @@
 
 ## **作者：Moton**
 
+## **v1.2.4  (2026-05-27)**
+
+### 🚀 新增
+
+* **更新了英语版本**
+
+
+
 ## **v1.2.3  (2026-05-26)**
 
 ### 🐛 修复
@@ -46,9 +54,9 @@
 
 ### 🔧 调整
 
-* **前端模块化重构**：核心逻辑拆分为独立模块（`hub\\\_panel` / `canvas\\\_widget` / `agent\\\_panel` / `stack\\\_api`），callback 注册模式解决循环依赖
+* **前端模块化重构**：核心逻辑拆分为独立模块（`hub\\\\\\\_panel` / `canvas\\\\\\\_widget` / `agent\\\\\\\_panel` / `stack\\\\\\\_api`），callback 注册模式解决循环依赖
 * **节点后端重构**：从群组名输入改为 JSON 栈数据驱动，群组引用运行时实时解析，LoRA 文件缓存升级为字典缓存
-* **VAE 输出修复**：`RETURN\\\_TYPES` 增加 `"VAE"`，与标准管线完整对接
+* **VAE 输出修复**：`RETURN\\\\\\\_TYPES` 增加 `"VAE"`，与标准管线完整对接
 * **推荐工作流变更**：CheckpointLoader 负责底模 → LoraPromptLoader 管理 LoRA 栈 + 输出文本 → CLIPTextEncodePro 合并编码
 
 ### 🐛 修复

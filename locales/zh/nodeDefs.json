@@ -40,9 +40,9 @@
       "lora_prompt_data": { "name": "LoRA Prompt 数据" }
     },
     "outputs": {
-      "0": { "name": "正面提示词", "tooltip": "拼接后的正面提示词" },
-      "1": { "name": "负面提示词", "tooltip": "拼接后的负面提示词" },
-      "2": { "name": "完整信息", "tooltip": "包含所有标签和参数的完整 JSON 信息" }
+      "正面提示词": { "name": "正面提示词", "tooltip": "拼接后的正面提示词" },
+      "负面提示词": { "name": "负面提示词", "tooltip": "拼接后的负面提示词" },
+      "完整信息": { "name": "完整信息", "tooltip": "包含所有标签和参数的完整 JSON 信息" }
     }
   },
 
@@ -69,10 +69,10 @@
       "lora_stack_data": { "name": "LoRA 栈数据" }
     },
     "outputs": {
-      "0": { "name": "model" },
-      "1": { "name": "clip" },
-      "2": { "name": "vae" },
-      "3": { "name": "LoRA Prompt 数据", "tooltip": "LoRA 触发词和提示词的 JSON 数据" }
+      "model": { "name": "model" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "lora_prompt_data": { "name": "LoRA Prompt 数据", "tooltip": "LoRA 触发词和提示词的 JSON 数据" }
     }
   },
 
@@ -102,11 +102,11 @@
       "lora_stack_data": { "name": "LoRA 栈数据" }
     },
     "outputs": {
-      "0": { "name": "model" },
-      "1": { "name": "clip" },
-      "2": { "name": "vae" },
-      "3": { "name": "正面提示词", "tooltip": "合并后的正面提示词文本" },
-      "4": { "name": "负面提示词", "tooltip": "合并后的负面提示词文本" }
+      "model": { "name": "model" },
+      "clip": { "name": "CLIP" },
+      "vae": { "name": "VAE" },
+      "positive_text": { "name": "正面提示词", "tooltip": "合并后的正面提示词文本" },
+      "negative_text": { "name": "负面提示词", "tooltip": "合并后的负面提示词文本" }
     }
   },
 
