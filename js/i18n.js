@@ -9,18 +9,31 @@ let translations = {};
 let _listeners = [];
 
 /**
+ * 自动推导当前扩展的 i18n 目录 URL
+ * 基于 import.meta.url 定位，不依赖硬编码目录名
+ */
+function getI18nBaseUrl() {
+    const moduleUrl = new URL(import.meta.url);
+    const pathname = moduleUrl.pathname;
+    // 当前文件: /extensions/<dir>/js/i18n.js → 去掉 js/i18n.js 得到扩展根目录
+    const extRoot = pathname.replace(/\/js\/i18n\.js$/, '');
+    return `${moduleUrl.origin}${extRoot}/js/i18n`;
+}
+
+/**
  * 初始化 i18n：检测语言并加载翻译文件
  */
 export async function initI18n() {
     currentLang = detectLang();
+    const baseUrl = getI18nBaseUrl();
     try {
-        const resp = await fetch(`./extensions/ComfyUI-PromptCraft/i18n/${currentLang}.json`);
+        const resp = await fetch(`${baseUrl}/${currentLang}.json`);
         if (resp.ok) {
             translations = await resp.json();
         } else {
             console.warn(`[i18n] Failed to load ${currentLang}.json, status: ${resp.status}`);
             if (currentLang !== 'zh') {
-                const fallback = await fetch('./extensions/ComfyUI-PromptCraft/i18n/zh.json');
+                const fallback = await fetch(`${baseUrl}/zh.json`);
                 if (fallback.ok) translations = await fallback.json();
             }
         }
