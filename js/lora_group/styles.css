@@ -1231,6 +1231,157 @@
     color: #ff5555;
 }
 
+/* Note button */
+.lsw-note-btn {
+    width: 20px;
+    min-height: 32px;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.04);
+    background: transparent;
+    color: #555;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.12s;
+}
+
+.lsw-note-btn:hover {
+    color: #c8842a;
+    background: rgba(200, 132, 42, 0.08);
+}
+
+.lsw-note-btn.has-note {
+    color: #c8842a;
+}
+
+/* Note preview text */
+.lsw-note-preview {
+    font-size: 9px;
+    color: #c8842a;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    padding: 0 4px;
+}
+
+/* Note editor */
+.lsw-note-editor {
+    background: var(--secondary-background, #262729);
+    border: 1px solid var(--interface-stroke, #313235);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 8px;
+    animation: lsw-note-slide-down 0.15s ease;
+}
+
+@keyframes lsw-note-slide-down {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.lsw-note-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.lsw-note-editor-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary, #9c9eab);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lsw-note-editor-close {
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground, #8a8a8a);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lsw-note-editor-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary, #fff);
+}
+
+.lsw-note-textarea {
+    width: 100%;
+    min-height: 48px;
+    max-height: 120px;
+    padding: 6px 8px;
+    background: var(--comfy-input-bg, #222);
+    border: 1px solid var(--interface-stroke, #313235);
+    border-radius: 4px;
+    color: var(--input-text, #ddd);
+    font-size: 11px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.lsw-note-textarea:focus {
+    border-color: var(--primary-background, #0b8ce9);
+}
+
+.lsw-note-textarea::placeholder {
+    color: var(--muted-foreground, #8a8a8a);
+}
+
+.lsw-note-editor-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    justify-content: flex-end;
+}
+
+.lsw-note-save-btn {
+    padding: 4px 12px;
+    background: var(--primary-background, #0b8ce9);
+    border: 1px solid var(--primary-background, #0b8ce9);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.lsw-note-save-btn:hover {
+    background: var(--primary-background-hover, #31b9f4);
+}
+
+.lsw-note-cancel-btn {
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--interface-stroke, #313235);
+    border-radius: 4px;
+    color: var(--text-secondary, #9c9eab);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.lsw-note-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-default, #494a50);
+}
+
 /* ============================================
    内联栈 — 下拉菜单
    ============================================ */

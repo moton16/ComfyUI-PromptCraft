@@ -55,6 +55,7 @@ export function addLora(nodeId, loraPath, weight = 1.0, clipWeight = 1.0) {
         clip_weight: clipWeight,
         enabled: true,
         selected_group: null,
+        note: '',
     });
     return true;
 }
@@ -129,6 +130,17 @@ export function setSelectedGroup(nodeId, itemId, groupName) {
     const item = stack.items.find(i => i.id === itemId);
     if (item) {
         item.selected_group = (groupName === '' ? null : groupName);
+    }
+}
+
+/**
+ * 更新备注
+ */
+export function updateNote(nodeId, itemId, note) {
+    const stack = getStack(nodeId);
+    const item = stack.items.find(i => i.id === itemId);
+    if (item) {
+        item.note = note;
     }
 }
 

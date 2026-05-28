@@ -276,6 +276,9 @@
   "hub.none": "无",
   "hub.copied": "已复制!",
   "hub.copied_check": "已复制 ✓",
+  "hub.edit_note": "编辑备注",
+  "hub.note_title": "备注",
+  "hub.note_placeholder": "输入备注...",
 
   "canvas.add_lora_title": "从磁盘添加 LoRA",
   "canvas.add_group_title": "添加群组引用",
@@ -294,6 +297,8 @@
   "canvas.create_hint": "在 Hub 中为此 LoRA 创建",
   "canvas.none": "无",
   "canvas.all": "全部",
+  "canvas.placeholder_prompt": "输入你的基础Prompt（将拼接在库标签之前）...",
+  "canvas.placeholder_llm": "输入对LLM大模型的特殊要求（仅在启用语言大模型时生效）...",
 
   "context.hub": "⚙ LoRA Hub",
   "context.refresh_stack": "🔄 刷新栈状态",

@@ -185,6 +185,8 @@ function createLoraRowHTML(item, idx) {
     const safeName = escapeAttr(name);
     const selGroup = item.selected_group || '';
     const groupLabel = selGroup === '__none__' ? t('canvas.none') : (selGroup ? escapeHtml(selGroup) : t('canvas.all'));
+    const note = item.note || '';
+    const notePreview = note ? escapeHtml(note.substring(0, 20) + (note.length > 20 ? '...' : '')) : '';
     return `
         <div class="lsw-grip" draggable="true" title="${t('hub.drag_sort')}">⠿</div>
         <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? t('hub.disable') : t('hub.enable')}"></div>
@@ -194,6 +196,7 @@ function createLoraRowHTML(item, idx) {
                 <span class="lsw-prompt-sel-label">${groupLabel}</span>
                 <span class="lsw-prompt-sel-arrow">▾</span>
             </div>
+            ${notePreview ? `<div class="lsw-note-preview" title="${escapeAttr(note)}">${notePreview}</div>` : ''}
         </div>
         <div class="lsw-weights">
             <div class="lsw-w-group">
@@ -215,6 +218,7 @@ function createLoraRowHTML(item, idx) {
                 </div>
             </div>
         </div>
+        <button class="lsw-note-btn ${note ? 'has-note' : ''}" data-action="edit-note" data-idx="${idx}" title="${t('hub.edit_note')}">📝</button>
         <button class="lsw-edit-btn" data-action="edit-prompt" data-lora="${escapeAttr(item.lora)}" title="${t('hub.open_hub')}">✎</button>
         <button class="lsw-remove" data-action="remove" title="${t('hub.remove')}">×</button>
     `;
@@ -259,7 +263,7 @@ function createGroupRowHTML(item, idx) {
 }
 
 /**
- * 事件处理：click（toggle / remove / edit-prompt / open-hub）
+ * 事件处理：click（toggle / remove / edit-prompt / edit-note / open-hub）
  */
 function handleStackClick(node) {
     return (e) => {
@@ -300,6 +304,11 @@ function handleStackClick(node) {
             const promptSel = actionEl.closest('.lsw-prompt-sel');
             const idx = parseInt(promptSel.dataset.idx);
             showPromptGroupMenu(node, idx, itemId, promptSel);
+        } else if (action === 'edit-note') {
+            // Note editor
+            e.stopPropagation();
+            const idx = parseInt(actionEl.dataset.idx);
+            showNoteEditor(node, idx, itemId, row);
         } else if (action === 'remove') {
             row.style.transform = 'translateX(100%)';
             row.style.opacity = '0';
@@ -666,6 +675,70 @@ async function showAddGroupMenu(node, anchorBtn) {
         }
     };
     setTimeout(() => document.addEventListener('mousedown', closeHandler), 100);
+}
+
+/**
+ * 显示备注编辑器
+ */
+function showNoteEditor(node, idx, itemId, row) {
+    // 移除已存在的编辑器
+    row.closest('.lsw-root').querySelector('.lsw-note-editor')?.remove();
+
+    const stack = StackAPI.getStack(node.id);
+    const item = stack.items[idx];
+    if (!item) return;
+
+    const currentNote = item.note || '';
+
+    const editor = document.createElement('div');
+    editor.className = 'lsw-note-editor';
+    editor.innerHTML = `
+        <div class="lsw-note-editor-header">
+            <span class="lsw-note-editor-title">${t('hub.note_title')}</span>
+            <button class="lsw-note-editor-close" data-action="close-note">×</button>
+        </div>
+        <textarea class="lsw-note-textarea" placeholder="${t('hub.note_placeholder')}">${escapeHtml(currentNote)}</textarea>
+        <div class="lsw-note-editor-actions">
+            <button class="lsw-note-save-btn" data-action="save-note">${t('common.save')}</button>
+            <button class="lsw-note-cancel-btn" data-action="close-note">${t('common.cancel')}</button>
+        </div>
+    `;
+
+    // 插入到当前行后面
+    row.after(editor);
+
+    const textarea = editor.querySelector('.lsw-note-textarea');
+    textarea.focus();
+
+    // 阻止事件穿透
+    editor.addEventListener('mousedown', e => e.stopPropagation());
+    editor.addEventListener('click', e => e.stopPropagation());
+
+    // 事件处理
+    editor.addEventListener('click', (e) => {
+        const action = e.target.closest('[data-action]')?.dataset.action;
+        if (action === 'save-note') {
+            const newNote = textarea.value.trim();
+            StackAPI.updateNote(node.id, itemId, newNote);
+            syncToWidget(node);
+            renderStack(node);
+        } else if (action === 'close-note') {
+            editor.remove();
+        }
+    });
+
+    // Ctrl+Enter 保存
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            const newNote = textarea.value.trim();
+            StackAPI.updateNote(node.id, itemId, newNote);
+            syncToWidget(node);
+            renderStack(node);
+        } else if (e.key === 'Escape') {
+            editor.remove();
+        }
+    });
 }
 
 /**

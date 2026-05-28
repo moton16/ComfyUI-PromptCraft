@@ -1026,6 +1026,12 @@ function syncTextareaAppearance(node, targetHeight) {
                 ta.style.maxHeight = '200px';
                 ta.style.overflowY = 'auto';
                 ta.style.resize = 'vertical';
+                // 翻译 placeholder
+                if (ph.includes('输入你的基础Prompt')) {
+                    ta.placeholder = t('canvas.placeholder_prompt');
+                } else if (ph.includes('输入对LLM大模型的特殊要求')) {
+                    ta.placeholder = t('canvas.placeholder_llm');
+                }
                 ta.dataset.motonAppearanceFixed = '1';
             }
         });
