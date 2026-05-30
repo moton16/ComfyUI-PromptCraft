@@ -3,6 +3,7 @@ LLM客户端 - 支持OpenAI兼容API
 支持：OpenAI兼容端口自行加载api等
 使用 config_manager 统一管理配置
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
+V1.2.5_Mod5 — 增强思维链控制逻辑，添加详细日志
 """
 
 import json
@@ -94,6 +95,61 @@ class LLMClient:
         """设置配置项"""
         self.config[key] = value
 
+    def _prepare_thinking_params(self, model: str) -> dict:
+        """
+        准备思维链控制参数
+
+        Args:
+            model: 模型名称
+
+        Returns:
+            思维链控制参数字典
+        """
+        from .thinking_control import build_thinking_suppression
+
+        disable_thinking = self.config.get("disable_thinking", True)
+        if not disable_thinking:
+            return {}
+
+        # 获取激进模式设置
+        aggressive = self.config.get("aggressive_thinking_control", False)
+
+        # 获取思维链控制参数
+        thinking_params = build_thinking_suppression(model, disable_thinking=True, aggressive=aggressive)
+
+        # 检查用户自定义参数（服务级别）
+        custom_params = self.config.get("custom_thinking_params")
+        if custom_params and isinstance(custom_params, dict):
+            thinking_params.update(custom_params)
+            print(f"[LLMClient] 应用用户自定义参数: {custom_params}")
+
+        return thinking_params
+
+    def _filter_content(self, content: str) -> str:
+        """
+        过滤思维链内容
+
+        Args:
+            content: 原始内容
+
+        Returns:
+            过滤后的内容
+        """
+        from .thinking_control import filter_thinking_content
+
+        filter_output = self.config.get("filter_thinking_output", True)
+        if not filter_output:
+            return content
+
+        original_content = content
+        content = filter_thinking_content(content)
+
+        # 记录过滤效果
+        if content != original_content:
+            print(f"[LLMClient] 思维链过滤: {len(original_content)} -> {len(content)} 字符")
+
+        return content
+
     def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint="", lora_tags=""):
         """
         使用LLM增强prompt
@@ -154,11 +210,10 @@ class LLMClient:
         }
 
         # 思维链关闭参数
-        from .thinking_control import build_thinking_suppression, filter_thinking_content
-        disable_thinking = self.config.get("disable_thinking", True)
-        filter_output = self.config.get("filter_thinking_output", True)
-        if disable_thinking:
-            payload.update(build_thinking_suppression(model, disable_thinking=True))
+        thinking_params = self._prepare_thinking_params(model)
+        if thinking_params:
+            payload.update(thinking_params)
+            print(f"[LLMClient] 已应用思维链控制参数: {thinking_params}")
 
         try:
             from comfy.model_management import InterruptProcessingException
@@ -182,9 +237,11 @@ class LLMClient:
                 # DeepSeek reasoning models fallback
                 if not content.strip():
                     content = msg.get("reasoning_content", "") or ""
+                    if content.strip():
+                        print(f"[LLMClient] 使用 reasoning_content 字段")
                 if content.strip():
-                    if filter_output:
-                        content = filter_thinking_content(content)
+                    # 过滤思维链输出
+                    content = self._filter_content(content)
                     return content.strip()
 
             print(f"[LLMClient] API响应格式异常: {json.dumps(result, ensure_ascii=False)[:300]}")
@@ -207,7 +264,7 @@ class LLMClient:
     def test_connection(self):
         """
         测试LLM连接是否正常
-        
+
         Returns:
             (success, message): 是否成功和消息
         """
@@ -229,6 +286,11 @@ class LLMClient:
             ],
             "max_tokens": 10
         }
+
+        # 测试时也应用思维链控制
+        thinking_params = self._prepare_thinking_params(model)
+        if thinking_params:
+            payload.update(thinking_params)
 
         try:
             with httpx.Client(timeout=httpx.Timeout(15.0, connect=10.0)) as client:
@@ -286,11 +348,12 @@ class LLMClient:
         }
 
         # 思维链关闭参数
-        from .thinking_control import build_thinking_suppression, filter_thinking_content
-        disable_thinking = self.config.get("disable_thinking", True)
+        thinking_params = self._prepare_thinking_params(model)
+        if thinking_params:
+            payload.update(thinking_params)
+            print(f"[LLMClient] 流式请求已应用思维链控制参数: {thinking_params}")
+
         filter_output = self.config.get("filter_thinking_output", True)
-        if disable_thinking:
-            payload.update(build_thinking_suppression(model, disable_thinking=True))
 
         try:
             with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
@@ -303,6 +366,9 @@ class LLMClient:
                 ) as response:
                     response.raise_for_status()
                     has_content = False
+                    thinking_buffer = ""  # 用于缓存可能的思维链内容
+                    in_thinking = False  # 是否在思维链标签内
+
                     for line in response.iter_lines():
                         line = line.strip()
                         if not line.startswith("data: "):
@@ -314,9 +380,30 @@ class LLMClient:
                             chunk = json.loads(data_str)
                             delta = chunk["choices"][0].get("delta", {})
                             content = delta.get("content", "")
+
                             if content:
                                 has_content = True
-                                yield content
+
+                                # 思维链标签检测和过滤
+                                if filter_output:
+                                    # 检测思维链开始标签
+                                    if re.search(r'<(think|thinking|reasoning|thoughts?)>', content, re.IGNORECASE):
+                                        in_thinking = True
+                                        thinking_buffer += content
+                                        continue
+
+                                    # 检测思维链结束标签
+                                    if in_thinking:
+                                        thinking_buffer += content
+                                        if re.search(r'</(think|thinking|reasoning|thoughts?)>', content, re.IGNORECASE):
+                                            in_thinking = False
+                                            thinking_buffer = ""
+                                        continue
+
+                                    # 正常内容，直接输出
+                                    yield content
+                                else:
+                                    yield content
                             elif not has_content:
                                 # Fallback: capture reasoning_content if content is empty
                                 reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
@@ -324,6 +411,11 @@ class LLMClient:
                                     yield reasoning
                         except (json.JSONDecodeError, KeyError, IndexError):
                             continue
+
+                    # 如果结束时仍在思维链中，说明标签未闭合，丢弃
+                    if in_thinking and thinking_buffer:
+                        print(f"[LLMClient] 检测到未闭合的思维链标签，已丢弃 {len(thinking_buffer)} 字符")
+
         except httpx.TimeoutException as e:
             yield f"\n[Error: 请求超时 {e}]"
         except httpx.HTTPStatusError as e:
@@ -388,11 +480,10 @@ class LLMClient:
         }
 
         # 思维链关闭参数
-        from .thinking_control import build_thinking_suppression, filter_thinking_content
-        disable_thinking = self.config.get("disable_thinking", True)
-        filter_output = self.config.get("filter_thinking_output", True)
-        if disable_thinking:
-            payload.update(build_thinking_suppression(model, disable_thinking=True))
+        thinking_params = self._prepare_thinking_params(model)
+        if thinking_params:
+            payload.update(thinking_params)
+            print(f"[LLMClient] Agent 请求已应用思维链控制参数: {thinking_params}")
 
         try:
             with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
@@ -411,9 +502,11 @@ class LLMClient:
                 content = msg.get("content", "") or ""
                 if not content.strip():
                     content = msg.get("reasoning_content", "") or ""
+                    if content.strip():
+                        print(f"[LLMClient] Agent 使用 reasoning_content 字段")
                 if content.strip():
-                    if filter_output:
-                        content = filter_thinking_content(content)
+                    # 过滤思维链输出
+                    content = self._filter_content(content)
                     return content.strip()
 
             print(f"[LLMClient] Agent 响应格式异常")

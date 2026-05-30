@@ -584,6 +584,45 @@
     border-color: var(--primary-background, #0b8ce9);
 }
 
+/* Note editor in Hub */
+.lhub-note-editor-hub {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lhub-note-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--comfy-input-bg, #222);
+    border: 1px solid var(--interface-stroke, #313235);
+    border-radius: 6px;
+    color: var(--input-text, #ddd);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.lhub-note-input:focus {
+    border-color: var(--primary-background, #0b8ce9);
+}
+
+.lhub-note-input::placeholder {
+    color: var(--muted-foreground, #8a8a8a);
+}
+
+.lhub-note-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.lhub-note-hint {
+    font-size: 10px;
+    color: var(--muted-foreground, #8a8a8a);
+    line-height: 1.4;
+}
+
 /* Muted text */
 .lhub-muted {
     font-size: 12px;
@@ -1267,6 +1306,11 @@
     text-overflow: ellipsis;
     max-width: 120px;
     padding: 0 4px;
+}
+
+/* Name with note - amber color */
+.lsw-name-noted {
+    color: #c8842a !important;
 }
 
 /* Note editor */
@@ -2158,6 +2202,53 @@
 }
 .lsc-status-ok { color: #00cd72; }
 .lsc-status-error { color: #ff4444; }
+
+/* Textarea for custom thinking params */
+.lsc-textarea {
+    padding: 7px 10px;
+    background: var(--secondary-background, #262729);
+    color: var(--text-primary, #fff);
+    border: 1px solid var(--interface-stroke, #313235);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    transition: border-color 0.15s;
+    min-height: 60px;
+    resize: vertical;
+    line-height: 1.5;
+}
+.lsc-textarea:focus {
+    outline: none;
+    border-color: var(--pc-accent, #d4953a);
+}
+
+.lsc-field-hint {
+    font-size: 10px;
+    color: var(--muted-foreground, #8a8a8a);
+    line-height: 1.4;
+}
+
+.lsc-field-hint-warning {
+    color: #e6a817;
+    font-weight: 600;
+    font-size: 11px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: rgba(230, 168, 23, 0.08);
+    border-radius: 4px;
+    border-left: 3px solid #e6a817;
+}
+
+.lsc-field-desc {
+    font-size: 10px;
+    color: var(--muted-foreground, #8a8a8a);
+    line-height: 1.4;
+    margin-top: 4px;
+}
+
+.lsc-toggle-warning {
+    color: #e6a817;
+}
 
 /* ============================================
    pc-* — PromptCraft 设置面板内嵌样式

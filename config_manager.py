@@ -488,7 +488,7 @@ class ConfigManager:
         cfg = self.load_services_config()
         for svc in cfg["services"]:
             if svc["id"] == service_id:
-                for k in ("name", "api_url", "api_key", "model", "temperature", "max_tokens", "disable_thinking", "filter_thinking_output"):
+                for k in ("name", "api_url", "api_key", "model", "temperature", "max_tokens", "disable_thinking", "filter_thinking_output", "aggressive_thinking_control", "custom_thinking_params"):
                     if k in updates:
                         svc[k] = updates[k]
                 self.save_services_config(cfg)
@@ -532,6 +532,8 @@ class ConfigManager:
                     "max_tokens": svc.get("max_tokens", 300),
                     "disable_thinking": svc.get("disable_thinking", True),
                     "filter_thinking_output": svc.get("filter_thinking_output", True),
+                    "aggressive_thinking_control": svc.get("aggressive_thinking_control", False),
+                    "custom_thinking_params": svc.get("custom_thinking_params", None),
                 }
         # 回退到旧配置
         return self.load_llm_config()
@@ -737,6 +739,71 @@ class ConfigManager:
                 "categories": nsfw.get("categories", {})
             }
         }
+
+    # ==================== 思维链控制规则 CRUD ====================
+
+    def get_custom_thinking_rules(self) -> list:
+        """获取用户自定义思维链控制规则"""
+        try:
+            config_path = os.path.join(self.user_config_dir, "custom_thinking_rules.json")
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    rules = json.load(f)
+                    if isinstance(rules, list):
+                        return rules
+        except Exception as e:
+            self._log(f"加载自定义思维链规则失败: {e}")
+        return []
+
+    def save_custom_thinking_rules(self, rules: list) -> bool:
+        """保存用户自定义思维链控制规则"""
+        config_path = os.path.join(self.user_config_dir, "custom_thinking_rules.json")
+        return self._atomic_write_json(config_path, rules)
+
+    def add_custom_thinking_rule(self, rule: dict) -> bool:
+        """添加一条自定义思维链控制规则"""
+        rules = self.get_custom_thinking_rules()
+
+        # 验证规则格式
+        from .thinking_control import validate_custom_rule
+        is_valid, error_msg = validate_custom_rule(rule)
+        if not is_valid:
+            self._log(f"添加自定义规则失败: {error_msg}")
+            return False
+
+        # 检查是否已存在同名规则
+        existing_names = [r.get("name") for r in rules]
+        if rule.get("name") in existing_names:
+            # 更新已有规则
+            rules = [r if r.get("name") != rule.get("name") else rule for r in rules]
+        else:
+            rules.append(rule)
+
+        return self.save_custom_thinking_rules(rules)
+
+    def delete_custom_thinking_rule(self, rule_name: str) -> bool:
+        """删除一条自定义思维链控制规则"""
+        rules = self.get_custom_thinking_rules()
+        rules = [r for r in rules if r.get("name") != rule_name]
+        return self.save_custom_thinking_rules(rules)
+
+    def get_custom_thinking_params(self) -> dict:
+        """获取用户自定义思维链控制参数（全局覆盖）"""
+        try:
+            config_path = os.path.join(self.user_config_dir, "custom_thinking_params.json")
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    params = json.load(f)
+                    if isinstance(params, dict):
+                        return params
+        except Exception as e:
+            self._log(f"加载自定义思维链参数失败: {e}")
+        return {}
+
+    def save_custom_thinking_params(self, params: dict) -> bool:
+        """保存用户自定义思维链控制参数（全局覆盖）"""
+        config_path = os.path.join(self.user_config_dir, "custom_thinking_params.json")
+        return self._atomic_write_json(config_path, params)
 
     # ==================== 兼容旧 API（prompt_enhancer.py 调用） ====================
 

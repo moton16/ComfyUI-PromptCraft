@@ -210,6 +210,19 @@ async function selectService(backdrop, svcId) {
                         </label>
                     </div>
                 </div>
+                <div class="lsc-field">
+                    <label>${t('service_config.custom_thinking_params')}</label>
+                    <textarea class="lsc-textarea" data-field="custom_thinking_params" placeholder='${t('service_config.custom_thinking_params_placeholder')}'>${svc.custom_thinking_params ? JSON.stringify(svc.custom_thinking_params, null, 2) : ''}</textarea>
+                    <div class="lsc-field-hint">${t('service_config.custom_thinking_params_hint')}</div>
+                </div>
+                <div class="lsc-field">
+                    <label class="lsc-toggle-label lsc-toggle-warning">
+                        <input type="checkbox" class="lsc-toggle" data-field="aggressive_thinking_control" ${svc.aggressive_thinking_control === true ? 'checked' : ''} />
+                        <span>${t('service_config.aggressive_thinking_control')}</span>
+                    </label>
+                    <div class="lsc-field-hint lsc-field-hint-warning">${t('service_config.aggressive_thinking_control_hint')}</div>
+                    <div class="lsc-field-desc">${t('service_config.aggressive_thinking_control_desc')}</div>
+                </div>
                 <div class="lsc-actions">
                     <button class="lsc-btn lsc-btn-primary" data-action="test-service">🧪 ${t('service_config.test_connection')}</button>
                     <button class="lsc-btn lsc-btn-save" data-action="save-service">💾 ${t('service_config.save')}</button>
@@ -247,6 +260,16 @@ function collectFormData(backdrop) {
     backdrop.querySelectorAll('.lsc-toggle[data-field]').forEach(toggle => {
         data[toggle.dataset.field] = toggle.checked;
     });
+    // Textarea (custom_thinking_params)
+    const textarea = backdrop.querySelector('.lsc-textarea[data-field="custom_thinking_params"]');
+    if (textarea && textarea.value.trim()) {
+        try {
+            data.custom_thinking_params = JSON.parse(textarea.value.trim());
+        } catch (e) {
+            // 如果 JSON 解析失败，不添加这个字段
+            console.warn('[PromptCraft] 自定义思维链参数 JSON 格式错误:', e);
+        }
+    }
     return data;
 }
 

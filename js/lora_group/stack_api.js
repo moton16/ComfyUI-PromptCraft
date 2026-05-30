@@ -145,6 +145,42 @@ export function updateNote(nodeId, itemId, note) {
 }
 
 /**
+ * 获取显示名称：优先使用备注名，没有备注则使用原文件名
+ */
+export function getDisplayName(nodeId, itemId) {
+    const stack = getStack(nodeId);
+    const item = stack.items.find(i => i.id === itemId);
+    if (!item) return '';
+
+    if (item.type === 'group') {
+        return item.group_name;
+    }
+
+    if (item.note && item.note.trim()) {
+        return item.note.trim();
+    }
+
+    return item.lora.split('/').pop().replace(/\.safetensors$/, '');
+}
+
+/**
+ * 获取显示名称（直接从item对象）
+ */
+export function getDisplayNameFromItem(item) {
+    if (!item) return '';
+
+    if (item.type === 'group') {
+        return item.group_name;
+    }
+
+    if (item.note && item.note.trim()) {
+        return item.note.trim();
+    }
+
+    return item.lora.split('/').pop().replace(/\.safetensors$/, '');
+}
+
+/**
  * 序列化栈为 JSON 字符串（写入隐藏 widget）
  */
 export function serialize(nodeId) {

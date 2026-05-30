@@ -181,22 +181,22 @@ function createItemRow(item, idx, node) {
 }
 
 function createLoraRowHTML(item, idx) {
-    const name = item.lora.split('/').pop().replace(/\.safetensors$/, '');
-    const safeName = escapeAttr(name);
+    const originalName = item.lora.split('/').pop().replace(/\.safetensors$/, '');
+    const displayName = StackAPI.getDisplayNameFromItem(item);
+    const hasNote = item.note && item.note.trim();
+    const safeOriginalName = escapeAttr(originalName);
+    const safeDisplayName = escapeAttr(displayName);
     const selGroup = item.selected_group || '';
     const groupLabel = selGroup === '__none__' ? t('canvas.none') : (selGroup ? escapeHtml(selGroup) : t('canvas.all'));
-    const note = item.note || '';
-    const notePreview = note ? escapeHtml(note.substring(0, 20) + (note.length > 20 ? '...' : '')) : '';
     return `
         <div class="lsw-grip" draggable="true" title="${t('hub.drag_sort')}">⠿</div>
         <div class="lsw-toggle ${item.enabled ? 'on' : ''}" data-action="toggle" title="${item.enabled ? t('hub.disable') : t('hub.enable')}"></div>
         <div class="lsw-info">
-            <div class="lsw-name" title="${safeName}">${escapeHtml(name)}</div>
+            <div class="lsw-name ${hasNote ? 'lsw-name-noted' : ''}" title="${hasNote ? safeOriginalName : safeDisplayName}">${escapeHtml(displayName)}</div>
             <div class="lsw-prompt-sel" data-action="select-group" data-idx="${idx}" title="${t('hub.select_prompt_group')}">
                 <span class="lsw-prompt-sel-label">${groupLabel}</span>
                 <span class="lsw-prompt-sel-arrow">▾</span>
             </div>
-            ${notePreview ? `<div class="lsw-note-preview" title="${escapeAttr(note)}">${notePreview}</div>` : ''}
         </div>
         <div class="lsw-weights">
             <div class="lsw-w-group">
@@ -218,8 +218,8 @@ function createLoraRowHTML(item, idx) {
                 </div>
             </div>
         </div>
-        <button class="lsw-note-btn ${note ? 'has-note' : ''}" data-action="edit-note" data-idx="${idx}" title="${t('hub.edit_note')}">📝</button>
-        <button class="lsw-edit-btn" data-action="edit-prompt" data-lora="${escapeAttr(item.lora)}" title="${t('hub.open_hub')}">✎</button>
+        <button class="lsw-note-btn ${hasNote ? 'has-note' : ''}" data-action="edit-note" data-idx="${idx}" title="${t('hub.edit_note')}">✎</button>
+        <button class="lsw-edit-btn" data-action="edit-prompt" data-lora="${escapeAttr(item.lora)}" title="${t('hub.open_hub')}">⚙</button>
         <button class="lsw-remove" data-action="remove" title="${t('hub.remove')}">×</button>
     `;
 }

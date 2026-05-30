@@ -403,15 +403,26 @@ class HubPanel {
     }
 
     _createLoraItem(file) {
-        const name = file.split('/').pop().replace(/\.safetensors$/, '');
+        const originalName = file.split('/').pop().replace(/\.safetensors$/, '');
         const isFav = this.favorites.has(file);
+
+        // 获取备注名（如果有的话）
+        let displayName = originalName;
+        if (this.node) {
+            const stack = StackAPI.getStack(this.node.id);
+            const loraItem = stack.items.find(i => i.type === 'lora' && i.lora === file);
+            if (loraItem && loraItem.note && loraItem.note.trim()) {
+                displayName = loraItem.note.trim();
+            }
+        }
+
         const item = document.createElement('div');
         item.className = 'lhub-lora-item' + (isFav ? ' lhub-lora-item-fav' : '');
         if (this.selectedLora === file) {
             item.classList.add('lhub-selected');
         }
         item.dataset.loraPath = file;
-        item.title = file;
+        item.title = displayName !== originalName ? `${displayName}\n${file}` : file;
 
         const star = document.createElement('span');
         star.className = 'lhub-fav-star' + (isFav ? ' lhub-fav-active' : '');
@@ -433,7 +444,10 @@ class HubPanel {
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'lhub-lora-name';
-        nameSpan.textContent = name;
+        nameSpan.textContent = displayName;
+        if (displayName !== originalName) {
+            nameSpan.style.color = '#c8842a';
+        }
 
         item.appendChild(star);
         item.appendChild(icon);
@@ -591,9 +605,32 @@ class HubPanel {
         // Training words HTML
         const trainWordsHTML = this._buildTrainingWordsHTML(loraInfo?.training_words || []);
 
+        // 获取备注信息
+        let currentNote = '';
+        if (this.node) {
+            const stack = StackAPI.getStack(this.node.id);
+            const loraItem = stack.items.find(i => i.type === 'lora' && i.lora === loraPath);
+            if (loraItem) {
+                currentNote = loraItem.note || '';
+            }
+        }
+
         this.content.innerHTML = `
             <div class="lhub-detail">
                 ${infoCardHTML}
+
+                <div class="lhub-detail-section">
+                    <div class="lhub-section-title">${t('hub.display_name')}</div>
+                    <div class="lhub-note-editor-hub">
+                        <input class="lhub-note-input" type="text" value="${escapeAttr(currentNote)}"
+                               placeholder="${t('hub.note_placeholder_hub')}" data-role="note-input" />
+                        <div class="lhub-note-actions">
+                            <button class="lhub-btn lhub-btn-sm lhub-btn-primary" data-action="save-note">${t('common.save')}</button>
+                            <button class="lhub-btn lhub-btn-sm" data-action="clear-note">${t('hub.clear_note')}</button>
+                        </div>
+                        <div class="lhub-note-hint">${t('hub.note_hint')}</div>
+                    </div>
+                </div>
 
                 <div class="lhub-detail-section">
                     <div class="lhub-section-title">${t('hub.prompt_groups')}</div>
@@ -936,6 +973,14 @@ class HubPanel {
                 this._removeGroupLora(gn, ln);
                 break;
             }
+            case 'save-note': {
+                this._saveNote();
+                break;
+            }
+            case 'clear-note': {
+                this._clearNote();
+                break;
+            }
         }
     }
 
@@ -1104,6 +1149,77 @@ class HubPanel {
         } catch (e) {
             alert(t('hub.export_failed', { error: e.message }));
         }
+    }
+
+    // ---------- 备注管理 ----------
+
+    async _saveNote() {
+        if (!this.selectedLora || !this.node) return;
+
+        const input = this.content.querySelector('[data-role="note-input"]');
+        if (!input) return;
+
+        const note = input.value.trim();
+
+        // 找到栈中的lora条目
+        const stack = StackAPI.getStack(this.node.id);
+        const loraItem = stack.items.find(i => i.type === 'lora' && i.lora === this.selectedLora);
+
+        if (loraItem) {
+            // 更新已有条目的备注
+            StackAPI.updateNote(this.node.id, loraItem.id, note);
+        } else {
+            // 如果lora不在栈中，先添加到栈中再设置备注
+            const added = StackAPI.addLora(this.node.id, this.selectedLora);
+            if (added) {
+                const newStack = StackAPI.getStack(this.node.id);
+                const newItem = newStack.items[newStack.items.length - 1];
+                StackAPI.updateNote(this.node.id, newItem.id, note);
+            }
+        }
+
+        // 刷新画布
+        if (_onRefreshStack) _onRefreshStack(this.node);
+
+        // 显示保存成功反馈
+        const btn = this.content.querySelector('[data-action="save-note"]');
+        if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = t('hub.saved');
+            btn.style.background = '#00cd72';
+            btn.style.borderColor = '#00cd72';
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.style.background = '';
+                btn.style.borderColor = '';
+            }, 1200);
+        }
+
+        // 刷新侧栏显示
+        this._renderSidebarList();
+    }
+
+    async _clearNote() {
+        if (!this.selectedLora || !this.node) return;
+
+        const input = this.content.querySelector('[data-role="note-input"]');
+        if (!input) return;
+
+        input.value = '';
+
+        // 找到栈中的lora条目
+        const stack = StackAPI.getStack(this.node.id);
+        const loraItem = stack.items.find(i => i.type === 'lora' && i.lora === this.selectedLora);
+
+        if (loraItem) {
+            StackAPI.updateNote(this.node.id, loraItem.id, '');
+        }
+
+        // 刷新画布
+        if (_onRefreshStack) _onRefreshStack(this.node);
+
+        // 刷新侧栏显示
+        this._renderSidebarList();
     }
 
     // ---------- Footer ----------

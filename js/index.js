@@ -899,6 +899,10 @@ function ensureFallbackPanel() {
         { text: t('panel.rules'), fn: openRuleManager },
         { text: t('panel.library'), fn: openLibraryEditor },
         { text: t('panel.history'), fn: openPromptHistory },
+        { text: t('panel.lora_hub'), fn: () => {
+            // 动态导入并打开LoRA Hub
+            import('./lora_group/hub_panel.js').then(m => m.openHubPanel(null));
+        }},
     ];
 
     QUICK_BUTTONS.forEach(({ text, fn }) => {
