@@ -6,6 +6,9 @@ import LibraryEditor from './components/dialogs/LibraryEditor.vue'
 import PromptHistory from './components/dialogs/PromptHistory.vue'
 import FloatingPanel from './components/FloatingPanel.vue'
 import Toast from './components/common/Toast.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
+import AgentPanel from './components/AgentPanel.vue'
+import HubPanel from './components/HubPanel.vue'
 
 // 导入设计 Token（构建后会打包到 CSS 文件中）
 import './styles/variables.css'
@@ -136,6 +139,94 @@ export function unmountToast() {
   }
 }
 
+// SettingsPanel 挂载器
+export function createSettingsContent(comfyApi) {
+  const container = document.createElement('div')
+  container.id = 'promptcraft-settings'
+
+  const app = createApp(SettingsPanel, { comfyApi })
+  app.mount(container)
+
+  return container
+}
+
+// AgentPanel 挂载器
+export function createAgentPanel(container, node, options = {}) {
+  const app = createApp(AgentPanel, {
+    node,
+    mode: options.mode || 'hub',
+    executor: options.executor || null,
+    renderStack: options.renderStack || null,
+    onClose: () => {
+      app.unmount()
+    }
+  })
+
+  app.mount(container)
+  return { unmount: () => app.unmount() }
+}
+
+export function openAgentFloating(node, options = {}) {
+  const existing = document.getElementById('promptcraft-agent-floating')
+  if (existing) existing.remove()
+
+  const container = document.createElement('div')
+  container.id = 'promptcraft-agent-floating'
+  document.body.appendChild(container)
+
+  const app = createApp(AgentPanel, {
+    node,
+    mode: 'floating',
+    executor: options.executor || null,
+    renderStack: options.renderStack || null,
+    onClose: () => {
+      app.unmount()
+      container.remove()
+    }
+  })
+
+  app.mount(container)
+}
+
+// HubPanel 挂载器
+let hubPanelInstance = null
+
+export function openHubPanel(node, options = {}) {
+  if (hubPanelInstance) {
+    hubPanelInstance.unmount()
+  }
+
+  const existing = document.getElementById('promptcraft-hub-panel')
+  if (existing) existing.remove()
+
+  const container = document.createElement('div')
+  container.id = 'promptcraft-hub-panel'
+  container.style.cssText = 'position:fixed; inset:0; z-index:99999;'
+  document.body.appendChild(container)
+
+  const app = createApp(HubPanel, {
+    comfyApi: options.comfyApi || null,
+    node,
+    executor: options.executor || null,
+    renderStack: options.renderStack || null,
+    onClose: () => {
+      app.unmount()
+      container.remove()
+      hubPanelInstance = null
+    }
+  })
+
+  app.mount(container)
+  hubPanelInstance = { unmount: () => { app.unmount(); container.remove(); } }
+}
+
+export function closeHubPanel() {
+  if (hubPanelInstance) {
+    hubPanelInstance.unmount()
+    hubPanelInstance = null
+  }
+}
+
 // 导出便捷函数
 export function openServiceConfigModal(comfyApi) {
   serviceConfigModal.open(comfyApi)
@@ -165,5 +256,8 @@ export {
   LibraryEditor,
   PromptHistory,
   FloatingPanel,
-  Toast
+  Toast,
+  SettingsPanel,
+  AgentPanel,
+  HubPanel
 }

@@ -115,3 +115,47 @@ export function mountToastVue() {
         }
     });
 }
+
+export async function createSettingsContentVue() {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.createSettingsContent) {
+        return vueModule.createSettingsContent(api);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+        return null;
+    }
+}
+
+export async function createAgentPanelVue(container, node, options = {}) {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.createAgentPanel) {
+        return vueModule.createAgentPanel(container, node, options);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+        return null;
+    }
+}
+
+export async function openAgentFloatingVue(node) {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.openAgentFloating) {
+        vueModule.openAgentFloating(node);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+    }
+}
+
+export async function openHubPanelVue(node, options = {}) {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.openHubPanel) {
+        vueModule.openHubPanel(node, { ...options, comfyApi: api });
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+    }
+}
+
+export function closeHubPanelVue() {
+    if (_vueModule && _vueModule.closeHubPanel) {
+        _vueModule.closeHubPanel();
+    }
+}
