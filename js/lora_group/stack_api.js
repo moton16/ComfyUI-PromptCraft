@@ -228,22 +228,32 @@ export function serialize(nodeId) {
 }
 
 /**
- * 将群组展开为个体 LoRA 并加入栈
+ * 将群组展开为个体 LoRA 并加入栈（批量操作，只触发一次通知）
  */
 export async function expandGroupIntoStack(nodeId, groupName) {
     try {
         const group = await GroupAPI.getGroup(groupName);
         const loras = group.loras || [];
+        const stack = getStack(nodeId);
+        // 批量添加，不逐条通知
         for (const lora of loras) {
-            addLora(nodeId, lora.lora, lora.weight, lora.clip_weight);
-            if (lora.enabled === false) {
-                // 找到刚添加的条目并禁用
-                const stack = getStack(nodeId);
-                const last = stack.items[stack.items.length - 1];
-                last.enabled = false;
+            // 避免重复
+            if (stack.items.some(i => i.type === 'lora' && i.lora === lora.lora)) {
+                continue;
             }
+            stack.items.push({
+                id: uid(),
+                type: 'lora',
+                lora: lora.lora,
+                weight: lora.weight ?? 1.0,
+                clip_weight: lora.clip_weight ?? 1.0,
+                enabled: lora.enabled !== false,
+                selected_group: null,
+                note: '',
+            });
         }
-        // addLora 已经调用 _notify，这里不需要重复调用
+        // 仅通知一次
+        _notify(nodeId);
         return true;
     } catch (e) {
         console.error('[PromptCraft] 展开群组失败:', e);
