@@ -3,6 +3,9 @@ import ServiceConfig from './components/ServiceConfig.vue'
 import NegativePromptEditor from './components/dialogs/NegativePromptEditor.vue'
 import RuleManager from './components/dialogs/RuleManager.vue'
 
+// 导入设计 Token（构建后会打包到 CSS 文件中）
+import './styles/variables.css'
+
 // 挂载 Vue 组件到 ComfyUI DOM 容器的工具函数
 export function mountVueWidget(container, component, props = {}) {
   const vueApp = createApp(component, props)

@@ -1,0 +1,192 @@
+/**
+ * PromptCraft — 设计 Token 与 CSS 变量
+ *
+ * 两层变量体系：
+ *   1. --pc-* (PromptCraft 自有) — 项目内部使用的语义化变量
+ *   2. 映射到 ComfyUI 主题变量 (--base-*, --primary-* 等) — 保持主题一致性
+ *
+ * 使用方式：
+ *   background: var(--pc-bg-panel);
+ *   color: var(--pc-text-primary);
+ */
+
+:root {
+  /* ============================================
+     颜色 — 背景层
+     ============================================ */
+
+  /* 面板/模态框背景 */
+  --pc-bg-panel: var(--base-background, #171718);
+  --pc-bg-panel-hover: var(--secondary-background-hover, #313235);
+  --pc-bg-surface: var(--interface-panel-surface, #171718);
+  --pc-bg-surface-hover: var(--interface-panel-hover-surface, #1e1e20);
+  --pc-bg-input: var(--comfy-input-bg, #222);
+  --pc-bg-header: var(--secondary-background, #262729);
+
+  /* 遮罩层 */
+  --pc-bg-backdrop: rgba(0, 0, 0, 0.65);
+  --pc-bg-backdrop-blur: 4px;
+
+  /* 强调色 */
+  --pc-accent: var(--primary-background, #0b8ce9);
+  --pc-accent-hover: var(--primary-background-hover, #0a7fd6);
+  --pc-accent-soft: rgba(11, 140, 233, 0.12);
+  --pc-accent-text: #fff;
+
+  /* 状态色 */
+  --pc-success: #00cd72;
+  --pc-success-soft: rgba(0, 205, 114, 0.12);
+  --pc-error: #f44;
+  --pc-error-soft: rgba(255, 68, 68, 0.12);
+  --pc-warning: #fa0;
+  --pc-warning-soft: rgba(255, 170, 0, 0.12);
+
+  /* Agent 配色 */
+  --pc-agent-accent: #b39ddb;
+  --pc-agent-accent-soft: rgba(179, 157, 219, 0.15);
+
+  /* ============================================
+     颜色 — 文字层
+     ============================================ */
+
+  --pc-text-primary: var(--text-primary, #fff);
+  --pc-text-secondary: var(--text-secondary, #9c9eab);
+  --pc-text-muted: var(--muted-foreground, #8a8a8a);
+  --pc-text-input: var(--input-text, #ddd);
+
+  /* ============================================
+     边框
+     ============================================ */
+
+  --pc-border: var(--interface-stroke, #313235);
+  --pc-border-light: var(--interface-stroke, #222);
+  --pc-border-focus: var(--pc-accent);
+
+  /* ============================================
+     间距
+     ============================================ */
+
+  --pc-spacing-xs: 4px;
+  --pc-spacing-sm: 6px;
+  --pc-spacing-md: 8px;
+  --pc-spacing-lg: 12px;
+  --pc-spacing-xl: 16px;
+
+  /* ============================================
+     圆角
+     ============================================ */
+
+  --pc-radius-sm: 4px;
+  --pc-radius-md: 6px;
+  --pc-radius-lg: 10px;
+  --pc-radius-full: 999px;
+
+  /* ============================================
+     字号
+     ============================================ */
+
+  --pc-font-xs: 10px;
+  --pc-font-sm: 11px;
+  --pc-font-md: 12px;
+  --pc-font-lg: 13px;
+  --pc-font-xl: 15px;
+
+  /* ============================================
+     阴影
+     ============================================ */
+
+  --pc-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --pc-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --pc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --pc-shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.6);
+
+  /* ============================================
+     动画
+     ============================================ */
+
+  --pc-transition-fast: 0.08s ease;
+  --pc-transition-normal: 0.15s ease;
+  --pc-transition-slow: 0.2s ease;
+
+  /* ============================================
+     层级
+     ============================================ */
+
+  --pc-z-dropdown: 100;
+  --pc-z-modal: 9998;
+  --pc-z-toast: 9999;
+}
+
+/* ============================================
+   滚动条样式（可复用）
+   ============================================ */
+
+.pc-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.pc-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pc-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--interface-menu-stroke, #444);
+  border-radius: 3px;
+}
+
+/* ============================================
+   通用动画
+   ============================================ */
+
+@keyframes pc-fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pc-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pc-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   辅助类
+   ============================================ */
+
+.pc-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
