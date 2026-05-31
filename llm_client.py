@@ -7,6 +7,7 @@ V1.2.5_Mod5 — 增强思维链控制逻辑，添加详细日志
 """
 
 import json
+import re
 import httpx
 import traceback
 from pathlib import Path
@@ -216,7 +217,6 @@ class LLMClient:
             print(f"[LLMClient] 已应用思维链控制参数: {thinking_params}")
 
         try:
-            from comfy.model_management import InterruptProcessingException
 
             # 使用 httpx 发送请求，支持中断检测
             with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
@@ -238,7 +238,7 @@ class LLMClient:
                 if not content.strip():
                     content = msg.get("reasoning_content", "") or ""
                     if content.strip():
-                        print(f"[LLMClient] 使用 reasoning_content 字段")
+                        print("[LLMClient] 使用 reasoning_content 字段")
                 if content.strip():
                     # 过滤思维链输出
                     content = self._filter_content(content)
@@ -303,7 +303,6 @@ class LLMClient:
                     }
                 )
                 resp.raise_for_status()
-                result = resp.json()
 
             return True, f"连接成功! 模型: {model}"
 
@@ -503,13 +502,13 @@ class LLMClient:
                 if not content.strip():
                     content = msg.get("reasoning_content", "") or ""
                     if content.strip():
-                        print(f"[LLMClient] Agent 使用 reasoning_content 字段")
+                        print("[LLMClient] Agent 使用 reasoning_content 字段")
                 if content.strip():
                     # 过滤思维链输出
                     content = self._filter_content(content)
                     return content.strip()
 
-            print(f"[LLMClient] Agent 响应格式异常")
+            print("[LLMClient] Agent 响应格式异常")
             return None
 
         except httpx.TimeoutException as e:

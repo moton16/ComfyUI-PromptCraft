@@ -8,7 +8,6 @@ import os
 import json
 import tempfile
 import shutil
-import copy
 
 try:
     import folder_paths
@@ -82,7 +81,7 @@ class ConfigManager:
         self._llm_config_cache = None
         self._llm_system_prompt_cache = None
 
-        print(f"[PromptCraft] 配置管理器已初始化")
+        print("[PromptCraft] 配置管理器已初始化")
         print(f"[PromptCraft]   用户配置目录: {self.user_config_dir}")
         print(f"[PromptCraft]   内置模板目录: {self.templates_dir}")
 

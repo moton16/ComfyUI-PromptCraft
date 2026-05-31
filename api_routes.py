@@ -12,7 +12,6 @@ from aiohttp import web
 from server import PromptServer
 from .config_manager import config_manager
 from .llm_client import LLMClient
-import os
 import traceback
 
 # API 前缀
@@ -538,8 +537,8 @@ async def api_toggle_lora_favorite(request):
         return web.json_response(get_result_json(False, error=str(e)), status=500)
 
 
-from .lora_group_manager import lora_group_manager
-from .lora_scanner import LoraScanner
+from .lora_group_manager import lora_group_manager  # noqa: E402
+from .lora_scanner import LoraScanner  # noqa: E402
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_groups")
@@ -753,7 +752,7 @@ async def api_lora_info(request):
 
 # ==================== LoRA Prompt 管理 API ====================
 
-from .lora_prompt_manager import lora_prompt_manager
+from .lora_prompt_manager import lora_prompt_manager  # noqa: E402
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_prompts")

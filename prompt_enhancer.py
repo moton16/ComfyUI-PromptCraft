@@ -7,8 +7,6 @@ V1.1.0 — 支持每分类独立随机范围选择（+IS_CHANGED 随机修复）
 
 import json
 import random
-import os
-from pathlib import Path
 from .config_manager import config_manager
 from .llm_client import LLMClient
 from server import PromptServer
@@ -445,7 +443,7 @@ class PromptEnhancer:
                             "status": "interrupted",
                             "messageKey": "llm.status_interrupted"
                         })
-                        return (positive_prompt, negative_prompt, "LLM调用被用户中断")
+                        return (positive_prompt, "", "LLM调用被用户中断")
                     except Exception:
                         pass
 
@@ -466,27 +464,27 @@ class PromptEnhancer:
                             result = result.replace("///", "").strip().lstrip(",").strip()
                             result = ", ".join(lora_prompt_elements) + ", " + result
                         else:
-                            print(f"[PromptCraft] ✓ LoRA 标签验证通过")
+                            print("[PromptCraft] ✓ LoRA 标签验证通过")
                             result = result.replace("///", "").strip()
                     positive_prompt = result
                     llm_enhanced = True
-                    print(f"[PromptCraft] 大模型增强成功")
+                    print("[PromptCraft] 大模型增强成功")
                     # 发送状态事件到前端：成功
                     PromptServer.instance.send_sync("promptcraft.llm_status", {
                         "status": "success",
                         "messageKey": "llm.status_success"
                     })
                 else:
-                    print(f"[PromptCraft] 大模型增强失败，使用原始prompt")
+                    print("[PromptCraft] 大模型增强失败，使用原始prompt")
                     # 发送状态事件到前端：失败
                     PromptServer.instance.send_sync("promptcraft.llm_status", {
                         "status": "error",
                         "messageKey": "llm.status_failed"
                     })
             else:
-                print(f"[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")
+                print("[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")
         else:
-            print(f"[PromptCraft] 大模型未在设置面板中启用或配置不完整，跳过增强")
+            print("[PromptCraft] 大模型未在设置面板中启用或配置不完整，跳过增强")
 
         # ========== 生成负面提示词 ==========
         negative_prompt = self._generate_negative(

@@ -10,7 +10,7 @@ V1.2.5_Mod7 — 增强过滤逻辑、添加激进模式全局开关
 import re
 import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 
 # ==================== 模型匹配规则 ====================
