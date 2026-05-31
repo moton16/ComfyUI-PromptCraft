@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.2.5%20Mod2-brightgreen?style=for-the-badge" alt="Version 1.2.5 Mod2"/>
+  <img src="https://img.shields.io/badge/版本-v1.2.6-brightgreen?style=for-the-badge" alt="Version 1.2.6"/>
   <img src="https://img.shields.io/badge/状态-正式发布-ff69b4?style=for-the-badge" alt="Stable"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -354,7 +354,11 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.2.5 Mod2 (2026-05-27) — 当前版本
+### v1.2.6 (2026-05-31) — 当前版本
+
+- 🔧 **更新**：统一版本号，优化代码结构
+
+### v1.2.5 Mod2 (2026-05-27)
 
 - 🔧 **更新**：Prompt库整合优化，整合V1.2.1测试改进版内容
 - 🔧 **优化**：提升使用稳定性

@@ -30,7 +30,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.2.5';
+const VERSION = '1.2.6';
 
 // ==================== 工具函数 ====================
 
