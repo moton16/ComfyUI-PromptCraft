@@ -508,6 +508,9 @@ class ConfigManager:
         return True
 
     def set_current_service(self, category: str, service_id: str, model: str = "") -> bool:
+        # 兼容前端发送的 'enhance' → 映射到 'enhance_basic'
+        if category == "enhance":
+            category = "enhance_basic"
         if category not in ("enhance_basic", "enhance_detail", "enhance_normal", "agent"):
             return False
         cfg = self.load_services_config()
