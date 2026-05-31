@@ -25,6 +25,9 @@ import './chat_panel.js';
 // 多服务 API 配置面板
 import { openServiceConfigModal } from './lora_group/service_config.js';
 
+// Vue 桥接模块
+import { openNegativePromptEditorVue, openRuleManagerVue } from './vue_bridge.js';
+
 // 设置面板内容生成器
 import { createSettingsContent } from './control_panel.js';
 
@@ -67,257 +70,17 @@ function escHtml(s) {
 }
 
 // ==================== 负面 Prompt 编辑器 ====================
+// 使用 Vue 3 重构版本
 
 function openNegativePromptEditor() {
-    const existing = document.getElementById('moton-pe-negative-editor');
-    if (existing) existing.remove();
-
-    const dialog = document.createElement('div');
-    dialog.id = 'moton-pe-negative-editor';
-    dialog.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 99999;
-        display: flex; align-items: center; justify-content: center;
-    `;
-
-    dialog.innerHTML = `
-        <div style="
-            background: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px;
-            padding: 24px; width: 94%; max-width: 900px; max-height: 90vh;
-            display: flex; flex-direction: column;
-            color: #333; font-family: 'Segoe UI', Arial, sans-serif;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
-        ">
-            <h2 style="margin: 0 0 10px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                ${t('negative_editor.title')}
-            </h2>
-
-            <p style="color: #999; font-size: 12px; margin: 0 0 12px 0;">
-                ${t('negative_editor.desc')}
-            </p>
-
-            <div style="flex:1; display: flex; flex-direction: column;">
-                <textarea id="mpe-negative-text" style="
-                    width: 100%; flex: 1; min-height: 300px;
-                    background: #fafafa; color: #333;
-                    border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px;
-                    font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
-                    box-sizing: border-box; outline: none;
-                " placeholder="${t('negative_editor.placeholder')}"></textarea>
-            </div>
-
-            <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-                <span id="mpe-negative-status" style="color: #999; font-size: 12px; flex: 1;">${t('negative_editor.status.ready')}</span>
-                <button id="mpe-negative-save" style="padding: 8px 22px; background: #333; color: #fff; border: 1px solid #333; border-radius: 7px; cursor: pointer; font-weight: 500; font-size: 13px;">
-                    ${t('common.save')}
-                </button>
-                <button id="mpe-negative-close" style="padding: 8px 20px; background: #fff; color: #666; border: 1px solid #e0e0e0; border-radius: 7px; cursor: pointer; font-size: 13px;">
-                    ${t('common.close')}
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(dialog);
-
-    const textEl = dialog.querySelector('#mpe-negative-text');
-    const statusEl = dialog.querySelector('#mpe-negative-status');
-
-    function setStatus(msg, isError) {
-        statusEl.textContent = msg;
-        statusEl.style.color = isError ? '#d44' : '#4a8';
-    }
-
-    async function loadNegative() {
-        setStatus(t('negative_editor.status.loading'), false);
-        try {
-            const res = await request('GET', '/negative_prompt');
-            if (res.success) {
-                textEl.value = (res.data && res.data.content) ? res.data.content : '';
-                setStatus(t('negative_editor.status.loaded'));
-            } else {
-                setStatus(t('negative_editor.status.load_failed', { error: res.error || t('negative_editor.status.unknown_error') }), true);
-            }
-        } catch (e) {
-            setStatus(t('negative_editor.status.load_exception', { error: e.message }), true);
-        }
-    }
-
-    async function saveNegative() {
-        setStatus(t('negative_editor.status.saving'), false);
-        try {
-            const res = await request('POST', '/negative_prompt', { content: textEl.value });
-            if (res.success) {
-                setStatus(t('negative_editor.status.saved'));
-            } else {
-                setStatus(t('negative_editor.status.save_failed', { error: res.error || t('negative_editor.status.unknown_error') }), true);
-            }
-        } catch (e) {
-            setStatus(t('negative_editor.status.save_exception', { error: e.message }), true);
-        }
-    }
-
-    dialog.querySelector('#mpe-negative-save').addEventListener('click', saveNegative);
-    dialog.querySelector('#mpe-negative-close').addEventListener('click', () => dialog.remove());
-    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.remove(); });
-    dialog.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            saveNegative();
-        }
-        if (e.key === 'Escape') {
-            dialog.remove();
-        }
-    });
-
-    loadNegative();
+    openNegativePromptEditorVue();
 }
 
 // ==================== 规则管理器弹窗 ====================
+// 使用 Vue 3 重构版本
 
 function openRuleManager() {
-    const existing = document.getElementById('moton-pe-rule-manager');
-    if (existing) existing.remove();
-
-    const dialog = document.createElement('div');
-    dialog.id = 'moton-pe-rule-manager';
-    dialog.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 99999;
-        display: flex; align-items: center; justify-content: center;
-    `;
-
-    dialog.innerHTML = `
-        <div style="
-            background: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px;
-            padding: 24px; width: 94%; max-width: 900px; max-height: 90vh;
-            display: flex; flex-direction: column;
-            color: #333; font-family: 'Segoe UI', Arial, sans-serif;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
-        ">
-            <h2 style="margin: 0 0 14px 0; color: #c8842a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                ${t('rule_manager.title')}
-            </h2>
-
-            <div style="flex:1; overflow-y: auto; max-height: 70vh; padding-right: 4px;">
-
-                <!-- #1 基础扩写 -->
-                <div style="border: 1px solid #e8e8e8; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
-                    <div style="background: #fafafa; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">${t('rule_manager.basic')}</span>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #666;">
-                            <input type="checkbox" id="mpe-rule-sfw-enabled" style="cursor: pointer;">
-                            ${t('rule_manager.enable')}
-                        </label>
-                    </div>
-                    <div style="padding: 10px 14px;">
-                        <textarea id="mpe-rule-sfw-text" style="
-                            width: 100%; height: 150px; background: #fafafa; color: #333;
-                            border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;
-                            font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
-                            box-sizing: border-box; outline: none;
-                        " placeholder="${t('rule_manager.placeholder_basic')}"></textarea>
-                    </div>
-                </div>
-
-                <!-- #2 详细扩写 -->
-                <div style="border: 1px solid #e8e8e8; border-radius: 10px; margin-bottom: 14px; overflow: hidden;">
-                    <div style="background: #fafafa; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-weight: 600; color: #c8842a; font-size: 14px;">${t('rule_manager.detail')}</span>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #666;">
-                            <input type="checkbox" id="mpe-rule-nsfw-enabled" style="cursor: pointer;">
-                            ${t('rule_manager.enable')}
-                        </label>
-                    </div>
-                    <div style="padding: 10px 14px;">
-                        <textarea id="mpe-rule-nsfw-text" style="
-                            width: 100%; height: 150px; background: #fafafa; color: #333;
-                            border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;
-                            font-size: 13px; font-family: 'JetBrains Mono', Consolas, monospace; resize: vertical;
-                            box-sizing: border-box; outline: none;
-                        " placeholder="${t('rule_manager.placeholder_detail')}"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-                <span id="mpe-rule-status" style="color: #999; font-size: 12px; flex: 1;">${t('rule_manager.status.ready')}</span>
-                <button id="mpe-rule-save" style="padding: 8px 22px; background: #333; color: #fff; border: 1px solid #333; border-radius: 7px; cursor: pointer; font-weight: 500; font-size: 13px;">
-                    ${t('common.save')}
-                </button>
-                <button id="mpe-rule-close" style="padding: 8px 20px; background: #fff; color: #666; border: 1px solid #e0e0e0; border-radius: 7px; cursor: pointer; font-size: 13px;">
-                    ${t('common.close')}
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(dialog);
-
-    const ruleSfwText = dialog.querySelector('#mpe-rule-sfw-text');
-    const ruleNsfwText = dialog.querySelector('#mpe-rule-nsfw-text');
-    const ruleSfwEnabled = dialog.querySelector('#mpe-rule-sfw-enabled');
-    const ruleNsfwEnabled = dialog.querySelector('#mpe-rule-nsfw-enabled');
-    const statusEl = dialog.querySelector('#mpe-rule-status');
-
-    function setStatus(msg, isError) {
-        statusEl.textContent = msg;
-        statusEl.style.color = isError ? '#d44' : '#4a8';
-    }
-
-    async function loadRules() {
-        setStatus(t('rule_manager.status.loading'), false);
-        try {
-            const res = await request('GET', '/system_prompt');
-            if (res.success) {
-                const d = res.data || {};
-                ruleSfwText.value = d.sfw_rules || '';
-                ruleNsfwText.value = d.nsfw_rules || '';
-                ruleSfwEnabled.checked = d.sfw_enabled !== false;
-                ruleNsfwEnabled.checked = d.nsfw_enabled !== false;
-                setStatus(t('rule_manager.status.loaded'));
-            } else {
-                setStatus(t('rule_manager.status.load_failed', { error: res.error || t('rule_manager.status.unknown_error') }), true);
-            }
-        } catch (e) {
-            setStatus(t('rule_manager.status.load_exception', { error: e.message }), true);
-        }
-    }
-
-    async function saveRules() {
-        setStatus(t('rule_manager.status.saving'), false);
-        try {
-            const payload = {
-                sfw_rules: ruleSfwText.value,
-                nsfw_rules: ruleNsfwText.value,
-                sfw_enabled: ruleSfwEnabled.checked,
-                nsfw_enabled: ruleNsfwEnabled.checked,
-            };
-            const res = await request('POST', '/system_prompt', payload);
-            if (res.success) {
-                setStatus(t('rule_manager.status.saved'));
-            } else {
-                setStatus(t('rule_manager.status.save_failed', { error: res.error || t('rule_manager.status.unknown_error') }), true);
-            }
-        } catch (e) {
-            setStatus(t('rule_manager.status.save_exception', { error: e.message }), true);
-        }
-    }
-
-    dialog.querySelector('#mpe-rule-save').addEventListener('click', saveRules);
-    dialog.querySelector('#mpe-rule-close').addEventListener('click', () => dialog.remove());
-    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.remove(); });
-    dialog.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            saveRules();
-        }
-        if (e.key === 'Escape') {
-            dialog.remove();
-        }
-    });
-
-    loadRules();
+    openRuleManagerVue();
 }
 
 // ==================== Prompt 库编辑器 ====================
