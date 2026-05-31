@@ -2,6 +2,28 @@
 
 ## **作者：Moton**
 
+## **v1.3.0_Beta2  (2026-05-31)**
+
+### 🚀 新增
+
+* **批量组件迁移**
+  - Prompt 库编辑器 → Vue 3 (LibraryEditor.vue)
+  - 历史记录管理器 → Vue 3 (PromptHistory.vue)
+  - 浮动快捷面板 → Vue 3 (FloatingPanel.vue)
+  - Toast 通知组件 → Vue 3 (Toast.vue)
+
+* **基础设施增强**
+  - Vue 桥接模块扩展 (支持 FloatingPanel 和 Toast)
+  - Toast 通知系统 composable
+  - 浮动面板拖拽 composable
+
+### 🔧 优化
+
+* **代码质量**
+  - 进一步减少原生 JS 代码量
+  - 统一 Vue 组件生命周期管理
+  - 响应式数据绑定优化
+
 ## **v1.3.0_Beta1  (2026-05-31)**
 
 ### 🚀 新增

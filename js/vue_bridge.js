@@ -74,3 +74,44 @@ export async function openServiceConfigModalVue() {
         console.warn('[PromptCraft] Vue module not available');
     }
 }
+
+export async function openLibraryEditorVue() {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.openLibraryEditor) {
+        vueModule.openLibraryEditor(api);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+    }
+}
+
+export async function openPromptHistoryVue() {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.openPromptHistory) {
+        vueModule.openPromptHistory(api);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+    }
+}
+
+export async function mountFloatingPanelVue(callbacks = {}) {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.mountFloatingPanel) {
+        vueModule.mountFloatingPanel(api, callbacks);
+    } else {
+        console.warn('[PromptCraft] Vue module not available');
+    }
+}
+
+export function unmountFloatingPanelVue() {
+    if (_vueModule && _vueModule.unmountFloatingPanel) {
+        _vueModule.unmountFloatingPanel();
+    }
+}
+
+export function mountToastVue() {
+    loadVueModule().then(vueModule => {
+        if (vueModule && vueModule.mountToast) {
+            vueModule.mountToast();
+        }
+    });
+}
