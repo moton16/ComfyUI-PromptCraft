@@ -3,7 +3,7 @@ LLM客户端 - 支持OpenAI兼容API
 支持：OpenAI兼容端口自行加载api等
 使用 config_manager 统一管理配置
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
-V1.2.5_Mod5 — 增强思维链控制逻辑，添加详细日志
+V1.3.0_Beta1 — 增强思维链控制逻辑，添加详细日志
 """
 
 import json

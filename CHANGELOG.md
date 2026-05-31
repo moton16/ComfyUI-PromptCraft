@@ -2,6 +2,33 @@
 
 ## **作者：Moton**
 
+## **v1.3.0_Beta1  (2026-05-31)**
+
+### 🚀 新增
+
+* **Vue 3 + Vite 前端重构**
+  - 建立 Vue 3 + Vite 构建体系
+  - 创建 Vue 桥接模块 (vue_bridge.js)
+  - 实现懒加载机制
+
+* **基础设施**
+  - StackAPI 发布-订阅机制
+  - Vue Composables (useStackApi, useDraggable)
+  - CSS 设计 Token 系统 (variables.css)
+
+* **组件迁移**
+  - 服务配置面板 → Vue 3
+  - 负面提示词编辑器 → Vue 3
+  - 规则管理器 → Vue 3
+  - 基础 UI 组件 (BaseDialog, BaseToggle, BaseDropdown)
+
+### 🔧 优化
+
+* **代码质量**
+  - 统一错误处理和加载状态管理
+  - 响应式数据绑定
+  - 组件化架构
+
 ## **v1.2.5 Mod3  (2026-05-28)**
 
 ### 🚀 新增
