@@ -87,6 +87,6 @@ if old_library.exists() and not sfw_library.exists():
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
-print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.3.0_Beta1 节点加载完成\033[0m | "
+print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.3.0_Beta2 节点加载完成\033[0m | "
       f"\033[93m{len(NODE_CLASS_MAPPINGS)} 个节点\033[0m | "
       f"\033[96m面板目录: js/\033[0m")

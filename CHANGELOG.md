@@ -2,9 +2,21 @@
 
 ## **作者：Moton**
 
-## **v1.3.0_Beta2  (2026-05-31)**
+## **v1.3.0_Beta2  (2026-06-02)**
 
 ### 🚀 新增
+
+* **全面测试套件（194 个测试用例）**
+  - `test_thinking_control.py` — 思维链控制模块（模型匹配/内容过滤/流式过滤/规则验证）
+  - `test_cache_utils.py` — MtimeCacheMixin 缓存工具
+  - `test_lora_utils.py` — LoRA 工具函数（栈展平/群组展开/权重计算）
+  - `test_lora_group_manager.py` — LoRA 群组 CRUD 管理器
+  - `test_lora_prompt_manager.py` — LoRA Prompt CRUD + 批量查询 + 注入数据
+  - `test_agent_prompt.py` — Agent System Prompt 构建
+  - `test_config_manager.py` — 配置管理器（原子写入/模板复制/库管理/服务配置）
+  - `test_llm_client.py` — LLM 客户端（初始化/配置/思维链参数/工厂方法）
+  - `test_prompt_enhancer.py` — 核心节点（选项构建/子组收集/随机选择）
+  - `tests/conftest.py` — 公共 fixtures + ComfyUI 依赖 mock 基础设施
 
 * **批量组件迁移**
   - Prompt 库编辑器 → Vue 3 (LibraryEditor.vue)
