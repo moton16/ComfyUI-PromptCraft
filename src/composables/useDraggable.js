@@ -1,7 +1,7 @@
 // 拖拽 composable
 // 为浮动面板提供拖拽功能，支持 ref 和 selector 两种定位方式
 
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 
 /**
  * 拖拽功能 composable
@@ -179,7 +179,12 @@ export function useDraggable(options = {}) {
 
   // 生命周期钩子
   onMounted(() => {
-    setupDragHandle()
+    // selector 模式需要 nextTick 等待父组件渲染完成
+    if (containerSelector || handleSelector) {
+      nextTick(() => setupDragHandle())
+    } else {
+      setupDragHandle()
+    }
   })
 
   onUnmounted(() => {

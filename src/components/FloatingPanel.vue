@@ -64,11 +64,13 @@ function executeAction(action) {
   }
 }
 
-// 显示右键菜单
+// 显示右键菜单（带视口边界检测）
 function showMenu(e) {
   e.preventDefault()
-  contextMenuPosition.x = e.clientX
-  contextMenuPosition.y = e.clientY
+  const menuWidth = 140
+  const menuHeight = 36
+  contextMenuPosition.x = Math.min(e.clientX, window.innerWidth - menuWidth - 8)
+  contextMenuPosition.y = Math.min(e.clientY, window.innerHeight - menuHeight - 8)
   showContextMenu.value = true
 }
 
@@ -131,7 +133,8 @@ onUnmounted(() => {
     <div
       class="fp-gear"
       :class="{ 'fp-gear-expanded': isExpanded }"
-      @mousedown.stop="toggleExpand"
+      @click.stop="toggleExpand"
+      @touchstart.stop.prevent="toggleExpand"
     >
       {{ isExpanded ? '▼' : '◆' }}
     </div>
@@ -276,7 +279,7 @@ onUnmounted(() => {
 
 .fp-context-menu {
   position: fixed;
-  z-index: 99999;
+  z-index: 1000001;
   background: var(--pc-surface, #fff);
   border: 1px solid var(--pc-border, #e0e0e0);
   border-radius: 8px;

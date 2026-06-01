@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useApi } from '../../composables/useApi.js'
 import { useI18n } from '../../composables/useI18n.js'
 import { useToast } from '../../composables/useToast.js'
@@ -117,20 +117,10 @@ async function clearHistory() {
   }
 }
 
-// 键盘快捷键
-function handleKeydown(e) {
-  if (e.key === 'Escape') {
-    emit('close')
-  }
-}
+// Escape 由 BaseDialog 处理，无需重复监听
 
 onMounted(() => {
   loadHistory()
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 

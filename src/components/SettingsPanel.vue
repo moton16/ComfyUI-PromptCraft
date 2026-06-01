@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useApi } from '../composables/useApi.js'
 import { useI18n } from '../composables/useI18n.js'
 
@@ -18,21 +18,21 @@ const currentService = ref({})
 const isLoading = ref(false)
 const reloadSuccess = ref(false)
 
-// 分类配置
-const categories = [
+// 分类配置（computed 保证语言切换生效）
+const categories = computed(() => [
   { key: 'enhance_basic', label: t('settings.basic_enhance') },
   { key: 'enhance_detail', label: t('settings.detail_enhance') },
   { key: 'enhance_normal', label: t('settings.normal_enhance') },
   { key: 'agent', label: 'AI Agent' },
-]
+])
 
 // 工具配置
-const tools = [
+const tools = computed(() => [
   { action: 'open-rules', icon: '📐', name: t('settings.rule_manager'), desc: t('settings.rule_manager_desc') },
   { action: 'open-library', icon: '▤', name: t('settings.prompt_library'), desc: t('settings.prompt_library_desc') },
   { action: 'open-history', icon: '⏱', name: t('settings.prompt_history'), desc: t('settings.prompt_history_desc') },
   { action: 'reload-cache', icon: '↻', name: t('settings.reload_cache'), desc: t('settings.reload_cache_desc') },
-]
+])
 
 // 加载服务数据
 async function loadServices() {

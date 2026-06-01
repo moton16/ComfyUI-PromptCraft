@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 
 const props = defineProps({
@@ -20,15 +20,15 @@ const inputText = ref('')
 const status = reactive({ message: t('agent.status.ready'), type: 'ready' })
 const messagesEl = ref(null)
 
-// 快捷指令
-const shortcuts = [
+// 快捷指令（computed 保证语言切换生效）
+const shortcuts = computed(() => [
   { label: t('agent.shortcut_status'), cmd: '显示当前节点的状态' },
   { label: t('agent.shortcut_clear'), cmd: '清空所有 LoRA' },
   { label: t('agent.shortcut_help'), cmd: '你能做什么？' },
-]
+])
 
 // 操作标签映射
-const actionLabels = {
+const actionLabels = computed(() => ({
   lora_add: t('agent.action.lora_add'),
   lora_remove: t('agent.action.lora_remove'),
   lora_toggle: t('agent.action.lora_toggle'),
@@ -37,11 +37,11 @@ const actionLabels = {
   prompt_set: t('agent.action.prompt_set'),
   category_set: t('agent.action.category_set'),
   query: t('agent.action.query'),
-}
+}))
 
 // 获取操作标签
 function getActionLabel(action) {
-  return actionLabels[action] || action
+  return actionLabels.value[action] || action
 }
 
 // 发送指令

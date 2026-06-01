@@ -36,8 +36,12 @@ async function loadVueModule() {
         });
     }
 
+    // 如果上次加载失败，清除错误状态并重试
+    if (_loadError) {
+        _loadError = null;
+    }
+
     _isLoading = true;
-    _loadError = null;
     try {
         // 加载 CSS
         loadVueCss();
@@ -125,7 +129,8 @@ export function mountToastVue() {
 export async function createSettingsContentVue() {
     const vueModule = await loadVueModule();
     if (vueModule && vueModule.createSettingsContent) {
-        return vueModule.createSettingsContent(api);
+        const container = vueModule.createSettingsContent(api);
+        return container;
     } else {
         console.warn('[PromptCraft] Vue module not available');
         return null;

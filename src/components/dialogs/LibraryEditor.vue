@@ -136,14 +136,11 @@ function updateSubgroupOption(catKey, sgKey, optIndex, field, value) {
   }
 }
 
-// 键盘快捷键
+// 键盘快捷键（Escape 由 BaseDialog 处理）
 function handleKeydown(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault()
     saveLibrary()
-  }
-  if (e.key === 'Escape') {
-    emit('close')
   }
 }
 

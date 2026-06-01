@@ -53,18 +53,11 @@ const filteredGroups = computed(() => {
   return result
 })
 
-// 快捷指令
-const shortcuts = [
-  { label: t('agent.shortcut_status'), cmd: '显示当前节点的状态' },
-  { label: t('agent.shortcut_clear'), cmd: '清空所有 LoRA' },
-  { label: t('agent.shortcut_help'), cmd: '你能做什么？' },
-]
-
 // 加载文件夹树
 async function loadFolderTree() {
   isLoading.value = true
   try {
-    const data = await api.get('/lora_folders')
+    const data = await api.get('/lora_scan/folders')
     folderTree.value = data
     allLoras.value = data.all || []
   } catch (e) {
@@ -77,7 +70,7 @@ async function loadFolderTree() {
 // 加载群组
 async function loadGroups() {
   try {
-    const data = await api.get('/groups')
+    const data = await api.get('/lora_groups')
     groups.value = data || {}
   } catch (e) {
     console.error('[PromptCraft] Load groups failed:', e)
@@ -105,23 +98,28 @@ async function selectLora(loraPath) {
     // 并行加载数据
     const [promptData, allGroups, loraInfo] = await Promise.all([
       api.get(`/lora_prompts/${encodeURIComponent(loraPath)}`).catch(() => ({ groups: [] })),
-      api.get('/groups').catch(() => ({})),
-      api.get(`/lora_info/${encodeURIComponent(loraPath)}`).catch(() => null),
+      api.get('/lora_groups').catch(() => ({})),
+      api.get(`/lora_scan/info?name=${encodeURIComponent(loraPath)}`).catch(() => null),
     ])
 
     loraDetail.value = loraInfo
     promptGroups.value = promptData.groups || []
 
-    // 检查群组成员资格
-    const memberOf = Object.keys(allGroups)
+    // 检查群组成员资格（并行获取所有群组详情）
+    const groupNames = Object.keys(allGroups)
     membershipGroups.value = []
-    for (const gName of memberOf) {
-      try {
-        const gDetail = await api.get(`/groups/${encodeURIComponent(gName)}`)
-        if (gDetail.loras?.some(l => l.lora === loraPath)) {
+    if (groupNames.length > 0) {
+      const groupDetails = await Promise.all(
+        groupNames.map(gName =>
+          api.get(`/lora_groups/${encodeURIComponent(gName)}`).catch(() => null)
+        )
+      )
+      groupNames.forEach((gName, idx) => {
+        const gDetail = groupDetails[idx]
+        if (gDetail?.loras?.some(l => l.lora === loraPath)) {
           membershipGroups.value.push(gName)
         }
-      } catch {}
+      })
     }
   } catch (e) {
     console.error('[PromptCraft] Load lora detail failed:', e)
@@ -137,7 +135,7 @@ async function selectGroup(groupName) {
   isLoading.value = true
 
   try {
-    const data = await api.get(`/groups/${encodeURIComponent(groupName)}`)
+    const data = await api.get(`/lora_groups/${encodeURIComponent(groupName)}`)
     loraDetail.value = { group: data }
   } catch (e) {
     console.error('[PromptCraft] Load group detail failed:', e)

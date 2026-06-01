@@ -147,6 +147,14 @@ export function createSettingsContent(comfyApi) {
   const app = createApp(SettingsPanel, { comfyApi })
   app.mount(container)
 
+  container._vueApp = app
+  container.unmount = () => {
+    app.unmount()
+    if (container.parentNode) {
+      container.remove()
+    }
+  }
+
   return container
 }
 
