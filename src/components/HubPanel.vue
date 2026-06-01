@@ -1,7 +1,9 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { useApi } from '../composables/useApi.js'
+import { useToast } from '../composables/useToast.js'
+import * as StackAPI from '../../js/lora_group/stack_api.js'
 
 const props = defineProps({
   comfyApi: { type: Object, required: true },
@@ -15,6 +17,7 @@ const emit = defineEmits(['close'])
 
 const { t } = useI18n()
 const api = useApi(props.comfyApi)
+const toast = useToast()
 
 // 状态
 const activeTab = ref('lora')
@@ -29,6 +32,26 @@ const groups = ref({})
 const loraDetail = ref(null)
 const promptGroups = ref([])
 const membershipGroups = ref([])
+const stackCount = ref(0)
+
+// 搜索过滤
+const filteredLoras = computed(() => {
+  if (!searchQuery.value.trim()) return allLoras.value
+  const q = searchQuery.value.toLowerCase()
+  return allLoras.value.filter(l => l.toLowerCase().includes(q))
+})
+
+const filteredGroups = computed(() => {
+  if (!searchQuery.value.trim()) return groups.value
+  const q = searchQuery.value.toLowerCase()
+  const result = {}
+  for (const [name, info] of Object.entries(groups.value)) {
+    if (name.toLowerCase().includes(q) || (info.label || '').toLowerCase().includes(q)) {
+      result[name] = info
+    }
+  }
+  return result
+})
 
 // 快捷指令
 const shortcuts = [
@@ -125,10 +148,20 @@ async function selectGroup(groupName) {
 
 // 添加到栈
 function addToStack() {
-  if (selectedLora.value && props.node) {
-    // 这里需要调用 StackAPI
-    // 由于架构限制，我们需要通过事件或回调来处理
-    console.log('[PromptCraft] Add to stack:', selectedLora.value)
+  if (!selectedLora.value) return
+
+  const nodeId = props.node?.id
+  if (!nodeId) {
+    toast.error(t('hub.no_node'))
+    return
+  }
+
+  const added = StackAPI.addLora(nodeId, selectedLora.value, 1.0, 1.0)
+  if (added) {
+    toast.success(t('hub.added_to_stack'))
+    stackCount.value = StackAPI.getStack(nodeId).items.length
+  } else {
+    toast.warning(t('hub.already_in_stack'))
   }
 }
 
@@ -148,6 +181,11 @@ function handleKeydown(e) {
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   loadFolderTree()
+
+  // 初始化栈计数
+  if (props.node?.id) {
+    stackCount.value = StackAPI.getStack(props.node.id).items.length
+  }
 })
 
 onUnmounted(() => {
@@ -208,10 +246,10 @@ onUnmounted(() => {
         <!-- LoRA List -->
         <div v-if="activeTab === 'lora'" class="hp-list">
           <div v-if="isLoading" class="hp-loading">{{ t('common.loading') }}</div>
-          <div v-else-if="allLoras.length === 0" class="hp-empty">{{ t('hub.no_lora') }}</div>
+          <div v-else-if="filteredLoras.length === 0" class="hp-empty">{{ t('hub.no_lora') }}</div>
           <div v-else>
             <div
-              v-for="lora in allLoras"
+              v-for="lora in filteredLoras"
               :key="lora"
               class="hp-lora-item"
               :class="{ 'hp-selected': selectedLora === lora }"
@@ -226,10 +264,10 @@ onUnmounted(() => {
         <!-- Group List -->
         <div v-if="activeTab === 'group'" class="hp-list">
           <div v-if="isLoading" class="hp-loading">{{ t('common.loading') }}</div>
-          <div v-else-if="Object.keys(groups).length === 0" class="hp-empty">{{ t('hub.no_groups') }}</div>
+          <div v-else-if="Object.keys(filteredGroups).length === 0" class="hp-empty">{{ t('hub.no_groups') }}</div>
           <div v-else>
             <div
-              v-for="(info, name) in groups"
+              v-for="(info, name) in filteredGroups"
               :key="name"
               class="hp-group-item"
               :class="{ 'hp-selected': selectedGroup === name }"
@@ -341,7 +379,7 @@ onUnmounted(() => {
 
     <!-- Footer -->
     <div class="hp-footer">
-      <div class="hp-footer-stack">{{ t('hub.stack_count', { count: 0 }) }}</div>
+      <div class="hp-footer-stack">{{ t('hub.stack_count', { count: stackCount }) }}</div>
     </div>
   </div>
 </template>

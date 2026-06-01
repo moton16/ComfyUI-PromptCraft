@@ -15,11 +15,15 @@ export default defineConfig({
       external: [
         '../../../scripts/app.js',
         '../../../scripts/api.js',
+        '../../../../scripts/app.js',
+        '../../../../scripts/api.js',
       ],
       output: {
         paths: {
           '../../../scripts/app.js': '../../../scripts/app.js',
           '../../../scripts/api.js': '../../../scripts/api.js',
+          '../../../../scripts/app.js': '../../../../scripts/app.js',
+          '../../../../scripts/api.js': '../../../../scripts/api.js',
         },
       },
     },
