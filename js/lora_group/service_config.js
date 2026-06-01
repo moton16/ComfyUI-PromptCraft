@@ -7,18 +7,23 @@ import { api } from '../../../../scripts/api.js';
 
 let _vueModule = null;
 let _isLoading = false;
+let _loadError = null;
 
 async function loadVueModule() {
     if (_vueModule) return _vueModule;
     if (_isLoading) {
-        // 等待加载完成
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const check = () => {
                 if (_vueModule) resolve(_vueModule);
+                else if (_loadError) reject(_loadError);
                 else setTimeout(check, 50);
             };
             check();
         });
+    }
+
+    if (_loadError) {
+        _loadError = null;
     }
 
     _isLoading = true;
@@ -27,7 +32,7 @@ async function loadVueModule() {
         return _vueModule;
     } catch (e) {
         console.error('[PromptCraft] Failed to load Vue module:', e);
-        // 回退到原生实现
+        _loadError = e;
         return null;
     } finally {
         _isLoading = false;

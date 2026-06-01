@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '../composables/useI18n.js'
 import { useApi } from '../composables/useApi.js'
 import { useToast } from '../composables/useToast.js'
@@ -33,6 +33,7 @@ const loraDetail = ref(null)
 const promptGroups = ref([])
 const membershipGroups = ref([])
 const stackCount = ref(0)
+let selectLoraSeq = 0
 
 // 搜索过滤
 const filteredLoras = computed(() => {
@@ -90,6 +91,7 @@ function switchTab(tab) {
 
 // 选择 LoRA
 async function selectLora(loraPath) {
+  const seq = ++selectLoraSeq
   selectedLora.value = loraPath
   selectedGroup.value = null
   isLoading.value = true
@@ -101,6 +103,9 @@ async function selectLora(loraPath) {
       api.get('/lora_groups').catch(() => ({})),
       api.get(`/lora_scan/info?name=${encodeURIComponent(loraPath)}`).catch(() => null),
     ])
+
+    // 如果用户已经选了别的 LoRA，丢弃这次结果
+    if (seq !== selectLoraSeq) return
 
     loraDetail.value = loraInfo
     promptGroups.value = promptData.groups || []
@@ -114,6 +119,8 @@ async function selectLora(loraPath) {
           api.get(`/lora_groups/${encodeURIComponent(gName)}`).catch(() => null)
         )
       )
+      // 再次检查是否过期
+      if (seq !== selectLoraSeq) return
       groupNames.forEach((gName, idx) => {
         const gDetail = groupDetails[idx]
         if (gDetail?.loras?.some(l => l.lora === loraPath)) {
@@ -122,9 +129,13 @@ async function selectLora(loraPath) {
       })
     }
   } catch (e) {
-    console.error('[PromptCraft] Load lora detail failed:', e)
+    if (seq === selectLoraSeq) {
+      console.error('[PromptCraft] Load lora detail failed:', e)
+    }
   } finally {
-    isLoading.value = false
+    if (seq === selectLoraSeq) {
+      isLoading.value = false
+    }
   }
 }
 

@@ -118,12 +118,13 @@ export function unmountFloatingPanelVue() {
     }
 }
 
-export function mountToastVue() {
-    loadVueModule().then(vueModule => {
-        if (vueModule && vueModule.mountToast) {
-            vueModule.mountToast();
-        }
-    });
+export async function mountToastVue() {
+    const vueModule = await loadVueModule();
+    if (vueModule && vueModule.mountToast) {
+        vueModule.mountToast();
+    } else {
+        console.warn('[PromptCraft] Vue module not available, toast system not mounted');
+    }
 }
 
 export async function createSettingsContentVue() {

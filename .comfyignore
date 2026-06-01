@@ -12,7 +12,5 @@ docs/
 node_modules/
 package-lock.json
 
-# Vite 构建产物（由 npm run build 生成）
-js/promptcraft-vue.js
-js/promptcraft-vue.css
+# Vite 构建产物（由 npm run build 生成，ComfyUI 分发需要这些文件，仅 .gitignore 排除）
 

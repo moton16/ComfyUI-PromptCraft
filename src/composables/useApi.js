@@ -12,6 +12,9 @@ export function useApi(api) {
     }
 
     const res = await api.fetchApi(`${API_PREFIX}${endpoint}`, options)
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    }
     const json = await res.json()
 
     if (!json.success) {
