@@ -153,7 +153,7 @@ onMounted(loadServices)
     <div class="sp-brand">
       <div class="sp-brand-icon">◆</div>
       <span class="sp-brand-text">PromptCraft</span>
-      <span class="sp-brand-ver">v1.3.0_Beta2</span>
+      <span class="sp-brand-ver">v1.3.0_Beta1</span>
     </div>
 
     <!-- 语言切换 -->
@@ -306,7 +306,7 @@ onMounted(loadServices)
     <!-- 关于 -->
     <div class="sp-section sp-section-flat">
       <div class="sp-about">
-        <span>PromptCraft v1.3.0_Beta2</span>
+        <span>PromptCraft v1.3.0_Beta1</span>
         <span class="sp-dot">·</span>
         <span>Author: Moton</span>
       </div>
