@@ -1,14 +1,22 @@
 // 拖拽 composable
-// 为浮动面板提供拖拽功能
+// 为浮动面板提供拖拽功能，支持 ref 和 selector 两种定位方式
 
 import { ref, onMounted, onUnmounted } from 'vue'
 
 /**
  * 拖拽功能 composable
+ *
+ * 两种使用方式：
+ * 1. Ref 模式（原有）：传入 elementRef / handleRef
+ * 2. Selector 模式（新）：传入 containerSelector / handleSelector
+ *
  * @param {Object} options
- * @param {import('vue').Ref<HTMLElement>} options.elementRef - 要拖拽的元素引用
+ * @param {import('vue').Ref<HTMLElement>} [options.elementRef] - 要拖拽的元素引用
  * @param {import('vue').Ref<HTMLElement>} [options.handleRef] - 拖拽把手引用（默认使用 elementRef）
+ * @param {string} [options.containerSelector] - CSS 选择器（替代 elementRef）
+ * @param {string} [options.handleSelector] - 拖拽把手 CSS 选择器（替代 handleRef）
  * @param {Object} [options.initialPosition] - 初始位置 { x, y }
+ * @param {string} [options.storageKey] - localStorage key，用于持久化位置
  * @param {boolean} [options.constrainToViewport=true] - 是否限制在视口内
  * @param {function} [options.onDragEnd] - 拖拽结束回调
  */
@@ -16,18 +24,39 @@ export function useDraggable(options = {}) {
   const {
     elementRef,
     handleRef,
+    containerSelector,
+    handleSelector,
     initialPosition = { x: 20, y: 20 },
+    storageKey,
     constrainToViewport = true,
     onDragEnd,
   } = options
 
-  const position = ref({ ...initialPosition })
+  // 尝试从 localStorage 恢复位置
+  function loadSavedPosition() {
+    if (!storageKey) return null
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const pos = JSON.parse(saved)
+        if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+          return pos
+        }
+      }
+    } catch {}
+    return null
+  }
+
+  const savedPosition = loadSavedPosition()
+  const position = ref(savedPosition || { ...initialPosition })
   const isDragging = ref(false)
 
   let startX = 0
   let startY = 0
   let startLeft = 0
   let startTop = 0
+  let _containerEl = null
+  let _handleEl = null
 
   function getEventPos(e) {
     if (e.touches && e.touches.length > 0) {
@@ -37,11 +66,16 @@ export function useDraggable(options = {}) {
   }
 
   function constrainPosition(x, y) {
-    if (!constrainToViewport || !elementRef.value) {
+    if (!constrainToViewport) {
       return { x, y }
     }
 
-    const rect = elementRef.value.getBoundingClientRect()
+    const el = _containerEl
+    if (!el) {
+      return { x, y }
+    }
+
+    const rect = el.getBoundingClientRect()
     const maxX = window.innerWidth - rect.width
     const maxY = window.innerHeight - rect.height
 
@@ -93,6 +127,13 @@ export function useDraggable(options = {}) {
   function onMouseUp() {
     isDragging.value = false
 
+    // 持久化位置
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(position.value))
+      } catch {}
+    }
+
     // 移除全局事件监听
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup', onMouseUp)
@@ -105,21 +146,28 @@ export function useDraggable(options = {}) {
     }
   }
 
+  // 解析元素：支持 ref 和 selector
+  function resolveElements() {
+    const container = elementRef?.value || (containerSelector ? document.querySelector(containerSelector) : null)
+    const handle = handleRef?.value || (handleSelector ? document.querySelector(handleSelector) : null)
+    _containerEl = container
+    _handleEl = handle || container
+  }
+
   // 设置拖拽把手
   function setupDragHandle() {
-    const handle = handleRef?.value || elementRef.value
-    if (handle) {
-      handle.addEventListener('mousedown', onMouseDown)
-      handle.addEventListener('touchstart', onMouseDown, { passive: false })
+    resolveElements()
+    if (_handleEl) {
+      _handleEl.addEventListener('mousedown', onMouseDown)
+      _handleEl.addEventListener('touchstart', onMouseDown, { passive: false })
     }
   }
 
   // 清理事件监听
   function cleanup() {
-    const handle = handleRef?.value || elementRef.value
-    if (handle) {
-      handle.removeEventListener('mousedown', onMouseDown)
-      handle.removeEventListener('touchstart', onMouseDown)
+    if (_handleEl) {
+      _handleEl.removeEventListener('mousedown', onMouseDown)
+      _handleEl.removeEventListener('touchstart', onMouseDown)
     }
 
     // 确保清理全局监听
@@ -142,6 +190,13 @@ export function useDraggable(options = {}) {
   function setPosition(x, y) {
     const constrained = constrainPosition(x, y)
     position.value = constrained
+
+    // 持久化
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(position.value))
+      } catch {}
+    }
   }
 
   // 重置到初始位置

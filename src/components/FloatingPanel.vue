@@ -22,8 +22,10 @@ const contextMenuPosition = reactive({ x: 0, y: 0 })
 
 // 拖拽功能
 const { position, isDragging, setPosition } = useDraggable({
+  containerSelector: '.fp-container',
+  handleSelector: '.fp-gear',
   storageKey: 'moton-pe-panel-state',
-  defaultPosition: {
+  initialPosition: {
     x: Math.min(window.innerWidth - 56, window.innerWidth - 40),
     y: Math.min(window.innerHeight - 56, window.innerHeight - 40)
   }
