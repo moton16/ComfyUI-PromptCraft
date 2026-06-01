@@ -5,11 +5,11 @@ const API_PREFIX = '/moton_prompt_enhancer/api'
 
 export function useApi(api) {
   async function request(method, endpoint, body = null) {
-    const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' },
+    const options = { method }
+    if (body) {
+      options.headers = { 'Content-Type': 'application/json' }
+      options.body = JSON.stringify(body)
     }
-    if (body) options.body = JSON.stringify(body)
 
     const res = await api.fetchApi(`${API_PREFIX}${endpoint}`, options)
     const json = await res.json()
