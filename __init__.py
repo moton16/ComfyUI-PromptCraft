@@ -5,7 +5,6 @@ Moton's Prompt Enhancer - ComfyUI Custom Node
 提供前端设置面板（js/）- 接入 ComfyUI v3 全局设置
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -62,14 +61,14 @@ except ImportError as e:
 
 # 初始化 config_manager（触发配置文件创建和迁移）
 try:
-    from .config_manager import config_manager
+    from .config_manager import config_manager  # noqa: F401
 except Exception as e:
     print(f"[PromptCraft] Warning: config_manager init failed: {e}")
 
 # 尝试导入 API 路由（设置面板 API）- 注意改名避免与 ComfyUI 内置 server 冲突
 try:
-    from . import api_routes
-    print(f"[PromptCraft] 设置面板 API 已加载")
+    from . import api_routes  # noqa: F401
+    print("[PromptCraft] 设置面板 API 已加载")
 except ImportError as e:
     print(f"[PromptCraft] Warning: 设置面板 API 导入失败: {e}")
 
@@ -88,6 +87,6 @@ if old_library.exists() and not sfw_library.exists():
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
-print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.2.6 节点加载完成\033[0m | "
+print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.3.0_Beta2 节点加载完成\033[0m | "
       f"\033[93m{len(NODE_CLASS_MAPPINGS)} 个节点\033[0m | "
       f"\033[96m面板目录: js/\033[0m")

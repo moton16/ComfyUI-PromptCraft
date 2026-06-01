@@ -1,12 +1,42 @@
 /**
  * LoRA Stack API — 前端栈状态管理层
  * 管理节点的 LoRA 栈（个体 + 群组混合），序列化到隐藏 widget
+ *
+ * 支持发布-订阅：调用 onChange(fn) 监听栈变化，返回取消订阅函数
  */
 
 import * as GroupAPI from './api.js';
 
 // 节点栈状态缓存 { nodeId: { items: [...] } }
 const stacks = {};
+
+// ==================== 发布-订阅 ====================
+
+const _listeners = new Set();
+
+/**
+ * 订阅栈变化
+ * @param {function} callback - 回调函数，参数为 nodeId
+ * @returns {function} 取消订阅
+ */
+export function onChange(callback) {
+    _listeners.add(callback);
+    return () => _listeners.delete(callback);
+}
+
+/**
+ * 通知所有订阅者
+ * @param {string} nodeId - 变化的节点 ID
+ */
+function _notify(nodeId) {
+    _listeners.forEach(fn => {
+        try {
+            fn(nodeId);
+        } catch (e) {
+            console.error('[PromptCraft] StackAPI listener error:', e);
+        }
+    });
+}
 
 /**
  * 生成唯一 ID
@@ -35,6 +65,7 @@ export function restoreStack(nodeId, widgetValue) {
     } catch {
         stacks[nodeId] = { items: [] };
     }
+    _notify(nodeId);
     return stacks[nodeId];
 }
 
@@ -57,6 +88,7 @@ export function addLora(nodeId, loraPath, weight = 1.0, clipWeight = 1.0) {
         selected_group: null,
         note: '',
     });
+    _notify(nodeId);
     return true;
 }
 
@@ -77,6 +109,7 @@ export function addGroup(nodeId, groupName, weight = 1.0, clipWeight = 1.0) {
         enabled: true,
         expanded: false,
     });
+    _notify(nodeId);
     return true;
 }
 
@@ -86,6 +119,7 @@ export function addGroup(nodeId, groupName, weight = 1.0, clipWeight = 1.0) {
 export function removeItem(nodeId, itemId) {
     const stack = getStack(nodeId);
     stack.items = stack.items.filter(i => i.id !== itemId);
+    _notify(nodeId);
 }
 
 /**
@@ -96,6 +130,7 @@ export function toggleEnabled(nodeId, itemId) {
     const item = stack.items.find(i => i.id === itemId);
     if (item) {
         item.enabled = !item.enabled;
+        _notify(nodeId);
         return item.enabled;
     }
     return null;
@@ -110,6 +145,7 @@ export function updateWeight(nodeId, itemId, weight, clipWeight) {
     if (item) {
         if (weight !== undefined) item.weight = weight;
         if (clipWeight !== undefined) item.clip_weight = clipWeight;
+        _notify(nodeId);
     }
 }
 
@@ -120,6 +156,7 @@ export function reorder(nodeId, fromIdx, toIdx) {
     const stack = getStack(nodeId);
     const [item] = stack.items.splice(fromIdx, 1);
     stack.items.splice(toIdx, 0, item);
+    _notify(nodeId);
 }
 
 /**
@@ -130,6 +167,7 @@ export function setSelectedGroup(nodeId, itemId, groupName) {
     const item = stack.items.find(i => i.id === itemId);
     if (item) {
         item.selected_group = (groupName === '' ? null : groupName);
+        _notify(nodeId);
     }
 }
 
@@ -141,6 +179,7 @@ export function updateNote(nodeId, itemId, note) {
     const item = stack.items.find(i => i.id === itemId);
     if (item) {
         item.note = note;
+        _notify(nodeId);
     }
 }
 
@@ -189,21 +228,32 @@ export function serialize(nodeId) {
 }
 
 /**
- * 将群组展开为个体 LoRA 并加入栈
+ * 将群组展开为个体 LoRA 并加入栈（批量操作，只触发一次通知）
  */
 export async function expandGroupIntoStack(nodeId, groupName) {
     try {
         const group = await GroupAPI.getGroup(groupName);
         const loras = group.loras || [];
+        const stack = getStack(nodeId);
+        // 批量添加，不逐条通知
         for (const lora of loras) {
-            addLora(nodeId, lora.lora, lora.weight, lora.clip_weight);
-            if (lora.enabled === false) {
-                // 找到刚添加的条目并禁用
-                const stack = getStack(nodeId);
-                const last = stack.items[stack.items.length - 1];
-                last.enabled = false;
+            // 避免重复
+            if (stack.items.some(i => i.type === 'lora' && i.lora === lora.lora)) {
+                continue;
             }
+            stack.items.push({
+                id: uid(),
+                type: 'lora',
+                lora: lora.lora,
+                weight: lora.weight ?? 1.0,
+                clip_weight: lora.clip_weight ?? 1.0,
+                enabled: lora.enabled !== false,
+                selected_group: null,
+                note: '',
+            });
         }
+        // 仅通知一次
+        _notify(nodeId);
         return true;
     } catch (e) {
         console.error('[PromptCraft] 展开群组失败:', e);

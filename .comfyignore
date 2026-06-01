@@ -1,9 +1,16 @@
 __pycache__/
 design/
 docs/
+.gstack/
 .claude/
 *.pyc
 *.pyo
 .env
 *.log
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Vite 构建产物（由 npm run build 生成，ComfyUI 分发需要这些文件，仅 .gitignore 排除）
 

@@ -8,7 +8,6 @@ import os
 import json
 import tempfile
 import shutil
-import copy
 
 try:
     import folder_paths
@@ -82,7 +81,7 @@ class ConfigManager:
         self._llm_config_cache = None
         self._llm_system_prompt_cache = None
 
-        print(f"[PromptCraft] 配置管理器已初始化")
+        print("[PromptCraft] 配置管理器已初始化")
         print(f"[PromptCraft]   用户配置目录: {self.user_config_dir}")
         print(f"[PromptCraft]   内置模板目录: {self.templates_dir}")
 
@@ -509,6 +508,9 @@ class ConfigManager:
         return True
 
     def set_current_service(self, category: str, service_id: str, model: str = "") -> bool:
+        # 兼容前端发送的 'enhance' → 映射到 'enhance_basic'
+        if category == "enhance":
+            category = "enhance_basic"
         if category not in ("enhance_basic", "enhance_detail", "enhance_normal", "agent"):
             return False
         cfg = self.load_services_config()

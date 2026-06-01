@@ -1,6 +1,7 @@
 __pycache__/
 design/
 docs/
+.gstack/
 .claude/
 node_modules/
 .ruff_cache/
@@ -9,4 +10,12 @@ node_modules/
 *.pyo
 .env
 *.log
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Vite 构建产物（由 npm run build 生成）
+js/promptcraft-vue.js
+js/promptcraft-vue.css
 

@@ -2,13 +2,78 @@
 
 ## **作者：Moton**
 
-## **v1.2.6  (2026-05-31)**
+## **v1.3.1  (2026-06-02)**
+
+### 🔧 重构
+
+* **前端架构重构**
+  - 将前端架构重构为 Vue 3 + Vite
+  - 完善 Vue 组件体系和构建流程
+
+* **测试机制更新**
+  - 新增 194 个测试用例
+  - 完善 pytest 测试基础设施
+
+## **v1.3.0_Beta2  (2026-06-02)**
 
 ### 🚀 新增
 
-* **版本更新**：统一版本号为 v1.2.6
-  - 更新所有模块版本标识
-  - 优化代码结构和文档
+* **全面测试套件（194 个测试用例）**
+  - `test_thinking_control.py` — 思维链控制模块（模型匹配/内容过滤/流式过滤/规则验证）
+  - `test_cache_utils.py` — MtimeCacheMixin 缓存工具
+  - `test_lora_utils.py` — LoRA 工具函数（栈展平/群组展开/权重计算）
+  - `test_lora_group_manager.py` — LoRA 群组 CRUD 管理器
+  - `test_lora_prompt_manager.py` — LoRA Prompt CRUD + 批量查询 + 注入数据
+  - `test_agent_prompt.py` — Agent System Prompt 构建
+  - `test_config_manager.py` — 配置管理器（原子写入/模板复制/库管理/服务配置）
+  - `test_llm_client.py` — LLM 客户端（初始化/配置/思维链参数/工厂方法）
+  - `test_prompt_enhancer.py` — 核心节点（选项构建/子组收集/随机选择）
+  - `tests/conftest.py` — 公共 fixtures + ComfyUI 依赖 mock 基础设施
+
+* **批量组件迁移**
+  - Prompt 库编辑器 → Vue 3 (LibraryEditor.vue)
+  - 历史记录管理器 → Vue 3 (PromptHistory.vue)
+  - 浮动快捷面板 → Vue 3 (FloatingPanel.vue)
+  - Toast 通知组件 → Vue 3 (Toast.vue)
+
+* **基础设施增强**
+  - Vue 桥接模块扩展 (支持 FloatingPanel 和 Toast)
+  - Toast 通知系统 composable
+  - 浮动面板拖拽 composable
+
+### 🔧 优化
+
+* **代码质量**
+  - 进一步减少原生 JS 代码量
+  - 统一 Vue 组件生命周期管理
+  - 响应式数据绑定优化
+
+## **v1.3.0_Beta1  (2026-05-31)**
+
+### 🚀 新增
+
+* **Vue 3 + Vite 前端重构**
+  - 建立 Vue 3 + Vite 构建体系
+  - 创建 Vue 桥接模块 (vue_bridge.js)
+  - 实现懒加载机制
+
+* **基础设施**
+  - StackAPI 发布-订阅机制
+  - Vue Composables (useStackApi, useDraggable)
+  - CSS 设计 Token 系统 (variables.css)
+
+* **组件迁移**
+  - 服务配置面板 → Vue 3
+  - 负面提示词编辑器 → Vue 3
+  - 规则管理器 → Vue 3
+  - 基础 UI 组件 (BaseDialog, BaseToggle, BaseDropdown)
+
+### 🔧 优化
+
+* **代码质量**
+  - 统一错误处理和加载状态管理
+  - 响应式数据绑定
+  - 组件化架构
 
 ## **v1.2.5 Mod3  (2026-05-28)**
 

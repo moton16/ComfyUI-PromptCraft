@@ -4,7 +4,6 @@ LoRA Prompt 管理器 — 每个 LoRA 可存储多组 prompt
 """
 
 import os
-from datetime import datetime
 from .cache_utils import MtimeCacheMixin
 
 
