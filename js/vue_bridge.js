@@ -20,12 +20,16 @@ function loadVueCss() {
     document.head.appendChild(link);
 }
 
+let _loadError = null;
+
 async function loadVueModule() {
     if (_vueModule) return _vueModule;
     if (_isLoading) {
-        return new Promise((resolve) => {
+        // 等待正在进行的加载完成（成功或失败）
+        return new Promise((resolve, reject) => {
             const check = () => {
                 if (_vueModule) resolve(_vueModule);
+                else if (_loadError) reject(_loadError);
                 else setTimeout(check, 50);
             };
             check();
@@ -33,6 +37,7 @@ async function loadVueModule() {
     }
 
     _isLoading = true;
+    _loadError = null;
     try {
         // 加载 CSS
         loadVueCss();
@@ -42,6 +47,7 @@ async function loadVueModule() {
         return _vueModule;
     } catch (e) {
         console.error('[PromptCraft] Failed to load Vue module:', e);
+        _loadError = e;
         return null;
     } finally {
         _isLoading = false;
