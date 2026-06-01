@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useApi } from '../../composables/useApi.js'
 import { useI18n } from '../../composables/useI18n.js'
 import BaseDialog from '../common/BaseDialog.vue'
@@ -150,6 +150,10 @@ function handleKeydown(e) {
 onMounted(() => {
   loadLibrary('sfw')
   document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
