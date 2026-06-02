@@ -2,6 +2,28 @@
 
 ## **作者：Moton**
 
+## **v1.3.2  (2026-06-02)**
+
+### 🔧 优化
+
+* **LoRA 缓存线程安全 + 内存控制**
+  - `lora_utils.py` 共享缓存加 `threading.Lock`，防止多线程并发写入
+  - 替换裸 dict 为 `OrderedDict` LRU 驱逐（max 8），长时间运行不再 OOM
+  - 加载 I/O 在锁外执行，不阻塞其他线程
+
+* **思维链自定义规则 mtime 缓存**
+  - `thinking_control.py` 的 `_load_custom_rules()` / `_load_custom_params()` 不再每次 LLM 调用都读盘
+  - 文件不变则命中缓存，变更后自动失效
+
+* **LLM 客户端代码去重**
+  - 抽取 `_prepare_url()` / `_prepare_headers()` / `_post()` 公共方法
+  - 消除 4 处重复的 URL 补全和 httpx 错误处理
+
+* **流式思维链过滤修复**
+  - 修复 `filter_thinking_stream()` 同块 open+close 时 suffix 丢失的 bug
+
+* **版本号统一更新至 V1.3.2**
+
 ## **v1.3.1  (2026-06-02)**
 
 ### 🔧 重构

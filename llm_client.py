@@ -3,7 +3,7 @@ LLM客户端 - 支持OpenAI兼容API
 支持：OpenAI兼容端口自行加载api等
 使用 config_manager 统一管理配置
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
-V1.3.1 — 增强思维链控制逻辑，添加详细日志
+V1.3.2 — 优化已知问题：LoRA 缓存线程安全 + LRU 驱逐、思维链规则 mtime 缓存、LLM 客户端去重
 """
 
 import json
@@ -126,6 +126,27 @@ class LLMClient:
 
         return thinking_params
 
+    def _prepare_url(self) -> str:
+        """获取并规范化 API URL（自动补全 /chat/completions 路径）"""
+        url = self.config.get("api_url", "").strip()
+        if url and not url.endswith("/chat/completions"):
+            url = url.rstrip("/") + "/chat/completions"
+        return url
+
+    def _prepare_headers(self) -> dict:
+        """构建请求头"""
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.config.get('api_key', '').strip()}"
+        }
+
+    def _post(self, url: str, payload: dict, timeout_s: float = 30.0) -> dict:
+        """发送 POST 请求并返回 JSON 响应（统一错误处理）"""
+        with httpx.Client(timeout=httpx.Timeout(timeout_s, connect=10.0)) as client:
+            resp = client.post(url, json=payload, headers=self._prepare_headers())
+            resp.raise_for_status()
+            return resp.json()
+
     def _filter_content(self, content: str) -> str:
         """
         过滤思维链内容
@@ -169,8 +190,7 @@ class LLMClient:
             print("[LLMClient] LLM未启用或配置不完整")
             return None
 
-        api_url = self.config["api_url"].strip()
-        api_key = self.config["api_key"].strip()
+        api_url = self._prepare_url()
         model = self.config.get("model", "").strip()
         temperature = self.config.get("temperature", 0.7)
         max_tokens = self.config.get("max_tokens", 300)
@@ -186,13 +206,9 @@ class LLMClient:
         if lora_tags:
             system_prompt += " Content wrapped in triple-slash markers (///...///) are immutable LoRA trigger words — you MUST copy them verbatim into your output in their original position without any modification, reordering, or omission."
 
-        if not api_url or not api_key:
+        if not api_url or not self.config.get("api_key", "").strip():
             print("[LLMClient] API URL或API Key为空")
             return None
-
-        # 自动补全 /chat/completions 路径（兼容只填 base URL 的用户）
-        if not api_url.endswith("/chat/completions"):
-            api_url = api_url.rstrip("/") + "/chat/completions"
 
         user_message = f"Enhance this image generation prompt with richer details:\n\n{base_prompt}"
         if lora_tags:
@@ -217,19 +233,7 @@ class LLMClient:
             print(f"[LLMClient] 已应用思维链控制参数: {thinking_params}")
 
         try:
-
-            # 使用 httpx 发送请求，支持中断检测
-            with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
-                resp = client.post(
-                    api_url,
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {api_key}"
-                    }
-                )
-                resp.raise_for_status()
-                result = resp.json()
+            result = self._post(api_url, payload, timeout_s=30.0)
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})
@@ -271,13 +275,8 @@ class LLMClient:
         if not self.is_enabled():
             return False, "LLM未启用或配置不完整"
 
-        api_url = self.config["api_url"].strip()
-        api_key = self.config["api_key"].strip()
+        api_url = self._prepare_url()
         model = self.config.get("model", "").strip()
-
-        # 自动补全 /chat/completions 路径（兼容只填 base URL 的用户）
-        if not api_url.endswith("/chat/completions"):
-            api_url = api_url.rstrip("/") + "/chat/completions"
 
         payload = {
             "model": model,
@@ -293,17 +292,7 @@ class LLMClient:
             payload.update(thinking_params)
 
         try:
-            with httpx.Client(timeout=httpx.Timeout(15.0, connect=10.0)) as client:
-                resp = client.post(
-                    api_url,
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {api_key}"
-                    }
-                )
-                resp.raise_for_status()
-
+            self._post(api_url, payload, timeout_s=15.0)
             return True, f"连接成功! 模型: {model}"
 
         except httpx.TimeoutException as e:
@@ -331,12 +320,8 @@ class LLMClient:
             yield "[Error: LLM 未启用或配置不完整]"
             return
 
-        api_url = self.config["api_url"].strip()
-        api_key = self.config["api_key"].strip()
+        api_url = self._prepare_url()
         model = self.config.get("model", "").strip()
-
-        if not api_url.endswith("/chat/completions"):
-            api_url = api_url.rstrip("/") + "/chat/completions"
 
         payload = {
             "model": model,
@@ -358,10 +343,7 @@ class LLMClient:
             with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
                 with client.stream(
                     "POST", api_url, json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {api_key}"
-                    }
+                    headers=self._prepare_headers()
                 ) as response:
                     response.raise_for_status()
                     has_content = False
@@ -459,14 +441,10 @@ class LLMClient:
         system_prompt = get_agent_system_prompt()
         user_message = build_agent_context(current_state, instruction)
 
-        api_url = self.config["api_url"].strip()
-        api_key = self.config["api_key"].strip()
+        api_url = self._prepare_url()
         model = self.config.get("model", "").strip()
         temperature = self.config.get("temperature", 0.3)
         max_tokens = self.config.get("max_tokens", 500)
-
-        if not api_url.endswith("/chat/completions"):
-            api_url = api_url.rstrip("/") + "/chat/completions"
 
         payload = {
             "model": model,
@@ -485,16 +463,7 @@ class LLMClient:
             print(f"[LLMClient] Agent 请求已应用思维链控制参数: {thinking_params}")
 
         try:
-            with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
-                resp = client.post(
-                    api_url, json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {api_key}",
-                    }
-                )
-                resp.raise_for_status()
-                result = resp.json()
+            result = self._post(api_url, payload, timeout_s=30.0)
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})

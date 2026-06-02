@@ -3,6 +3,9 @@ LoRA 公共工具函数
 抽取自 model_lora_loader.py 和 lora_prompt_loader.py 的重复代码
 """
 
+import threading
+from collections import OrderedDict
+
 try:
     import folder_paths
     import comfy.sd
@@ -14,8 +17,10 @@ except ImportError:
 from .lora_group_manager import lora_group_manager
 from .lora_scanner import LoraScanner
 
-# 共享 LoRA 文件缓存 {lora_path: lora_dict}
-_lora_cache = {}
+# 共享 LoRA 文件缓存 — 线程安全 + LRU 驱逐（最多 8 个文件）
+_LORA_CACHE_MAX = 8
+_lora_cache = OrderedDict()
+_lora_cache_lock = threading.Lock()
 
 
 def flatten_stack(items):
@@ -54,14 +59,27 @@ def flatten_stack(items):
 
 
 def load_single_lora(model, clip, lora_name, strength_model, strength_clip):
-    """加载单个 LoRA（带字典缓存）"""
+    """加载单个 LoRA（带线程安全 LRU 缓存）"""
     lora_path = folder_paths.get_full_path_or_raise("loras", lora_name)
 
-    if lora_path not in _lora_cache:
-        _lora_cache[lora_path] = comfy.utils.load_torch_file(
-            lora_path, safe_load=True)
+    with _lora_cache_lock:
+        if lora_path in _lora_cache:
+            _lora_cache.move_to_end(lora_path)
+            lora = _lora_cache[lora_path]
+        else:
+            lora = None
 
-    lora = _lora_cache[lora_path]
+    if lora is None:
+        # 加载在锁外执行（I/O 密集），避免阻塞其他线程
+        loaded = comfy.utils.load_torch_file(lora_path, safe_load=True)
+        with _lora_cache_lock:
+            _lora_cache[lora_path] = loaded
+            _lora_cache.move_to_end(lora_path)
+            # LRU 驱逐：超过上限时淘汰最久未用的
+            while len(_lora_cache) > _LORA_CACHE_MAX:
+                _lora_cache.popitem(last=False)
+        lora = loaded
+
     model_lora, clip_lora = comfy.sd.load_lora_for_models(
         model, clip, lora, strength_model, strength_clip)
     return model_lora, clip_lora
@@ -69,4 +87,5 @@ def load_single_lora(model, clip, lora_name, strength_model, strength_clip):
 
 def clear_cache():
     """清空 LoRA 文件缓存"""
-    _lora_cache.clear()
+    with _lora_cache_lock:
+        _lora_cache.clear()

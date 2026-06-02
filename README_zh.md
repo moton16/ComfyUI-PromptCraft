@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.3.1-brightgreen?style=for-the-badge" alt="Version 1.3.1"/>
+  <img src="https://img.shields.io/badge/版本-v1.3.2-brightgreen?style=for-the-badge" alt="Version 1.3.2"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -354,7 +354,7 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.3.1 (2026-05-31) — 当前版本
+### v1.3.2 (2026-06-02) — 当前版本
 
 - 🚀 **新增**：批量组件迁移 — Prompt 库编辑器、历史记录管理器、浮动快捷面板、Toast 通知
 - 🚀 **新增**：Vue 桥接模块扩展 (支持 FloatingPanel 和 Toast)

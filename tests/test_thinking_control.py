@@ -270,10 +270,10 @@ class TestFilterThinkingStream:
     def test_open_and_close_in_same_chunk(self):
         state = {}
         result, state = filter_thinking_stream("prefix<think>hidden</think>suffix", state)
-        # prefix 应保留，hidden 应被过滤
+        # prefix 应保留，hidden 应被过滤，suffix 应保留
         assert "prefix" in result
         assert "hidden" not in result
-        # 注意: 同块 open+close 时 suffix 会丢失（已知行为，thinking_buffer 被提前清空）
+        assert "suffix" in result
 
     def test_multi_chunk_flow(self):
         state = {}

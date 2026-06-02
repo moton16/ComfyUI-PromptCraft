@@ -2,7 +2,7 @@
 思维链控制模块
 根据模型名称自动发送关闭思维链的参数，并过滤响应中的思维链输出
 
-V1.3.1 — 增强过滤逻辑、添加激进模式全局开关
+V1.3.2 — 优化已知问题：自定义规则 mtime 缓存、流式过滤 suffix 丢失修复
 
 参考 prompt-assistan 的 thinking_control.py 设计
 """
@@ -138,29 +138,50 @@ FUZZY_KEYWORDS = {
 }
 
 
+# mtime 缓存：避免每次 LLM 调用都读盘
+_custom_rules_cache = None
+_custom_rules_mtime = 0
+_custom_params_cache = None
+_custom_params_mtime = 0
+
+
 def _load_custom_rules() -> List[Dict[str, Any]]:
-    """加载用户自定义规则"""
+    """加载用户自定义规则（带 mtime 缓存）"""
+    global _custom_rules_cache, _custom_rules_mtime
     try:
         config_path = Path(__file__).parent / "data" / "custom_thinking_rules.json"
-        if config_path.exists():
-            with open(config_path, "r", encoding="utf-8") as f:
-                rules = json.load(f)
-                if isinstance(rules, list):
-                    return rules
+        if not config_path.exists():
+            return []
+        mtime = config_path.stat().st_mtime
+        if _custom_rules_cache is not None and mtime == _custom_rules_mtime:
+            return _custom_rules_cache
+        with open(config_path, "r", encoding="utf-8") as f:
+            rules = json.load(f)
+            if isinstance(rules, list):
+                _custom_rules_cache = rules
+                _custom_rules_mtime = mtime
+                return rules
     except Exception as e:
         print(f"[ThinkingControl] 加载自定义规则失败: {e}")
     return []
 
 
 def _load_custom_params() -> Dict[str, Any]:
-    """加载用户自定义参数（覆盖默认参数）"""
+    """加载用户自定义参数（带 mtime 缓存）"""
+    global _custom_params_cache, _custom_params_mtime
     try:
         config_path = Path(__file__).parent / "data" / "custom_thinking_params.json"
-        if config_path.exists():
-            with open(config_path, "r", encoding="utf-8") as f:
-                params = json.load(f)
-                if isinstance(params, dict):
-                    return params
+        if not config_path.exists():
+            return {}
+        mtime = config_path.stat().st_mtime
+        if _custom_params_cache is not None and mtime == _custom_params_mtime:
+            return _custom_params_cache
+        with open(config_path, "r", encoding="utf-8") as f:
+            params = json.load(f)
+            if isinstance(params, dict):
+                _custom_params_cache = params
+                _custom_params_mtime = mtime
+                return params
     except Exception as e:
         print(f"[ThinkingControl] 加载自定义参数失败: {e}")
     return {}
@@ -357,9 +378,10 @@ def filter_thinking_stream(chunk: str, state: dict) -> tuple:
         if close_match:
             # 同一块中有闭合标签
             state["in_thinking"] = False
+            # 先提取闭合标签之后的内容，再清空 buffer
+            suffix = state["thinking_buffer"][close_match.end():]
             state["thinking_buffer"] = ""
-            # 返回开始标签之前的内容 + 闭合标签之后的内容
-            result += state["thinking_buffer"][close_match.end():]
+            result += suffix
 
         return result, state
 
