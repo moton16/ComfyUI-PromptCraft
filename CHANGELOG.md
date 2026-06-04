@@ -2,6 +2,22 @@
 
 ## **作者：Moton**
 
+## **v1.3.3  (2026-06-03)**
+
+### 🌐 国际化
+
+* **中文变量名 → 英文标识符改造**
+  - `prompt_enhancer.py` INPUT_TYPES 25 个中文 key 全部改为英文（如 `场景类型` → `scene_type`）
+  - 随机标记改为英文协议值（`🎲 随机选择` → `random_all`），通过 `nodeDefs.json` options 翻译回中文显示
+  - 扩写模式值改为英文（`基础扩写` → `basic`）
+  - RETURN_NAMES 改为英文（`正面提示词` → `positive_prompt`）
+  - `js/index.js` widget name 匹配全部改为英文
+  - `locales/en/nodeDefs.json` + `locales/zh/nodeDefs.json` 全面更新，支持 COMBO 选项翻译
+  - `data/sfw_prompts.json`、`data/nsfw_prompts.json`、`data/default_prompts.json` category key + preset 内部 key 全部迁移
+  - 新增 `_prepare_kwargs()` 旧 workflow 兼容迁移函数（幂等，自动迁移中文 key）
+  - 新增 6 个迁移映射常量（`LEGACY_KEY_MAP`、`LEGACY_RANDOM_MAP` 等）
+  - 测试从 194 个增加到 208 个（含迁移测试 + 集成测试）
+
 ## **v1.3.2  (2026-06-02)**
 
 ### 🔧 优化

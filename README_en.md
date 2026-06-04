@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/Version-v1.3.2-brightgreen?style=for-the-badge" alt="Version 1.3.2"/>
+  <img src="https://img.shields.io/badge/Version-v1.3.3-brightgreen?style=for-the-badge" alt="Version 1.3.3"/>
   <img src="https://img.shields.io/badge/Status-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -287,8 +287,7 @@ Node weight output follows Stable Diffusion native syntax:
 ├── sfw_prompts.json          # SFW built-in template
 ├── nsfw_prompts.json         # NSFW built-in template
 ├── llm_config.json           # LLM default config
-├── llm_system_prompt.json    # System Prompt default template
-└── default_prompts.json      # Legacy compatibility file (migrated)
+└── llm_system_prompt.json    # System Prompt default template
 ```
 
 > When built-in templates are updated, the system auto-syncs to the user directory, ensuring dropdowns always reflect the latest tags.
@@ -335,8 +334,7 @@ moton-promptcraft/
 │   ├── sfw_prompts.json
 │   ├── nsfw_prompts.json
 │   ├── llm_config.json
-│   ├── llm_system_prompt.json
-│   └── default_prompts.json
+│   └── llm_system_prompt.json
 └── design/                       # Design docs & prototypes
 ```
 

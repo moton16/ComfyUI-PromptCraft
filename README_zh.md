@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.3.2-brightgreen?style=for-the-badge" alt="Version 1.3.2"/>
+  <img src="https://img.shields.io/badge/版本-v1.3.3-brightgreen?style=for-the-badge" alt="Version 1.3.3"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -286,8 +286,7 @@ LoraPromptLoader 输出纯文本，通过 CLIPTextEncodePro 合并编码，更�
 ├── sfw_prompts.json          # SFW 内置模板
 ├── nsfw_prompts.json         # NSFW 内置模板
 ├── llm_config.json           # LLM 默认配置
-├── llm_system_prompt.json    # System Prompt 默认模板
-└── default_prompts.json      # 旧版兼容文件（已迁移）
+└── llm_system_prompt.json    # System Prompt 默认模板
 ```
 
 > 当内置模板更新时，系统会自动同步到用户目录，确保下拉框始终反映最新标签。
@@ -334,8 +333,7 @@ moton-promptcraft/
 │   ├── sfw_prompts.json
 │   ├── nsfw_prompts.json
 │   ├── llm_config.json
-│   ├── llm_system_prompt.json
-│   └── default_prompts.json
+│   └── llm_system_prompt.json
 └── design/                       # 设计文档与原型
 ```
 
@@ -354,7 +352,15 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.3.2 (2026-06-02) — 当前版本
+### v1.3.3 (2026-06-03) — 当前版本
+
+- 🌐 **国际化**：中文变量名 → 英文标识符改造，支持 ComfyUI nodeDefs.json 双语翻译
+- 🌐 **国际化**：INPUT_TYPES 25 个中文 key、随机标记、扩写模式值全部改为英文
+- 🌐 **国际化**：prompt library JSON category key + preset 内部 key 全部迁移
+- 🌐 **国际化**：旧 workflow 兼容迁移（自动检测中文 key → 英文 key，幂等）
+- 🧪 **测试**：测试从 194 个增加到 208 个（含迁移测试 + 集成测试）
+
+### v1.3.2 (2026-06-02)
 
 - 🚀 **新增**：批量组件迁移 — Prompt 库编辑器、历史记录管理器、浮动快捷面板、Toast 通知
 - 🚀 **新增**：Vue 桥接模块扩展 (支持 FloatingPanel 和 Toast)

@@ -2,7 +2,7 @@
 思维链控制模块
 根据模型名称自动发送关闭思维链的参数，并过滤响应中的思维链输出
 
-V1.3.2 — 优化已知问题：自定义规则 mtime 缓存、流式过滤 suffix 丢失修复
+V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
 
 参考 prompt-assistan 的 thinking_control.py 设计
 """

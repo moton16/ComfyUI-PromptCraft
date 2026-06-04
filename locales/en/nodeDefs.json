@@ -3,46 +3,170 @@
     "display_name": "PromptCraft",
     "description": "Feature-rich prompt enhancement node with built-in library random selection + LLM detail enhancement",
     "inputs": {
-      "用户Prompt": {
+      "user_prompt": {
         "name": "User Prompt",
         "tooltip": "Enter your base prompt (will be prepended before library tags)"
       },
-      "主体人数": { "name": "Subject Count" },
-      "场景类型": { "name": "Scene Type" },
-      "动作姿态": { "name": "Pose / Action" },
-      "服饰细节": { "name": "Clothing Details" },
-      "表情状态": { "name": "Expression" },
-      "权重_场景": { "name": "Weight · Scene" },
-      "权重_动作": { "name": "Weight · Action" },
-      "权重_服饰细节": { "name": "Weight · Clothing" },
-      "权重_状态": { "name": "Weight · Expression" },
-      "机位角度": { "name": "Camera Angle" },
-      "镜头类型": { "name": "Shot Type" },
-      "特效镜头": { "name": "Special Effects" },
-      "镜头滤镜": { "name": "Lens Filter" },
-      "光线类型": { "name": "Lighting" },
-      "视觉风格": { "name": "Visual Style" },
-      "质量等级": { "name": "Quality Level" },
-      "时间设定": { "name": "Time Setting" },
-      "情绪表达(忌与表情状态同时随机)": { "name": "Mood / Atmosphere" },
-      "预设配置": { "name": "Preset" },
-      "语言大模型接入": { "name": "Enable LLM" },
-      "扩写模式": { "name": "Enhancement Mode" },
-      "特殊内容": {
+      "subject_count": { "name": "Subject Count" },
+      "scene_type": {
+        "name": "Scene Type",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "action_pose": {
+        "name": "Pose / Action",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "clothing_detail": {
+        "name": "Clothing Details",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "expression": {
+        "name": "Expression",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "weight_scene": { "name": "Weight · Scene" },
+      "weight_action": { "name": "Weight · Action" },
+      "weight_clothing": { "name": "Weight · Clothing" },
+      "weight_expression": { "name": "Weight · Expression" },
+      "camera_angle": {
+        "name": "Camera Angle",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "shot_type": {
+        "name": "Shot Type",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "special_effect": {
+        "name": "Special Effects",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "lens_filter": {
+        "name": "Lens Filter",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "lighting": {
+        "name": "Lighting",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "visual_style": {
+        "name": "Visual Style",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "quality_level": {
+        "name": "Quality Level",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "time_setting": {
+        "name": "Time Setting",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "mood_expression": {
+        "name": "Mood / Atmosphere",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "preset": {
+        "name": "Preset",
+        "options": {
+          "skip": "—"
+        }
+      },
+      "llm_enabled": { "name": "Enable LLM" },
+      "expand_mode": {
+        "name": "Enhancement Mode",
+        "options": {
+          "basic": "Basic",
+          "detailed": "Detailed",
+          "standard": "Standard"
+        }
+      },
+      "nsfw_content": {
         "name": "NSFW Content",
         "tooltip": "Enable to show NSFW entries in dropdowns; each category can independently select random range (SFW/NSFW/All)"
       },
-      "负面提示词类型": { "name": "Negative Prompt Type" },
-      "大模型提示词": {
+      "negative_type": {
+        "name": "Negative Prompt Type",
+        "options": {
+          "skip": "—",
+          "random_all": "🎲 Random All",
+          "random_sfw": "🎲 SFW Only",
+          "random_nsfw": "🎲 NSFW Only"
+        }
+      },
+      "llm_instruction": {
         "name": "LLM Instructions",
         "tooltip": "Special instructions for the LLM (only effective when LLM is enabled)"
       },
       "lora_prompt_data": { "name": "LoRA Prompt Data" }
     },
     "outputs": {
-      "正面提示词": { "name": "Positive Prompt", "tooltip": "Concatenated positive prompt" },
-      "负面提示词": { "name": "Negative Prompt", "tooltip": "Concatenated negative prompt" },
-      "完整信息": { "name": "Full Info", "tooltip": "Complete JSON info with all tags and parameters" }
+      "0": { "name": "Positive Prompt", "tooltip": "Concatenated positive prompt" },
+      "1": { "name": "Negative Prompt", "tooltip": "Concatenated negative prompt" },
+      "2": { "name": "Full Info", "tooltip": "Complete JSON info with all tags and parameters" }
     }
   },
 

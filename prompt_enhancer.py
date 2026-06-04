@@ -3,6 +3,7 @@ Prompt Enhancer Node - ComfyUI 提示词增强器核心节点
 基于内置Prompt库随机选择 + 可选LLM细节补充
 使用 config_manager 统一管理 SFW/特殊内容 库和 LLM 配置
 V1.1.0 — 支持每分类独立随机范围选择（+IS_CHANGED 随机修复）
+V1.4.0 — 中文变量名 → 英文标识符改造，支持 nodeDefs.json 双语翻译
 """
 
 import json
@@ -12,21 +13,119 @@ from .llm_client import LLMClient
 from server import PromptServer
 
 
+# ==================== 旧版中文 key 迁移映射 ====================
+# 用于兼容旧 workflow 中保存的中文 key 和中文协议值
+
+LEGACY_KEY_MAP = {
+    "用户Prompt": "user_prompt",
+    "主体人数": "subject_count",
+    "场景类型": "scene_type",
+    "动作姿态": "action_pose",
+    "服饰细节": "clothing_detail",
+    "表情状态": "expression",
+    "权重_场景": "weight_scene",
+    "权重_动作": "weight_action",
+    "权重_服饰细节": "weight_clothing",
+    "权重_状态": "weight_expression",
+    "机位角度": "camera_angle",
+    "镜头类型": "shot_type",
+    "特效镜头": "special_effect",
+    "镜头滤镜": "lens_filter",
+    "光线类型": "lighting",
+    "视觉风格": "visual_style",
+    "质量等级": "quality_level",
+    "时间设定": "time_setting",
+    "情绪表达(忌与表情状态同时随机)": "mood_expression",
+    "预设配置": "preset",
+    "语言大模型接入": "llm_enabled",
+    "扩写模式": "expand_mode",
+    "特殊内容": "nsfw_content",
+    "负面提示词类型": "negative_type",
+    "大模型提示词": "llm_instruction",
+}
+
+LEGACY_RANDOM_MAP = {
+    "🎲 随机选择": "random_all",
+    "🎲 仅在普通内容库随机": "random_sfw",
+    "🎲 仅在SFW库随机": "random_sfw",
+    "🎲 仅在特殊内容库随机": "random_nsfw",
+    "——": "skip",
+    "自定义": "custom",
+}
+
+LEGACY_EXPAND_MAP = {
+    "基础扩写": "basic",
+    "详细扩写": "detailed",
+    "普通扩写": "standard",
+}
+
+# Library JSON category key migration (same mapping, used by config_manager)
+LIBRARY_KEY_MAP = {
+    "场景类型": "scene_type",
+    "动作姿态": "action_pose",
+    "服饰细节": "clothing_detail",
+    "表情状态": "expression",
+    "机位角度": "camera_angle",
+    "镜头类型": "shot_type",
+    "特效镜头": "special_effect",
+    "镜头滤镜": "lens_filter",
+    "光线类型": "lighting",
+    "视觉风格": "visual_style",
+    "质量等级": "quality_level",
+    "负面提示词": "negative_prompt",
+    "时间设定": "time_setting",
+    "情绪表达": "mood_expression",
+}
+
+# Preset internal key migration (keys inside each preset entry)
+PRESET_KEY_MAP = {
+    "场景类型": "scene_type",
+    "动作姿态": "action_pose",
+    "服饰细节": "clothing_detail",
+    "表情状态": "expression",
+}
+
+# 子组随机标记前缀迁移（中文前缀 → 英文前缀）
+LEGACY_SUBGROUP_PREFIX_MAP = {
+    "🎲 随机·": "random_group_",
+}
+
+
 class PromptEnhancer:
     """提示词增强器节点"""
 
-    # ==================== 类变量 ====================
+    # ==================== 类变量（协议标识符，英文） ====================
 
     # 不选择的默认值
-    NO_SELECTION = "——"
+    NO_SELECTION = "skip"
     # 随机选择标记（跟随全局特殊内容开关）
-    RANDOM_SELECTION = "🎲 随机选择"
+    RANDOM_SELECTION = "random_all"
     # 仅在 SFW 库随机
-    RANDOM_SFW = "🎲 仅在普通内容库随机"
+    RANDOM_SFW = "random_sfw"
     # 仅在 NSFW 库随机
-    RANDOM_NSFW = "🎲 仅在特殊内容库随机"
+    RANDOM_NSFW = "random_nsfw"
     # 子组随机标记前缀
-    RANDOM_SUBGROUP_PREFIX = "🎲 随机·"
+    RANDOM_SUBGROUP_PREFIX = "random_group_"
+
+    # ==================== 迁移方法 ====================
+
+    @staticmethod
+    def _prepare_kwargs(kwargs):
+        """迁移旧版中文 key 数据到英文 key。幂等：英文 key 直接穿透。"""
+        migrated = {}
+        for k, v in kwargs.items():
+            new_key = LEGACY_KEY_MAP.get(k, k)
+            # 迁移随机标记值和扩写模式值
+            if isinstance(v, str):
+                v = LEGACY_RANDOM_MAP.get(v, v)
+                v = LEGACY_EXPAND_MAP.get(v, v)
+                # 迁移子组随机标记前缀
+                for old_prefix, new_prefix in LEGACY_SUBGROUP_PREFIX_MAP.items():
+                    if v.startswith(old_prefix):
+                        v = new_prefix + v[len(old_prefix):]
+                        break
+            migrated[new_key] = v
+        return migrated
 
     # ==================== 库加载 ====================
 
@@ -38,12 +137,12 @@ class PromptEnhancer:
         return config_manager.load_sfw_library(force_reload)
 
     @classmethod
-    def _get_llm_client(cls, mode="基础扩写"):
+    def _get_llm_client(cls, mode="basic"):
         """获取LLM客户端（按扩写模式选择对应的服务类别）"""
         category_map = {
-            "基础扩写": "enhance_basic",
-            "详细扩写": "enhance_detail",
-            "普通扩写": "enhance_normal",
+            "basic": "enhance_basic",
+            "detailed": "enhance_detail",
+            "standard": "enhance_normal",
         }
         category = category_map.get(mode, "enhance_basic")
         return LLMClient.for_category(config_manager, category)
@@ -55,12 +154,12 @@ class PromptEnhancer:
         """
         为某个类别构建完整选项列表（SFW + NSFW 全量 + 随机标记）
         用于 INPUT_TYPES 下拉列表（始终包含所有条目，JS 端负责过滤显示）
-        支持 subgroups（子组）：为每个子组注入 "🎲 随机·<子组名>" 标记
-        
+        支持 subgroups（子组）：为每个子组注入 "random_group_<子组名>" 标记
+
         模板同步在启动时由 config_manager._init_config_files() 完成。
         此处不再重复同步，以免覆盖用户在运行时通过库编辑器添加的自定义内容（如 subgroups 子组）。
         """
-        
+
         sfw = cls._load_prompt_library(False, False)
         nsfw = cls._load_prompt_library(False, True)
 
@@ -134,16 +233,6 @@ class PromptEnhancer:
         return result
 
     @classmethod
-    def _build_negative_prompt_options(cls):
-        """构建负面提示词选项"""
-        library = cls._load_prompt_library()
-        negative_prompts = library.get("negative_prompts", {})
-        result = [cls.NO_SELECTION]
-        result.extend(list(negative_prompts.keys()))
-        result.append("自定义")
-        return result
-
-    @classmethod
     def _build_trigger_word_options(cls, group_key):
         """构建触发词选项"""
         library = cls._load_prompt_library()
@@ -161,58 +250,58 @@ class PromptEnhancer:
         return {
             "required": {
                 # === 用户基础输入 ===
-                "用户Prompt": ("STRING", {
+                "user_prompt": ("STRING", {
                     "multiline": True,
                     "default": "",
                      "placeholder": "输入你的基础Prompt（将拼接在库标签之前）..."
                 }),
 
                 # === 主体设定 ===
-                "主体人数": (cls._build_trigger_word_options("核心标签"), {"default": cls.NO_SELECTION}),
+                "subject_count": (cls._build_trigger_word_options("核心标签"), {"default": cls.NO_SELECTION}),
 
                 # === 核心内容 ===
-                "场景类型": (cls._build_category_full_options("场景类型"), {"default": cls.RANDOM_SELECTION}),
-                "动作姿态": (cls._build_category_full_options("动作姿态"), {"default": cls.RANDOM_SELECTION}),
-                "服饰细节": (cls._build_category_full_options("服饰细节"), {"default": cls.RANDOM_SELECTION}),
-                "表情状态": (cls._build_category_full_options("表情状态"), {"default": cls.RANDOM_SELECTION}),
+                "scene_type": (cls._build_category_full_options("scene_type"), {"default": cls.RANDOM_SELECTION}),
+                "action_pose": (cls._build_category_full_options("action_pose"), {"default": cls.RANDOM_SELECTION}),
+                "clothing_detail": (cls._build_category_full_options("clothing_detail"), {"default": cls.RANDOM_SELECTION}),
+                "expression": (cls._build_category_full_options("expression"), {"default": cls.RANDOM_SELECTION}),
 
                 # === 权重控制 ===
-                "权重_场景": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
-                "权重_动作": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
-                "权重_服饰细节": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
-                "权重_状态": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
+                "weight_scene": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
+                "weight_action": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
+                "weight_clothing": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
+                "weight_expression": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "display": "number"}),
 
                 # === 拍摄与镜头 ===
-                "机位角度": (cls._build_category_full_options("机位角度"), {"default": cls.NO_SELECTION}),
-                "镜头类型": (cls._build_category_full_options("镜头类型"), {"default": cls.NO_SELECTION}),
-                "特效镜头": (cls._build_category_full_options("特效镜头"), {"default": cls.NO_SELECTION}),
-                "镜头滤镜": (cls._build_category_full_options("镜头滤镜"), {"default": cls.NO_SELECTION}),
+                "camera_angle": (cls._build_category_full_options("camera_angle"), {"default": cls.NO_SELECTION}),
+                "shot_type": (cls._build_category_full_options("shot_type"), {"default": cls.NO_SELECTION}),
+                "special_effect": (cls._build_category_full_options("special_effect"), {"default": cls.NO_SELECTION}),
+                "lens_filter": (cls._build_category_full_options("lens_filter"), {"default": cls.NO_SELECTION}),
 
                 # === 光影与色彩 ===
-                "光线类型": (cls._build_category_full_options("光线类型"), {"default": cls.NO_SELECTION}),
+                "lighting": (cls._build_category_full_options("lighting"), {"default": cls.NO_SELECTION}),
 
                 # === 风格与质量 ===
-                "视觉风格": (cls._build_category_full_options("视觉风格"), {"default": cls.NO_SELECTION}),
-                "质量等级": (cls._build_category_full_options("质量等级"), {"default": "标准"}),
-                "时间设定": (cls._build_category_full_options("时间设定"), {"default": cls.NO_SELECTION}),
-                "情绪表达(忌与表情状态同时随机)": (cls._build_category_full_options("情绪表达"), {"default": cls.NO_SELECTION}),
+                "visual_style": (cls._build_category_full_options("visual_style"), {"default": cls.NO_SELECTION}),
+                "quality_level": (cls._build_category_full_options("quality_level"), {"default": "标准"}),
+                "time_setting": (cls._build_category_full_options("time_setting"), {"default": cls.NO_SELECTION}),
+                "mood_expression": (cls._build_category_full_options("mood_expression"), {"default": cls.NO_SELECTION}),
 
                 # === 预设与开关 ===
-                "预设配置": (cls._build_preset_options(), {"default": cls.NO_SELECTION}),
+                "preset": (cls._build_preset_options(), {"default": cls.NO_SELECTION}),
 
                 # === 语言大模型接入 ===
-                "语言大模型接入": ("BOOLEAN", {"default": False}),
-                "扩写模式": (["基础扩写", "详细扩写", "普通扩写"], {"default": "基础扩写"}),
+                "llm_enabled": ("BOOLEAN", {"default": False}),
+                "expand_mode": (["basic", "detailed", "standard"], {"default": "basic"}),
 
                 # === 特殊内容开关 ===
-                "特殊内容": ("BOOLEAN", {"default": False,
+                "nsfw_content": ("BOOLEAN", {"default": False,
                                           "tooltip": "开启后下拉菜单显示NSFW条目；各分类可独立选择随机范围（SFW/NSFW/全量）"}),
 
                 # === 负面提示词 ===
-                "负面提示词类型": (cls._build_category_full_options("负面提示词"), {"default": "标准"}),
+                "negative_type": (cls._build_category_full_options("negative_prompt"), {"default": "标准"}),
 
                 # === 大模型提示词 ===
-                "大模型提示词": ("STRING", {
+                "llm_instruction": ("STRING", {
                     "multiline": True,
                     "default": config_manager.load_llm_hint(),
                     "placeholder": "输入对LLM大模型的特殊要求（仅在启用语言大模型时生效）..."
@@ -224,7 +313,7 @@ class PromptEnhancer:
         }
 
     RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("正面提示词", "负面提示词", "完整信息")
+    RETURN_NAMES = ("positive_prompt", "negative_prompt", "full_info")
     FUNCTION = "generate"
     CATEGORY = "Moton PromptCraft"
     OUTPUT_NODE = True
@@ -237,12 +326,13 @@ class PromptEnhancer:
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         """ComfyUI 缓存控制：任何随机标记都强制重执行，确保每张图 prompt 不同"""
+        kwargs = cls._prepare_kwargs(kwargs)
         BASE_MARKERS = (cls.RANDOM_SELECTION, cls.RANDOM_SFW, cls.RANDOM_NSFW)
         category_keys = [
-            "场景类型", "动作姿态", "服饰细节", "表情状态",
-            "机位角度", "镜头类型",
-            "特效镜头", "镜头滤镜", "光线类型",
-            "视觉风格", "时间设定", "情绪表达(忌与表情状态同时随机)"
+            "scene_type", "action_pose", "clothing_detail", "expression",
+            "camera_angle", "shot_type",
+            "special_effect", "lens_filter", "lighting",
+            "visual_style", "time_setting", "mood_expression"
         ]
 
         def _is_random_marker(val):
@@ -263,13 +353,16 @@ class PromptEnhancer:
         """
         主生成函数
         每分类独立解析 4 种随机模式：
-          ——              → 跳过
-          🎲 随机选择       → 跟随全局特殊内容开关决定库
-          🎲 仅在SFW库随机  → 强制SFW库
-          🎲 仅在NSFW库随机 → 强制NSFW库（需特殊内容开启才生效）
+          skip              → 跳过
+          random_all        → 跟随全局特殊内容开关决定库
+          random_sfw        → 强制SFW库
+          random_nsfw       → 强制NSFW库（需特殊内容开启才生效）
           特定标签          → 从对应库查找映射
         """
-        special_enabled = kwargs.get("特殊内容", False)
+        # 迁移旧版中文 key（幂等）
+        kwargs = self._prepare_kwargs(kwargs)
+
+        special_enabled = kwargs.get("nsfw_content", False)
 
         # ========== LoRA Prompt 注入（最前端，LLM 不碰） ==========
         lora_prompt_elements = []
@@ -298,38 +391,38 @@ class PromptEnhancer:
         prompt_elements.extend(lora_prompt_elements)
 
         # 1. 处理预设配置
-        预设配置 = kwargs.get("预设配置", self.NO_SELECTION)
-        if 预设配置 and 预设配置 != self.NO_SELECTION:
+        preset_name = kwargs.get("preset", self.NO_SELECTION)
+        if preset_name and preset_name != self.NO_SELECTION:
             sfw = self._load_prompt_library()
-            preset_data = sfw.get("presets", {}).get(预设配置, {})
+            preset_data = sfw.get("presets", {}).get(preset_name, {})
             if preset_data:
-                for key in ["场景类型", "动作姿态", "服饰细节", "表情状态"]:
+                for key in ["scene_type", "action_pose", "clothing_detail", "expression"]:
                     if key in preset_data:
                         kwargs[key] = preset_data[key]
 
         # 3. 主体标签（仅从SFW库查找）
-        主体人数 = kwargs.get("主体人数", self.NO_SELECTION)
-        if 主体人数 and 主体人数 != self.NO_SELECTION:
-            mapped = self._get_mapped_value_sfw("trigger_words", "核心标签", 主体人数)
+        subject_count = kwargs.get("subject_count", self.NO_SELECTION)
+        if subject_count and subject_count != self.NO_SELECTION:
+            mapped = self._get_mapped_value_sfw("trigger_words", "核心标签", subject_count)
             if mapped:
                 prompt_elements.append(mapped)
 
         # 4. 用户Prompt（放在库标签之前）
-        用户prompt = kwargs.get("用户Prompt", "").strip()
-        if 用户prompt:
-            prompt_elements.append(用户prompt)
+        user_prompt = kwargs.get("user_prompt", "").strip()
+        if user_prompt:
+            prompt_elements.append(user_prompt)
 
         # 5. 核心内容分类
-        权重_场景 = kwargs.get("权重_场景", 1.0)
-        权重_动作 = kwargs.get("权重_动作", 1.0)
-        权重_服饰细节 = kwargs.get("权重_服饰细节", 1.0)
-        权重_状态 = kwargs.get("权重_状态", 1.0)
+        weight_scene = kwargs.get("weight_scene", 1.0)
+        weight_action = kwargs.get("weight_action", 1.0)
+        weight_clothing = kwargs.get("weight_clothing", 1.0)
+        weight_expression = kwargs.get("weight_expression", 1.0)
 
         core_categories = [
-            ("场景类型", 权重_场景),
-            ("动作姿态", 权重_动作),
-            ("服饰细节", 权重_服饰细节),
-            ("表情状态", 权重_状态),
+            ("scene_type", weight_scene),
+            ("action_pose", weight_action),
+            ("clothing_detail", weight_clothing),
+            ("expression", weight_expression),
         ]
 
         for cat_key, weight in core_categories:
@@ -339,8 +432,8 @@ class PromptEnhancer:
 
         # 6. 技术参数
         tech_categories = [
-            "机位角度", "镜头类型",
-            "特效镜头", "镜头滤镜"
+            "camera_angle", "shot_type",
+            "special_effect", "lens_filter"
         ]
         for cat_key in tech_categories:
             en_tag = self._resolve_category_selection(cat_key, kwargs.get(cat_key, self.NO_SELECTION), special_enabled)
@@ -348,34 +441,34 @@ class PromptEnhancer:
                 prompt_elements.append(en_tag)
 
         # 7. 光影与色彩
-        lighting_categories = ["光线类型"]
+        lighting_categories = ["lighting"]
         for cat_key in lighting_categories:
             en_tag = self._resolve_category_selection(cat_key, kwargs.get(cat_key, self.NO_SELECTION), special_enabled)
             if en_tag:
                 prompt_elements.append(en_tag)
 
         # 8. 视觉风格
-        视觉风格 = kwargs.get("视觉风格", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("视觉风格", 视觉风格, special_enabled)
+        visual_style = kwargs.get("visual_style", self.NO_SELECTION)
+        en_tag = self._resolve_category_selection("visual_style", visual_style, special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
         # 9. 质量等级（仅从SFW库）
-        质量等级 = kwargs.get("质量等级", self.NO_SELECTION)
-        if 质量等级 and 质量等级 != self.NO_SELECTION and 质量等级 not in (self.RANDOM_SELECTION, self.RANDOM_SFW):
-            mapped = self._get_mapped_value_sfw("categories", "质量等级", 质量等级)
+        quality_level = kwargs.get("quality_level", self.NO_SELECTION)
+        if quality_level and quality_level != self.NO_SELECTION and quality_level not in (self.RANDOM_SELECTION, self.RANDOM_SFW):
+            mapped = self._get_mapped_value_sfw("categories", "quality_level", quality_level)
             if mapped:
                 prompt_elements.append(mapped)
 
         # 10. 时间设定
-        时间设定 = kwargs.get("时间设定", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("时间设定", 时间设定, special_enabled)
+        time_setting = kwargs.get("time_setting", self.NO_SELECTION)
+        en_tag = self._resolve_category_selection("time_setting", time_setting, special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
         # 11. 情绪表达
-        情绪表达 = kwargs.get("情绪表达(忌与表情状态同时随机)", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("情绪表达", 情绪表达, special_enabled)
+        mood_expression = kwargs.get("mood_expression", self.NO_SELECTION)
+        en_tag = self._resolve_category_selection("mood_expression", mood_expression, special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
@@ -387,18 +480,18 @@ class PromptEnhancer:
 
         # ========== 语言大模型接入增强 ==========
         llm_enhanced = False
-        扩写模式 = kwargs.get("扩写模式", "基础扩写")
-        llm_client = self._get_llm_client(扩写模式)
+        expand_mode = kwargs.get("expand_mode", "basic")
+        llm_client = self._get_llm_client(expand_mode)
         if llm_client.is_enabled():
-            if kwargs.get("语言大模型接入", False):
-                print(f"[PromptCraft] 正在调用大模型增强（{扩写模式}）...")
+            if kwargs.get("llm_enabled", False):
+                print(f"[PromptCraft] 正在调用大模型增强（{expand_mode}）...")
                 # 发送状态事件到前端：调用中
                 PromptServer.instance.send_sync("promptcraft.llm_status", {
                     "status": "calling",
                     "messageKey": "llm.status_calling"
                 })
-                is_detailed = (扩写模式 == "详细扩写")
-                llm_hint = kwargs.get("大模型提示词", "").strip()
+                is_detailed = (expand_mode == "detailed")
+                llm_hint = kwargs.get("llm_instruction", "").strip()
 
                 # 保存大模型提示词到持久化存储
                 if llm_hint:
@@ -488,7 +581,7 @@ class PromptEnhancer:
 
         # ========== 生成负面提示词 ==========
         negative_prompt = self._generate_negative(
-            kwargs.get("负面提示词类型", "标准")
+            kwargs.get("negative_type", "标准")
         )
         # 追加 LoRA 负面提示词
         if lora_negative_elements:
@@ -524,11 +617,11 @@ class PromptEnhancer:
         """
         解析单个分类的选择，返回英文标签字符串
         处理：
-          ➤ ——             → 跳过
-          ➤ 🎲 随机选择       → 跟随全局特殊内容开关
-          ➤ 🎲 仅在SFW库随机  → 强制SFW库（全量/子组）
-          ➤ 🎲 仅在NSFW库随机 → 强制NSFW库（全量/子组）
-          ➤ 🎲 随机·<子组名>  → 强制该子组随机（若有全局开关则合并SFW+NSFW）
+          ➤ skip             → 跳过
+          ➤ random_all       → 跟随全局特殊内容开关
+          ➤ random_sfw       → 强制SFW库（全量/子组）
+          ➤ random_nsfw      → 强制NSFW库（全量/子组）
+          ➤ random_group_<子组名> → 强制该子组随机（若有全局开关则合并SFW+NSFW）
           ➤ 特定标签          → 从对应库查找映射（含子组）
         """
         if not selected_label or selected_label == cls.NO_SELECTION:
@@ -688,14 +781,14 @@ class PromptEnhancer:
             end_brackets = "]" * bracket_count
             return f"{brackets}{tag}{end_brackets}"
 
-    def _generate_negative(self, negative_type, custom_negative=""):
-        """生成负面提示词 — 从双库 categories.负面提示词 中查找"""
+    def _generate_negative(self, negative_type):
+        """生成负面提示词 — 从双库 categories.negative_prompt 中查找"""
         if not negative_type or negative_type == self.NO_SELECTION:
             return "low quality, worst quality, normal quality"
 
-        # 从双库的 categories.负面提示词 中查找
+        # 从双库的 categories.negative_prompt 中查找
         for lib in [self._load_prompt_library(False, False), self._load_prompt_library(False, True)]:
-            cat = lib.get("categories", {}).get("负面提示词", {})
+            cat = lib.get("categories", {}).get("negative_prompt", {})
             for opt in cat.get("options", []):
                 if opt.get("label") == negative_type:
                     return opt.get("en", "low quality, worst quality")

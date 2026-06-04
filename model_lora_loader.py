@@ -1,5 +1,5 @@
 """
-Model & LoRA Stack Loader 节点 v1.3.2
+Model & LoRA Stack Loader 节点 v1.3.3
 支持底模切换 + LoRA 个体调用 + 群组引用混合栈
 前端通过隐藏 JSON widget 传递栈数据，后端在执行时解析并加载
 """

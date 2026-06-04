@@ -3,7 +3,7 @@ LLM客户端 - 支持OpenAI兼容API
 支持：OpenAI兼容端口自行加载api等
 使用 config_manager 统一管理配置
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
-V1.3.2 — 优化已知问题：LoRA 缓存线程安全 + LRU 驱逐、思维链规则 mtime 缓存、LLM 客户端去重
+V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
 """
 
 import json

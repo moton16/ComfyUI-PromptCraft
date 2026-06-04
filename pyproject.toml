@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-PromptCraft"
 description = "All-in-one enhancement plugin with Checkpoint & LoRA Stack and Prompt Enhancement nodes. Customizable multi-dimension tag library, anime-gen specialized. LoRA groups with inline trigger words — pick tags, 1-click quality output. LLM smart prompt expansion, no more prompt block.一个ComfyUI 全链路增强插件，包含底模&Lora栈与Prompt增强节点，内置可自定义的全维度标签库，二次元出图特化，LoRA 群组管理支持触发词内嵌，挑选标签一键优质出图，LLM 智能扩写摆脱词荒"
-version = "1.2.6"
+version = "1.3.3"
 # 只支持语义化版本，不要有带后缀（MOD等）的更改
 license = "GPL-2.0"
 # classifiers = [

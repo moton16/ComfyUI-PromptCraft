@@ -33,7 +33,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.3.1';
+const VERSION = '1.3.3';
 
 // ==================== 工具函数 ====================
 
@@ -351,7 +351,7 @@ function enhanceNodeMultilineWidgets(node) {
     if (!node || !node.widgets) return;
     
     const targetWidgets = node.widgets.filter(
-        w => w.name === '用户Prompt' || w.name === '大模型提示词'
+        w => w.name === 'user_prompt' || w.name === 'llm_instruction'
     );
     
     if (targetWidgets.length === 0) return;
@@ -368,22 +368,25 @@ function enhanceNodeMultilineWidgets(node) {
 
 /**
  * 同步调整 DOM textarea 的外观（视觉层面，不影响布局）
+ * 通过 widget name 匹配（不依赖 placeholder 文本，支持 i18n）
  */
 function syncTextareaAppearance(node, targetHeight) {
-    // 找一个能定位到该节点 DOM 的方法：ComfyUI 会在 textarea 上设置 data-* 属性
+    if (!node || !node.widgets) return;
+    const multilineWidgets = node.widgets.filter(
+        w => w.name === 'user_prompt' || w.name === 'llm_instruction'
+    );
     setTimeout(() => {
-        const allAreas = document.querySelectorAll('textarea.comfy-multiline-input');
-        allAreas.forEach(ta => {
-            if (ta.dataset.motonAppearanceFixed) return;
-            const ph = ta.getAttribute('placeholder') || '';
-            if (ph.includes('输入你的基础Prompt') || ph.includes('输入对LLM大模型的特殊要求')) {
+        multilineWidgets.forEach(w => {
+            if (w.element && w.element.tagName === 'TEXTAREA') {
+                const ta = w.element;
+                if (ta.dataset.motonAppearanceFixed) return;
                 ta.style.maxHeight = '200px';
                 ta.style.overflowY = 'auto';
                 ta.style.resize = 'vertical';
                 // 翻译 placeholder
-                if (ph.includes('输入你的基础Prompt')) {
+                if (w.name === 'user_prompt') {
                     ta.placeholder = t('canvas.placeholder_prompt');
-                } else if (ph.includes('输入对LLM大模型的特殊要求')) {
+                } else if (w.name === 'llm_instruction') {
                     ta.placeholder = t('canvas.placeholder_llm');
                 }
                 ta.dataset.motonAppearanceFixed = '1';
@@ -399,19 +402,19 @@ function syncTextareaAppearance(node, targetHeight) {
  * 这些是节点 INPUT_TYPES 中定义为 combo/下拉的字段名
  */
 const CATEGORY_COMBO_NAMES = [
-    '场景类型', '动作姿态', '服饰细节', '表情状态',
-    '机位角度', '镜头类型',
-    '特效镜头', '镜头滤镜', '光线类型',
-    '视觉风格', '质量等级', '时间设定', '情绪表达(忌与表情状态同时随机)'
+    'scene_type', 'action_pose', 'clothing_detail', 'expression',
+    'camera_angle', 'shot_type',
+    'special_effect', 'lens_filter', 'lighting',
+    'visual_style', 'quality_level', 'time_setting', 'mood_expression'
 ];
 
 /**
  * ComfyUI 组合框通常用 customtext 类型（Combo widget）
  * SFW + NSFW 随机标记
  */
-const SUBGROUP_RANDOM_PREFIX = '🎲 随机·';
-const RANDOM_MARKERS_BASE = ['🎲 随机选择', '🎲 仅在SFW库随机', '🎲 仅在特殊内容库随机'];
-const RANDOM_MARKERS_NSFW_ONLY = ['🎲 仅在特殊内容库随机'];
+const SUBGROUP_RANDOM_PREFIX = 'random_group_';
+const RANDOM_MARKERS_BASE = ['random_all', 'random_sfw', 'random_nsfw'];
+const RANDOM_MARKERS_NSFW_ONLY = ['random_nsfw'];
 
 /**
  * 判定一个字符串是否属于任何随机标记（基础标记 + 子组随机标记）
@@ -454,18 +457,18 @@ function filterComboWidget(widget, specialEnabled) {
         // 检查当前选中值是否还在列表中
         if (widget.value && !widget.options.values.includes(widget.value)) {
             // 如果不在（极少情况），设为第一个有效值
-            widget.value = widget.options.values[0] || '——';
+            widget.value = widget.options.values[0] || 'skip';
         }
     } else {
         // 过滤掉 NSFW 标签
         const filtered = fullValues.filter(v => {
             // 仅在特殊内容库随机的选项在开关关闭时不可见
             if (RANDOM_MARKERS_NSFW_ONLY.includes(v)) return false;
-            // 子组随机标记（🎲 随机·子组名）仅在特殊内容开启时显示
+            // 子组随机标记（random_group_<子组名>）仅在特殊内容开启时显示
             if (v.startsWith(SUBGROUP_RANDOM_PREFIX)) return false;
             // 基础随机标记（全局随机 / 仅SFW随机）始终可见
-            if (v === '🎲 随机选择' || v === '🎲 仅在SFW库随机') return true;
-            if (v === '——') return true;                  // 保留空选项
+            if (v === 'random_all' || v === 'random_sfw') return true;
+            if (v === 'skip') return true;                 // 保留空选项
             if (isNsfwLabel(v)) return false;              // 过滤 NSFW 标签
             return true;                                   // 保留 SFW 标签
         });
@@ -474,7 +477,7 @@ function filterComboWidget(widget, specialEnabled) {
 
         // 如果当前选中值被过滤掉了，切换到第一个有效选项
         if (widget.value && !filtered.includes(widget.value)) {
-            widget.value = filtered[0] || '——';
+            widget.value = filtered[0] || 'skip';
         }
     }
 
@@ -491,7 +494,7 @@ function filterComboWidget(widget, specialEnabled) {
 function filterAllComboWidgetsOnNode(node) {
     if (!node || !node.widgets) return;
 
-    const specialWidget = node.widgets.find(w => w.name === '特殊内容');
+    const specialWidget = node.widgets.find(w => w.name === 'nsfw_content');
     const specialEnabled = specialWidget ? Boolean(specialWidget.value) : false;
 
     node.widgets.forEach(widget => {
@@ -508,27 +511,27 @@ async function randomFillAll(node) {
     if (!node || !node.widgets) return;
 
     // 获取当前特殊内容状态
-    const specialWidget = node.widgets.find(w => w.name === '特殊内容');
+    const specialWidget = node.widgets.find(w => w.name === 'nsfw_content');
     const specialEnabled = specialWidget ? Boolean(specialWidget.value) : false;
 
     // 质量等级不参与随机填充
-    const SKIP_RANDOM = ['质量等级'];
+    const SKIP_RANDOM = ['quality_level'];
 
     for (const widget of node.widgets) {
         if (!CATEGORY_COMBO_NAMES.includes(widget.name)) continue;
         if (SKIP_RANDOM.includes(widget.name)) continue;
 
-        // 跳过已选择 "——" 的栏目，保持原样不填充
-        if (widget.value === '——' || widget.value === '') continue;
+        // 跳过已选择 "skip" 的栏目，保持原样不填充
+        if (widget.value === 'skip' || widget.value === '') continue;
 
         const values = widget._motonFullValues || (widget.options && widget.options.values) || [];
         // 根据特殊内容开关过滤可用值
         let candidates;
         if (specialEnabled) {
-            candidates = values.filter(v => v !== '——');
+            candidates = values.filter(v => v !== 'skip');
         } else {
             candidates = values.filter(v =>
-                v !== '——' &&
+                v !== 'skip' &&
                 !isNsfwLabel(v)
             );
         }
@@ -647,20 +650,20 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
 
-            // 找到「特殊内容」widget 的索引位置
+            // 找到「nsfw_content」widget 的索引位置
             let specialIndex = -1;
             let specialWidget = null;
             for (let i = 0; i < this.widgets.length; i++) {
-                if (this.widgets[i].name === '特殊内容') {
+                if (this.widgets[i].name === 'nsfw_content') {
                     specialIndex = i;
                     specialWidget = this.widgets[i];
                     break;
                 }
             }
 
-            // 在「特殊内容」widget 之后注入「随机填充」按钮
+            // 在「nsfw_content」widget 之后注入「随机填充」按钮
             if (specialIndex >= 0 && specialWidget) {
-                const randomBtn = this.addWidget('button', '🎲 随机填充', null, () => {
+                const randomBtn = this.addWidget('button', t('canvas.random_fill') || '🎲 Random Fill', null, () => {
                     randomFillAll(this);
                 });
 

@@ -3,227 +3,625 @@
   "description": "特殊内容Prompt扩展库 V1.4 - 与SFW库分类完全一一对应，启用后各分类选项追加入SFW库对应分类",
   "enabled": true,
   "categories": {
-    "场景类型": {
+    "scene_type": {
       "label": "场景类型",
       "description": "特殊内容 - 背景与环境",
       "options": [
-        {"label": "厕所隔间", "en": "public restroom stall, locked door with red indicator, cold tile floor, fluorescent flicker, graffiti on partition wall, small gap under door, cramped enclosed space, echo of footsteps outside, handprint on metal surface, harsh overhead light, metallic stall divider, sense of secrecy"},
-        {"label": "酒店浴室", "en": "hotel bathroom, marble countertop, fogged wall mirror from shower steam, rainfall showerhead, glass shower enclosure, plush bath mat, towel rack within reach, dimmable vanity lights, hotel toiletries lined up, warm humidity, porcelain and chrome surfaces, soft indirect glow"},
-        {"label": "公寓厨房", "en": "modern apartment kitchen, marble island countertop, cool granite surface, pendant lighting overhead, stainless steel appliances, open refrigerator door casting light, fruit bowl on counter, empty wine glass, breakfast bar stools, open plan living visible, smooth clean surfaces, intimate domestic setting"},
-        {"label": "豪宅客厅", "en": "luxury mansion living room, oversized sectional sofa, floor-to-ceiling windows, ocean view terrace, fireplace glowing, plush white carpet, minimalist decor, grand piano corner, indirect warm lighting, sheer curtains billowing, champagne bucket on coffee table, elegant spaciousness"},
-        {"label": "办公室主管间", "en": "executive office, large desk with leather chair, floor-to-wall window blinds slightly open, computer screen glow, door locked indicator, bookshelf against wall, meeting table, carpeted floor, formal business atmosphere, privacy from corner position, glass partition"},
-        {"label": "电影包场厅", "en": "private cinema screening room, velvet reclining seats with retractable armrests, dim blue aisle lighting, film frozen on screen, soundproof walls, tiered seating, last row privacy, soft carpet, cozy enclosed darkness, surround sound silent"},
-        {"label": "居家阳台夜间", "en": "night balcony, city view, low railing, cool night breeze, starry sky, potted plants, ambient city glow, privacy from upper floor, glass door slightly ajar leading to dark room, warm interior light spilling out"},
-        {"label": "情侣瑜伽室", "en": "couples yoga studio, padded mat floor, wall mirrors, dim warm lighting, soft music, scented candles arranged, aerial silk hanging from ceiling, foam rollers and blocks, zen atmosphere, heated floor, privacy curtains"},
-        {"label": "洗衣房", "en": "laundry room, warm humid air from dryer, washing machine gentle cycle hum, piled fresh laundry basket, folded clothes on top of machine, soft fabric texture, detergent scent, cramped space between appliances, warm cozy glow"},
-        {"label": "更衣间SPA", "en": "locker room sauna area, tiled steam bench for two, wooden slat bench, dim light through frosted glass, essential oil dispenser, wet towel pile, condensation dripping, skin flushed and glistening, heavy steam haze"},
-        {"label": "私人游艇舱", "en": "private yacht cabin, porthole window with ocean view, compact luxury interior, king bed with nautical themed linens, wood paneling, gentle rocking motion, dim warm recessed lighting, ensuite visible, champagne on bedside"},
-        {"label": "野外露营帐篷", "en": "wilderness camping tent, floor of sleeping bags and blankets, tent walls diffusing moonlight, zipped entrance sealed, lantern hanging from center, soft fabric cocoon, outdoor sounds muffled, body heat inside, cool air outside, secluded nature"}
+        {
+          "label": "厕所隔间",
+          "en": "public restroom stall, locked door with red indicator, cold tile floor, fluorescent flicker, graffiti on partition wall, small gap under door, cramped enclosed space, echo of footsteps outside, handprint on metal surface, harsh overhead light, metallic stall divider, sense of secrecy"
+        },
+        {
+          "label": "酒店浴室",
+          "en": "hotel bathroom, marble countertop, fogged wall mirror from shower steam, rainfall showerhead, glass shower enclosure, plush bath mat, towel rack within reach, dimmable vanity lights, hotel toiletries lined up, warm humidity, porcelain and chrome surfaces, soft indirect glow"
+        },
+        {
+          "label": "公寓厨房",
+          "en": "modern apartment kitchen, marble island countertop, cool granite surface, pendant lighting overhead, stainless steel appliances, open refrigerator door casting light, fruit bowl on counter, empty wine glass, breakfast bar stools, open plan living visible, smooth clean surfaces, intimate domestic setting"
+        },
+        {
+          "label": "豪宅客厅",
+          "en": "luxury mansion living room, oversized sectional sofa, floor-to-ceiling windows, ocean view terrace, fireplace glowing, plush white carpet, minimalist decor, grand piano corner, indirect warm lighting, sheer curtains billowing, champagne bucket on coffee table, elegant spaciousness"
+        },
+        {
+          "label": "办公室主管间",
+          "en": "executive office, large desk with leather chair, floor-to-wall window blinds slightly open, computer screen glow, door locked indicator, bookshelf against wall, meeting table, carpeted floor, formal business atmosphere, privacy from corner position, glass partition"
+        },
+        {
+          "label": "电影包场厅",
+          "en": "private cinema screening room, velvet reclining seats with retractable armrests, dim blue aisle lighting, film frozen on screen, soundproof walls, tiered seating, last row privacy, soft carpet, cozy enclosed darkness, surround sound silent"
+        },
+        {
+          "label": "居家阳台夜间",
+          "en": "night balcony, city view, low railing, cool night breeze, starry sky, potted plants, ambient city glow, privacy from upper floor, glass door slightly ajar leading to dark room, warm interior light spilling out"
+        },
+        {
+          "label": "情侣瑜伽室",
+          "en": "couples yoga studio, padded mat floor, wall mirrors, dim warm lighting, soft music, scented candles arranged, aerial silk hanging from ceiling, foam rollers and blocks, zen atmosphere, heated floor, privacy curtains"
+        },
+        {
+          "label": "洗衣房",
+          "en": "laundry room, warm humid air from dryer, washing machine gentle cycle hum, piled fresh laundry basket, folded clothes on top of machine, soft fabric texture, detergent scent, cramped space between appliances, warm cozy glow"
+        },
+        {
+          "label": "更衣间SPA",
+          "en": "locker room sauna area, tiled steam bench for two, wooden slat bench, dim light through frosted glass, essential oil dispenser, wet towel pile, condensation dripping, skin flushed and glistening, heavy steam haze"
+        },
+        {
+          "label": "私人游艇舱",
+          "en": "private yacht cabin, porthole window with ocean view, compact luxury interior, king bed with nautical themed linens, wood paneling, gentle rocking motion, dim warm recessed lighting, ensuite visible, champagne on bedside"
+        },
+        {
+          "label": "野外露营帐篷",
+          "en": "wilderness camping tent, floor of sleeping bags and blankets, tent walls diffusing moonlight, zipped entrance sealed, lantern hanging from center, soft fabric cocoon, outdoor sounds muffled, body heat inside, cool air outside, secluded nature"
+        }
       ]
     },
-    "动作姿态": {
+    "action_pose": {
       "label": "动作姿态",
       "description": "特殊内容 - 动作与姿势（含子组：单人动作 / 双人动作 / 多人动作。下拉框自动生成 🎲 随机·子组名 选项）",
       "subgroups": {
         "1girl": {
           "label": "1girl",
           "options": [
-            {"label": "手指抚穴，身颤轻吟", "en": "fingering, touching pussy, body trembling, shivering, aroused"},
-      {"label": "揉捏乳房，眼神迷离，呻吟放纵", "en": "breast squeezing, groping breasts, unfocused eyes, open mouth, moaning, lewd expression"},
-      {"label": "袒胸露乳，臀高翘起，挑逗姿势", "en": "exposed breasts, ass up, presenting, arched back, looking back"},
-      {"label": "缓褪衣衫，乳隐可见，裸身挑逗", "en": "undressing, shirt lift, navel, breasts partially visible, striptease, naked"},
-      {"label": "跪姿舔指，弓背仰头，半脱发情", "en": "kneeling, licking finger, arched back, looking up, half-undressed, lustful"},
-      {"label": "手指插穴，张嘴欲罢", "en": "fingering, fingers inside pussy, open mouth, ahegao, pleasure"},
-      {"label": "裸靠抚乳，小穴清晰", "en": "leaning back, nude, naked, hands on breasts, pussy, exposed, spread legs"},
-      {"label": "低姿爬行，抬头上看，羞涩神情", "en": "crawling, on all fours, low posture, looking up, shy, timid"},
-      {"label": "裸身侧躺，叠腿露穴", "en": "nude, lying, on side, legs crossed, pussy exposed"},
-      {"label": "高潮痉挛，喘息急促", "en": "orgasm, body convulsing, panting, heavy breathing, ecstasy, ahegao"},
-      {"label": "潮吹水溅，阴道大张", "en": "squirting, pussy juice, fluids splashing, wide open pussy, intense orgasm, ahegao"},
-      {"label": "巨物插穴，翻眼尖叫", "en": "large dildo, huge dildo, pussy, penetration, eyes rolled back, screaming, ahegao"},
-      {"label": "跳蛋入穴，羞笑比V", "en": "vibrator, egg vibrator, inside pussy, shy smile, peace sign, v sign, playful"},
-      {"label": "无内裤，掀衣露穴", "en": "no panties, lifting skirt, dress lift, pussy exposed"},
-      {"label": "站立叉腿，抚乳淫态", "en": "standing, spread legs, hands on breasts, lewd expression"},
-      {"label": "裸身鸭坐，撑地惊态", "en": "naked, nude, duck sit, squatting, hands on floor, feigned surprise, surprised expression"},
-      {"label": "双腿岔开，掰穴半裸", "en": "spread legs, pussy spread, spreading pussy, half-undressed, top less"},
-      {"label": "高潮过后，无力喘息", "en": "after orgasm, exhausted, panting, limp, vacant eyes"},
-      {"label": "坐地掰腿，小穴前露", "en": "sitting, pulling legs up, pussy fully exposed, facing viewer, spread pussy"}
-    ]
+            {
+              "label": "手指抚穴，身颤轻吟",
+              "en": "fingering, touching pussy, body trembling, shivering, aroused"
+            },
+            {
+              "label": "揉捏乳房，眼神迷离，呻吟放纵",
+              "en": "breast squeezing, groping breasts, unfocused eyes, open mouth, moaning, lewd expression"
+            },
+            {
+              "label": "袒胸露乳，臀高翘起，挑逗姿势",
+              "en": "exposed breasts, ass up, presenting, arched back, looking back"
+            },
+            {
+              "label": "缓褪衣衫，乳隐可见，裸身挑逗",
+              "en": "undressing, shirt lift, navel, breasts partially visible, striptease, naked"
+            },
+            {
+              "label": "跪姿舔指，弓背仰头，半脱发情",
+              "en": "kneeling, licking finger, arched back, looking up, half-undressed, lustful"
+            },
+            {
+              "label": "手指插穴，张嘴欲罢",
+              "en": "fingering, fingers inside pussy, open mouth, ahegao, pleasure"
+            },
+            {
+              "label": "裸靠抚乳，小穴清晰",
+              "en": "leaning back, nude, naked, hands on breasts, pussy, exposed, spread legs"
+            },
+            {
+              "label": "低姿爬行，抬头上看，羞涩神情",
+              "en": "crawling, on all fours, low posture, looking up, shy, timid"
+            },
+            {
+              "label": "裸身侧躺，叠腿露穴",
+              "en": "nude, lying, on side, legs crossed, pussy exposed"
+            },
+            {
+              "label": "高潮痉挛，喘息急促",
+              "en": "orgasm, body convulsing, panting, heavy breathing, ecstasy, ahegao"
+            },
+            {
+              "label": "潮吹水溅，阴道大张",
+              "en": "squirting, pussy juice, fluids splashing, wide open pussy, intense orgasm, ahegao"
+            },
+            {
+              "label": "巨物插穴，翻眼尖叫",
+              "en": "large dildo, huge dildo, pussy, penetration, eyes rolled back, screaming, ahegao"
+            },
+            {
+              "label": "跳蛋入穴，羞笑比V",
+              "en": "vibrator, egg vibrator, inside pussy, shy smile, peace sign, v sign, playful"
+            },
+            {
+              "label": "无内裤，掀衣露穴",
+              "en": "no panties, lifting skirt, dress lift, pussy exposed"
+            },
+            {
+              "label": "站立叉腿，抚乳淫态",
+              "en": "standing, spread legs, hands on breasts, lewd expression"
+            },
+            {
+              "label": "裸身鸭坐，撑地惊态",
+              "en": "naked, nude, duck sit, squatting, hands on floor, feigned surprise, surprised expression"
+            },
+            {
+              "label": "双腿岔开，掰穴半裸",
+              "en": "spread legs, pussy spread, spreading pussy, half-undressed, top less"
+            },
+            {
+              "label": "高潮过后，无力喘息",
+              "en": "after orgasm, exhausted, panting, limp, vacant eyes"
+            },
+            {
+              "label": "坐地掰腿，小穴前露",
+              "en": "sitting, pulling legs up, pussy fully exposed, facing viewer, spread pussy"
+            }
+          ]
         },
         "1girl,1boy": {
           "label": "1girl,1boy",
           "options": [
-            {"label": "深吻舌缠，男女互抚下身", "en": "deep kiss, tongue, french kiss, hands on genitals, mutual masturbation, fondling breasts, stroking penis"},
-            {"label": "男揉女乳，女吟撑身", "en": "breast squeezing, groping breasts, moaning, hands supporting body"},
-            {"label": "跨坐磨茎，发情笑颜", "en": "straddling, grinding, pussy rubbing against penis, aroused smile, lustful"},
-            {"label": "男缓脱衣，女撑羞拒", "en": "undressing, boy undressing girl, girl hands against wall, shy, wanton, reluctance"},
-            {"label": "男揉女乳，吟喘撑身，潮前脸红", "en": "breast squeezing, groping breasts, moaning, panting, hands braced, pre-orgasm blush"},
-            {"label": "跨坐起伏，扭腰迎合，淫荡痴笑", "en": "straddling, cowgirl position, bouncing, hip twisting, lascivious grin"},
-            {"label": "男缓脱衣，撑身羞怯，躲闪脸红，半推半就", "en": "boy undressing girl, shy, dodging eyes, blushing, reluctant, yielding"},
-            {"label": "俯身舔乳，抠穴抓发，呻吟失神", "en": "boy kneeling, licking breast, fingering pussy, girl grabbing hair, moaning, spaced out"},
-            {"label": "坐腿靠胸，隔衣揉乳，依偎轻喘", "en": "sitting on lap, leaning on chest, groping through clothes, panting, happy smile"},
-            {"label": "传教士，阴茎缓入，搂背迷笑", "en": "missionary, penis insertion, slow penetration, hugging back, hazy smile"},
-            {"label": "女腿搭肩，深插抽送，乳晃失神", "en": "legs on shoulders, deep thrusting, breasts bouncing, open mouth, spaced out"},
-            {"label": "折腿胸前，极深抽插，抱腿呻吟，高潮翻眼", "en": "legs folded to chest, extremely deep thrusting, hugging legs, moaning, eyes rolled back, orgasm"},
-            {"label": "女躺床沿，男立插入，抓单迷笑", "en": "lying on bed edge, standing thrusting, gripping bedsheet, blissful smile, dazed expression"},
-            {"label": "跪趴后入，臀部迎合，回头痴笑", "en": "doggy style, swinging ass, looking back, smiling, silly grin"},
-            {"label": "女趴男压后入，贴臀抽送，高潮内射", "en": "lying flat rear entry, prone bone, thrusting against ass, face in sheets, moaning, creampie, internal cum"},
-            {"label": "弯腰扶膝，扶腰后入，仰头淫笑", "en": "bent over, hands on knees, boy holding hips rear entry, tilting head, lewd laugh"},
-            {"label": "骑乘位，上下起伏，撑胸淫笑", "en": "cowgirl position, up-down riding, hands on boy's chest, lewd smile, horny"},
-            {"label": "蹲姿骑乘，猛烈进出，吐舌比耶，高潮失神", "en": "squatting cowgirl, vigorous thrusting, tongue out, peace sign, ahegao, spaced out, orgasm"},
-            {"label": "侧卧汤勺，阴茎缓入，依偎浅笑", "en": "spooning, slow penetration, snuggling, eyes closed, content smile"},
-            {"label": "站立面对面，搂腰插入，搂脖夹腿", "en": "standing face to face, waist held, thrusting, neck hugged, legs clamped, sweet smile"},
-            {"label": "女盘男腰，深插搂脖，上下晃动，高潮内射", "en": "girl legs wrapped around waist, deep penetration, hugging neck, bouncing, orgasm, creampie, internal cum"},
-            {"label": "弯腰扶墙，后入猛送，咬唇回头，潮红高潮", "en": "bent over wall, rear entry, vigorous thrusting, biting lip, looking back, flushed face, orgasm"},
-            {"label": "坐腿十指扣，穴茎紧合，望眼扭腰，幸福甜笑", "en": "sitting on lap, fingers interlaced, holding hands, joined genitals, locking eyes, hip twisting, happy smile"},
-            {"label": "脚搁男肩，深处抽送，抓单扭动，张嘴失神", "en": "feet on shoulders, deep thrusting, gripping sheet, writhing, open mouth, spaced out"},
-            {"label": "蛙式分膝，穴开后入，缓进缓出", "en": "frog pose, knees apart, pussy open rear entry, slow thrusting, lascivious grin"},
-            {"label": "腿举过头，极深插入，身颤高潮，大量内射", "en": "legs raised over head, mating press, extremely deep penetration, whole body trembling, orgasm, massive creampie, cum flooding"},
-            {"label": "69式，女含男茎，男舔女穴", "en": "69 position, fellatio, cunnilingus, girl sucking penis, boy licking pussy"},
-            {"label": "跨胸俯身，含茎吞吐，抚发媚眼", "en": "straddling chest, leaning forward, fellatio, penis bobbing, hair stroked, bedroom eyes"},
-            {"label": "跪地含茎深喉，握根抬眼", "en": "kneeling, deep throat, grip base of penis, looking up, provocative"},
-            {"label": "男躺女趴，含茎舌绕，按头迷离", "en": "boy lying, girl on lap, fellatio, tongue swirling, head gently pressed, dazed expression"},
-            {"label": "仰卧叉腿，伏身舔穴，扭腰高潮", "en": "lying back, legs wide, boy licking pussy, twisting hips, moaning, orgasm"},
-            {"label": "叉腿露穴，低头舔阴，按头高潮", "en": "spread legs, pussy exposed, cunnilingus, licking labia, licking clit, hand pressing head, spaced out, screaming"},
-            {"label": "侧卧握茎，撸动渗液，挑逗对视", "en": "side lying, gripping penis, handjob, stroking, pre-cum, dripping, teasing smile, locking eyes"},
-            {"label": "平躺挤乳，骑胸乳交，伸舌舔龟，高潮淫笑", "en": "lying back, breast squeezing, titfuck, cleavage, tongue licking tip, lewd laugh"},
-            {"label": "精液射脸胸", "en": "cum shot, facial, cum on chest, semen dripping"},
-            {"label": "跪坐乳夹，低头含龟，抬眼淫荡，射入口中", "en": "kneeling, titfuck, head down, sucking tip, licking, lewd look, cum in mouth"}
+            {
+              "label": "深吻舌缠，男女互抚下身",
+              "en": "deep kiss, tongue, french kiss, hands on genitals, mutual masturbation, fondling breasts, stroking penis"
+            },
+            {
+              "label": "男揉女乳，女吟撑身",
+              "en": "breast squeezing, groping breasts, moaning, hands supporting body"
+            },
+            {
+              "label": "跨坐磨茎，发情笑颜",
+              "en": "straddling, grinding, pussy rubbing against penis, aroused smile, lustful"
+            },
+            {
+              "label": "男缓脱衣，女撑羞拒",
+              "en": "undressing, boy undressing girl, girl hands against wall, shy, wanton, reluctance"
+            },
+            {
+              "label": "男揉女乳，吟喘撑身，潮前脸红",
+              "en": "breast squeezing, groping breasts, moaning, panting, hands braced, pre-orgasm blush"
+            },
+            {
+              "label": "跨坐起伏，扭腰迎合，淫荡痴笑",
+              "en": "straddling, cowgirl position, bouncing, hip twisting, lascivious grin"
+            },
+            {
+              "label": "男缓脱衣，撑身羞怯，躲闪脸红，半推半就",
+              "en": "boy undressing girl, shy, dodging eyes, blushing, reluctant, yielding"
+            },
+            {
+              "label": "俯身舔乳，抠穴抓发，呻吟失神",
+              "en": "boy kneeling, licking breast, fingering pussy, girl grabbing hair, moaning, spaced out"
+            },
+            {
+              "label": "坐腿靠胸，隔衣揉乳，依偎轻喘",
+              "en": "sitting on lap, leaning on chest, groping through clothes, panting, happy smile"
+            },
+            {
+              "label": "传教士，阴茎缓入，搂背迷笑",
+              "en": "missionary, penis insertion, slow penetration, hugging back, hazy smile"
+            },
+            {
+              "label": "女腿搭肩，深插抽送，乳晃失神",
+              "en": "legs on shoulders, deep thrusting, breasts bouncing, open mouth, spaced out"
+            },
+            {
+              "label": "折腿胸前，极深抽插，抱腿呻吟，高潮翻眼",
+              "en": "legs folded to chest, extremely deep thrusting, hugging legs, moaning, eyes rolled back, orgasm"
+            },
+            {
+              "label": "女躺床沿，男立插入，抓单迷笑",
+              "en": "lying on bed edge, standing thrusting, gripping bedsheet, blissful smile, dazed expression"
+            },
+            {
+              "label": "跪趴后入，臀部迎合，回头痴笑",
+              "en": "doggy style, swinging ass, looking back, smiling, silly grin"
+            },
+            {
+              "label": "女趴男压后入，贴臀抽送，高潮内射",
+              "en": "lying flat rear entry, prone bone, thrusting against ass, face in sheets, moaning, creampie, internal cum"
+            },
+            {
+              "label": "弯腰扶膝，扶腰后入，仰头淫笑",
+              "en": "bent over, hands on knees, boy holding hips rear entry, tilting head, lewd laugh"
+            },
+            {
+              "label": "骑乘位，上下起伏，撑胸淫笑",
+              "en": "cowgirl position, up-down riding, hands on boy's chest, lewd smile, horny"
+            },
+            {
+              "label": "蹲姿骑乘，猛烈进出，吐舌比耶，高潮失神",
+              "en": "squatting cowgirl, vigorous thrusting, tongue out, peace sign, ahegao, spaced out, orgasm"
+            },
+            {
+              "label": "侧卧汤勺，阴茎缓入，依偎浅笑",
+              "en": "spooning, slow penetration, snuggling, eyes closed, content smile"
+            },
+            {
+              "label": "站立面对面，搂腰插入，搂脖夹腿",
+              "en": "standing face to face, waist held, thrusting, neck hugged, legs clamped, sweet smile"
+            },
+            {
+              "label": "女盘男腰，深插搂脖，上下晃动，高潮内射",
+              "en": "girl legs wrapped around waist, deep penetration, hugging neck, bouncing, orgasm, creampie, internal cum"
+            },
+            {
+              "label": "弯腰扶墙，后入猛送，咬唇回头，潮红高潮",
+              "en": "bent over wall, rear entry, vigorous thrusting, biting lip, looking back, flushed face, orgasm"
+            },
+            {
+              "label": "坐腿十指扣，穴茎紧合，望眼扭腰，幸福甜笑",
+              "en": "sitting on lap, fingers interlaced, holding hands, joined genitals, locking eyes, hip twisting, happy smile"
+            },
+            {
+              "label": "脚搁男肩，深处抽送，抓单扭动，张嘴失神",
+              "en": "feet on shoulders, deep thrusting, gripping sheet, writhing, open mouth, spaced out"
+            },
+            {
+              "label": "蛙式分膝，穴开后入，缓进缓出",
+              "en": "frog pose, knees apart, pussy open rear entry, slow thrusting, lascivious grin"
+            },
+            {
+              "label": "腿举过头，极深插入，身颤高潮，大量内射",
+              "en": "legs raised over head, mating press, extremely deep penetration, whole body trembling, orgasm, massive creampie, cum flooding"
+            },
+            {
+              "label": "69式，女含男茎，男舔女穴",
+              "en": "69 position, fellatio, cunnilingus, girl sucking penis, boy licking pussy"
+            },
+            {
+              "label": "跨胸俯身，含茎吞吐，抚发媚眼",
+              "en": "straddling chest, leaning forward, fellatio, penis bobbing, hair stroked, bedroom eyes"
+            },
+            {
+              "label": "跪地含茎深喉，握根抬眼",
+              "en": "kneeling, deep throat, grip base of penis, looking up, provocative"
+            },
+            {
+              "label": "男躺女趴，含茎舌绕，按头迷离",
+              "en": "boy lying, girl on lap, fellatio, tongue swirling, head gently pressed, dazed expression"
+            },
+            {
+              "label": "仰卧叉腿，伏身舔穴，扭腰高潮",
+              "en": "lying back, legs wide, boy licking pussy, twisting hips, moaning, orgasm"
+            },
+            {
+              "label": "叉腿露穴，低头舔阴，按头高潮",
+              "en": "spread legs, pussy exposed, cunnilingus, licking labia, licking clit, hand pressing head, spaced out, screaming"
+            },
+            {
+              "label": "侧卧握茎，撸动渗液，挑逗对视",
+              "en": "side lying, gripping penis, handjob, stroking, pre-cum, dripping, teasing smile, locking eyes"
+            },
+            {
+              "label": "平躺挤乳，骑胸乳交，伸舌舔龟，高潮淫笑",
+              "en": "lying back, breast squeezing, titfuck, cleavage, tongue licking tip, lewd laugh"
+            },
+            {
+              "label": "精液射脸胸",
+              "en": "cum shot, facial, cum on chest, semen dripping"
+            },
+            {
+              "label": "跪坐乳夹，低头含龟，抬眼淫荡，射入口中",
+              "en": "kneeling, titfuck, head down, sucking tip, licking, lewd look, cum in mouth"
+            }
           ]
         }
       },
-      "options": [
-      ]
+      "options": []
     },
-    "服饰细节": {
+    "clothing_detail": {
       "label": "服饰细节",
       "description": "特殊内容 - 服装与配饰",
       "options": [
-        {"label": "全裸叉腿", "en": "fully naked, legs spread wide, pussy clearly visible, breasts clearly visible, wet with arousal"},
-        {"label": "白丝连裤袜半褪", "en": "naked, white pantyhose half-off hanging at knees, exposing clean shaven pussy, partially visible pussy"},
-        {"label": "白色胸罩半解", "en": "naked, white panties, white lace bra half-undone, nipples exposed and erect, areola clearly visible"},
-        {"label": "薄纱连衣裙真空", "en": "transparent sheer dress, pussy clearly visible, breasts clearly visible, outline of pussy visible through fabric"},
-        {"label": "下身赤裸，oversize衬衫", "en": "bottom naked, oversized shirt hem covering crotch, partially visible pussy, wetness on inner thighs"},
-        {"label": "裸体围裙", "en": "naked apron, fully naked from back, breasts exposed from side, partially visible pussy"},
-        {"label": "比基尼湿身", "en": "bikini bottom wedged into labia, wet fabric clinging, pussy outline protruding, nipples erect"},
-        {"label": "下身赤裸，白衬衫半开", "en": "bottom naked, white shirt half-open buttons burst, breasts partially visible, nipples erect"},
-        {"label": "浴巾半裹", "en": "towel half-wrapped, wet hair dripping, side boob visible, areola clearly visible, bottom naked pussy exposed"},
-        {"label": "全裸白丝过膝袜", "en": "naked, only white thighhighs, pussy clearly visible, breasts clearly visible"},
-        {"label": "全裸黑丝过膝袜", "en": "naked, only black thighhighs, pussy clearly visible, breasts clearly visible"},
-        {"label": "黑丝连裤袜半褪", "en": "naked, black pantyhose half-off hanging at hips, exposing clean shaven pussy, partially visible"},
-        {"label": "水手服白丝真空", "en": "no panties, no bra, sailor uniform skirt, white thighhighs, nipples erect"},
-        {"label": "黑吊带真空", "en": "bottom naked, black suspender stockings digging into thighs, ass fully exposed, pussy clearly visible from front"},
-        {"label": "白丝连裤袜开档，小穴挤出", "en": "white pantyhose fully worn, huge crotch tear, pussy protruding through hole"},
-        {"label": "透明雨衣全裸", "en": "transparent raincoat fully naked inside, PVC clinging to skin, breast outline clear, pubic triangle visible, water droplets"},
-        {"label": "下身赤裸，宽松毛衣", "en": "bottom naked, loose sweater covering crotch, ass fully exposed from side, pussy partially visible, sunlight reveals breast shape through sweater"},
-        {"label": "全裸围巾绕颈", "en": "naked, only scarf around neck, tassels partially covering breasts, legs spread pussy fully exposed, contrast effect"},
-        {"label": "白棉睡裙真空", "en": "white cotton nightgown hem lifted to waist, no panties sitting on sofa, pussy clearly visible facing viewer"},
-        {"label": "全裸黑皮带", "en": "naked, only black leather belt around waist, only accessory, cold metal buckle"},
-        {"label": "牛仔裤半褪", "en": "bottom naked, jeans down to ankles, white tank top, panties hanging on left ankle, pussy fully exposed"},
-        {"label": "黑蕾丝内衣", "en": "black lace open-cup bra with nipples exposed, black lace thong string wedged into labia"},
-        {"label": "薄纱睡衣", "en": "transparent sheer nightgown bottomless no panties, pussy outline visible through fabric, nipples erect poking through"},
-        {"label": "西装外套内真空", "en": "bottom naked, blazer with nothing underneath, side opening reveals cleavage, crotch visible when sitting"},
-        {"label": "全裸仅护腕发带", "en": "naked, only wristbands and headband, fully exposed, kneeling with legs apart, pussy wet"},
-        {"label": "死库水泳衣侧开裆", "en": "school swimsuit crotch pulled aside, pussy exposed from side, wet fabric clinging, deep cleavage"},
-        {"label": "下身赤裸，高跟凉鞋细带", "en": "bottom naked, high heel sandals thin straps around ankles, only feet accessories, standing legs slightly apart, pussy fully in view"},
-        {"label": "紧身衣真空拉链全开", "en": "latex bodysuit zipper fully open from crotch to neck, nothing underneath, peeled open revealing breasts and pussy, shiny latex reflection"}
+        {
+          "label": "全裸叉腿",
+          "en": "fully naked, legs spread wide, pussy clearly visible, breasts clearly visible, wet with arousal"
+        },
+        {
+          "label": "白丝连裤袜半褪",
+          "en": "naked, white pantyhose half-off hanging at knees, exposing clean shaven pussy, partially visible pussy"
+        },
+        {
+          "label": "白色胸罩半解",
+          "en": "naked, white panties, white lace bra half-undone, nipples exposed and erect, areola clearly visible"
+        },
+        {
+          "label": "薄纱连衣裙真空",
+          "en": "transparent sheer dress, pussy clearly visible, breasts clearly visible, outline of pussy visible through fabric"
+        },
+        {
+          "label": "下身赤裸，oversize衬衫",
+          "en": "bottom naked, oversized shirt hem covering crotch, partially visible pussy, wetness on inner thighs"
+        },
+        {
+          "label": "裸体围裙",
+          "en": "naked apron, fully naked from back, breasts exposed from side, partially visible pussy"
+        },
+        {
+          "label": "比基尼湿身",
+          "en": "bikini bottom wedged into labia, wet fabric clinging, pussy outline protruding, nipples erect"
+        },
+        {
+          "label": "下身赤裸，白衬衫半开",
+          "en": "bottom naked, white shirt half-open buttons burst, breasts partially visible, nipples erect"
+        },
+        {
+          "label": "浴巾半裹",
+          "en": "towel half-wrapped, wet hair dripping, side boob visible, areola clearly visible, bottom naked pussy exposed"
+        },
+        {
+          "label": "全裸白丝过膝袜",
+          "en": "naked, only white thighhighs, pussy clearly visible, breasts clearly visible"
+        },
+        {
+          "label": "全裸黑丝过膝袜",
+          "en": "naked, only black thighhighs, pussy clearly visible, breasts clearly visible"
+        },
+        {
+          "label": "黑丝连裤袜半褪",
+          "en": "naked, black pantyhose half-off hanging at hips, exposing clean shaven pussy, partially visible"
+        },
+        {
+          "label": "水手服白丝真空",
+          "en": "no panties, no bra, sailor uniform skirt, white thighhighs, nipples erect"
+        },
+        {
+          "label": "黑吊带真空",
+          "en": "bottom naked, black suspender stockings digging into thighs, ass fully exposed, pussy clearly visible from front"
+        },
+        {
+          "label": "白丝连裤袜开档，小穴挤出",
+          "en": "white pantyhose fully worn, huge crotch tear, pussy protruding through hole"
+        },
+        {
+          "label": "透明雨衣全裸",
+          "en": "transparent raincoat fully naked inside, PVC clinging to skin, breast outline clear, pubic triangle visible, water droplets"
+        },
+        {
+          "label": "下身赤裸，宽松毛衣",
+          "en": "bottom naked, loose sweater covering crotch, ass fully exposed from side, pussy partially visible, sunlight reveals breast shape through sweater"
+        },
+        {
+          "label": "全裸围巾绕颈",
+          "en": "naked, only scarf around neck, tassels partially covering breasts, legs spread pussy fully exposed, contrast effect"
+        },
+        {
+          "label": "白棉睡裙真空",
+          "en": "white cotton nightgown hem lifted to waist, no panties sitting on sofa, pussy clearly visible facing viewer"
+        },
+        {
+          "label": "全裸黑皮带",
+          "en": "naked, only black leather belt around waist, only accessory, cold metal buckle"
+        },
+        {
+          "label": "牛仔裤半褪",
+          "en": "bottom naked, jeans down to ankles, white tank top, panties hanging on left ankle, pussy fully exposed"
+        },
+        {
+          "label": "黑蕾丝内衣",
+          "en": "black lace open-cup bra with nipples exposed, black lace thong string wedged into labia"
+        },
+        {
+          "label": "薄纱睡衣",
+          "en": "transparent sheer nightgown bottomless no panties, pussy outline visible through fabric, nipples erect poking through"
+        },
+        {
+          "label": "西装外套内真空",
+          "en": "bottom naked, blazer with nothing underneath, side opening reveals cleavage, crotch visible when sitting"
+        },
+        {
+          "label": "全裸仅护腕发带",
+          "en": "naked, only wristbands and headband, fully exposed, kneeling with legs apart, pussy wet"
+        },
+        {
+          "label": "死库水泳衣侧开裆",
+          "en": "school swimsuit crotch pulled aside, pussy exposed from side, wet fabric clinging, deep cleavage"
+        },
+        {
+          "label": "下身赤裸，高跟凉鞋细带",
+          "en": "bottom naked, high heel sandals thin straps around ankles, only feet accessories, standing legs slightly apart, pussy fully in view"
+        },
+        {
+          "label": "紧身衣真空拉链全开",
+          "en": "latex bodysuit zipper fully open from crotch to neck, nothing underneath, peeled open revealing breasts and pussy, shiny latex reflection"
+        }
       ]
     },
-    "表情状态": {
+    "expression": {
       "label": "表情状态",
       "description": "特殊内容 - 氛围与情绪",
       "options": [
-        {"label": "高潮潮红面颊滚烫", "en": "climax_blush, flushed_cheeks, heavy_breathing, parted_lips, distant_lust_eyes, tears, blushing_neck"},
-        {"label": "绝顶高潮瞳孔骤缩失焦", "en": "orgasm, constricted_pupils, rolling_eyes, ahegao, open_mouth, silent_scream, drool, tears, forehead_veins"},
-        {"label": "阿黑颜崩坏双眼上翻失智", "en": "ahegao, fully_rolled_back_eyes, tongue_out, drool_string, mind_break, insane_expression, manic_grin"},
-        {"label": "高潮过后失神魂不守舍", "en": "after_orgasm, unfocused_eyes, empty_eyes, parted_lips, drool, blank_expression, spaced_out"},
-        {"label": "潮吹喷涌淫水泛滥成灾", "en": "squirting, vaginal_contractions, gushing, swollen_vagina, copious_fluids, spread_labia, wet"},
-        {"label": "精液从穴口慢慢往外流", "en": "cum_flow, ooyakazu, thick_cum, perineum, pussy_dripping_cum, messy_thighs, cum_strings"},
-        {"label": "发情饥渴下体湿透难耐", "en": "in_heat, flushed_cheeks, lustful_eyes, swollen_lips, heavy_breathing, wet, desperate"},
-        {"label": "羞耻难当脸红到脖子根", "en": "embarrassed, face_red, avoiding_eye_contact, teary_eyes, blush_to_neck, biting_lip, conflicted"},
-        {"label": "快感涌上面部表情渐入佳境", "en": "building_pleasure, blissful_expression, involuntary_smile, erratic_breathing, teary_eyes, suppressed_moan"},
-        {"label": "晨光中嘴角还残留白浊", "en": "morning_after, sleeping, cum_at_corner_of_mouth, after_orgasm, swollen_lips"},
-        {"label": "高潮中不受控制地哭泣", "en": "crying_in_pleasure, tears, red_eyes, pain_and_pleasure, messy_face, tearful_moan"},
-        {"label": "颜射精液沾满脸和睫毛", "en": "facial, cum_on_eyelashes, cum_on_nose, cum_on_lips, cum_on_chin, cum_on_face, closed_eyes"},
-        {"label": "内射精液灌满小腹微隆", "en": "creampie, bulging_stomach, cum_inside, vaginal_contractions, wet, slippery"},
-        {"label": "情动脸颊微红欲语还休", "en": "flustered, slight_blush, lustful_eyes, parted_lips, shy"},
-        {"label": "事后温存依偎慵懒", "en": "afterglow, cuddling, half-closed_eyes, satisfied_smile, lingering_blush, intimate"},
-        {"label": "眼中欲火灼热不加掩饰", "en": "lustful_look, intense_gaze, dilated_pupils, eye_contact, passionate"},
-        {"label": "情到浓时爱意交织的眼神", "en": "loving_gaze, lovestruck, vulnerable, knitted_brows, touched"},
-        {"label": "压抑喘息不敢发出声音", "en": "restrained_moan, stifled, biting_lip, flushed, teary_eyes"},
-        {"label": "被触碰时压抑不住娇吟", "en": "moan, parted_lips, stifled, shy, averted_eyes"},
-        {"label": "激情褪去心满意足", "en": "afterglow, flushed_cheeks, soft_expression, loving_look, rosy_lips, satisfied"}
+        {
+          "label": "高潮潮红面颊滚烫",
+          "en": "climax_blush, flushed_cheeks, heavy_breathing, parted_lips, distant_lust_eyes, tears, blushing_neck"
+        },
+        {
+          "label": "绝顶高潮瞳孔骤缩失焦",
+          "en": "orgasm, constricted_pupils, rolling_eyes, ahegao, open_mouth, silent_scream, drool, tears, forehead_veins"
+        },
+        {
+          "label": "阿黑颜崩坏双眼上翻失智",
+          "en": "ahegao, fully_rolled_back_eyes, tongue_out, drool_string, mind_break, insane_expression, manic_grin"
+        },
+        {
+          "label": "高潮过后失神魂不守舍",
+          "en": "after_orgasm, unfocused_eyes, empty_eyes, parted_lips, drool, blank_expression, spaced_out"
+        },
+        {
+          "label": "潮吹喷涌淫水泛滥成灾",
+          "en": "squirting, vaginal_contractions, gushing, swollen_vagina, copious_fluids, spread_labia, wet"
+        },
+        {
+          "label": "精液从穴口慢慢往外流",
+          "en": "cum_flow, ooyakazu, thick_cum, perineum, pussy_dripping_cum, messy_thighs, cum_strings"
+        },
+        {
+          "label": "发情饥渴下体湿透难耐",
+          "en": "in_heat, flushed_cheeks, lustful_eyes, swollen_lips, heavy_breathing, wet, desperate"
+        },
+        {
+          "label": "羞耻难当脸红到脖子根",
+          "en": "embarrassed, face_red, avoiding_eye_contact, teary_eyes, blush_to_neck, biting_lip, conflicted"
+        },
+        {
+          "label": "快感涌上面部表情渐入佳境",
+          "en": "building_pleasure, blissful_expression, involuntary_smile, erratic_breathing, teary_eyes, suppressed_moan"
+        },
+        {
+          "label": "晨光中嘴角还残留白浊",
+          "en": "morning_after, sleeping, cum_at_corner_of_mouth, after_orgasm, swollen_lips"
+        },
+        {
+          "label": "高潮中不受控制地哭泣",
+          "en": "crying_in_pleasure, tears, red_eyes, pain_and_pleasure, messy_face, tearful_moan"
+        },
+        {
+          "label": "颜射精液沾满脸和睫毛",
+          "en": "facial, cum_on_eyelashes, cum_on_nose, cum_on_lips, cum_on_chin, cum_on_face, closed_eyes"
+        },
+        {
+          "label": "内射精液灌满小腹微隆",
+          "en": "creampie, bulging_stomach, cum_inside, vaginal_contractions, wet, slippery"
+        },
+        {
+          "label": "情动脸颊微红欲语还休",
+          "en": "flustered, slight_blush, lustful_eyes, parted_lips, shy"
+        },
+        {
+          "label": "事后温存依偎慵懒",
+          "en": "afterglow, cuddling, half-closed_eyes, satisfied_smile, lingering_blush, intimate"
+        },
+        {
+          "label": "眼中欲火灼热不加掩饰",
+          "en": "lustful_look, intense_gaze, dilated_pupils, eye_contact, passionate"
+        },
+        {
+          "label": "情到浓时爱意交织的眼神",
+          "en": "loving_gaze, lovestruck, vulnerable, knitted_brows, touched"
+        },
+        {
+          "label": "压抑喘息不敢发出声音",
+          "en": "restrained_moan, stifled, biting_lip, flushed, teary_eyes"
+        },
+        {
+          "label": "被触碰时压抑不住娇吟",
+          "en": "moan, parted_lips, stifled, shy, averted_eyes"
+        },
+        {
+          "label": "激情褪去心满意足",
+          "en": "afterglow, flushed_cheeks, soft_expression, loving_look, rosy_lips, satisfied"
+        }
       ]
     },
-    "镜头类型": {
+    "shot_type": {
       "label": "镜头类型",
       "description": "特殊内容 - 镜头（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊镜头示例1", "en": "special lens example 1"},
-        {"label": "特殊镜头示例2", "en": "special lens example 2"}
+        {
+          "label": "特殊镜头示例1",
+          "en": "special lens example 1"
+        },
+        {
+          "label": "特殊镜头示例2",
+          "en": "special lens example 2"
+        }
       ]
     },
-    "特效镜头": {
+    "special_effect": {
       "label": "特效镜头",
       "description": "特殊内容 - 特效镜头（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊特效示例1", "en": "special effect example 1"},
-        {"label": "特殊特效示例2", "en": "special effect example 2"}
+        {
+          "label": "特殊特效示例1",
+          "en": "special effect example 1"
+        },
+        {
+          "label": "特殊特效示例2",
+          "en": "special effect example 2"
+        }
       ]
     },
-    "镜头滤镜": {
+    "lens_filter": {
       "label": "镜头滤镜",
       "description": "特殊内容 - 镜头滤镜（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊滤镜示例1", "en": "special filter example 1"},
-        {"label": "特殊滤镜示例2", "en": "special filter example 2"}
+        {
+          "label": "特殊滤镜示例1",
+          "en": "special filter example 1"
+        },
+        {
+          "label": "特殊滤镜示例2",
+          "en": "special filter example 2"
+        }
       ]
     },
-    "光线类型": {
+    "lighting": {
       "label": "光线类型",
       "description": "特殊内容 - 光线（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊光线示例1", "en": "special lighting example 1"},
-        {"label": "特殊光线示例2", "en": "special lighting example 2"}
+        {
+          "label": "特殊光线示例1",
+          "en": "special lighting example 1"
+        },
+        {
+          "label": "特殊光线示例2",
+          "en": "special lighting example 2"
+        }
       ]
     },
-    "视觉风格": {
+    "visual_style": {
       "label": "视觉风格",
       "description": "特殊内容 - 视觉风格（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊风格示例1", "en": "special style example 1"},
-        {"label": "特殊风格示例2", "en": "special style example 2"}
+        {
+          "label": "特殊风格示例1",
+          "en": "special style example 1"
+        },
+        {
+          "label": "特殊风格示例2",
+          "en": "special style example 2"
+        }
       ]
     },
-    "质量等级": {
+    "quality_level": {
       "label": "质量等级",
       "description": "特殊内容 - 质量等级（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊质量示例1", "en": "special quality example 1"},
-        {"label": "特殊质量示例2", "en": "special quality example 2"}
+        {
+          "label": "特殊质量示例1",
+          "en": "special quality example 1"
+        },
+        {
+          "label": "特殊质量示例2",
+          "en": "special quality example 2"
+        }
       ]
     },
-    "负面提示词": {
+    "negative_prompt": {
       "label": "负面提示词",
       "description": "特殊内容 - 负面提示词模板",
       "options": [
-        {"label": "特殊负面示例1", "en": "special negative example 1"},
-        {"label": "特殊负面示例2", "en": "special negative example 2"}
+        {
+          "label": "特殊负面示例1",
+          "en": "special negative example 1"
+        },
+        {
+          "label": "特殊负面示例2",
+          "en": "special negative example 2"
+        }
       ]
     },
-    "时间设定": {
+    "time_setting": {
       "label": "时间设定",
       "description": "特殊内容 - 时间设定（仅供学习测试，用户自行填充内容）",
       "options": [
-        {"label": "特殊时间示例1", "en": "special time setting example 1"},
-        {"label": "特殊时间示例2", "en": "special time setting example 2"}
+        {
+          "label": "特殊时间示例1",
+          "en": "special time setting example 1"
+        },
+        {
+          "label": "特殊时间示例2",
+          "en": "special time setting example 2"
+        }
       ]
     },
-    "情绪表达": {
+    "mood_expression": {
       "label": "情绪表达",
       "description": "特殊内容 - 情绪表达（忌与表情状态同时随机）",
       "options": [
-        {"label": "特殊情绪示例1", "en": "special emotion example 1"},
-        {"label": "特殊情绪示例2", "en": "special emotion example 2"}
+        {
+          "label": "特殊情绪示例1",
+          "en": "special emotion example 1"
+        },
+        {
+          "label": "特殊情绪示例2",
+          "en": "special emotion example 2"
+        }
       ]
     }
   }
