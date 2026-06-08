@@ -1,5 +1,27 @@
 # ComfyUI-PromptCraft
 
+## 称呼规范
+
+- 不要以"用户"称呼，以"主人"称呼。
+
+## ⚠️ 版本号位置索引（更新版本时必改）
+
+> 当前版本：**V1.3.5**
+> 以下位置都硬编码了版本号，发版时必须同步更新：
+
+| 文件 | 行号 | 内容 |
+|------|------|------|
+| `js/index.js` | `const VERSION = '...'` | 前端版本常量 |
+| `js/control_panel.js` | `pc-brand-ver` | 设置面板显示版本 |
+| `pyproject.toml` | `version = "..."` | Python 包版本（只支持语义化版本号，不能带 beta/mod 等后缀） |
+| `__init__.py` | 末尾 `print(...)` | 启动日志版本 |
+| `model_lora_loader.py` | 文件头 docstring | 节点版本注释 |
+| `llm_client.py` | 文件头 docstring | 模块版本注释 |
+| `thinking_control.py` | 文件头 docstring | 模块版本注释 |
+| `README_zh.md` | badge + 版本历史 | 中文 README |
+| `README_en.md` | badge | 英文 README |
+| `CHANGELOG.md` | 顶部条目 | 更新日志 |
+
 ## Health Stack
 
 - typecheck: mypy --ignore-missing-imports .

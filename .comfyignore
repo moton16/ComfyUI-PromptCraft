@@ -3,6 +3,9 @@ design/
 docs/
 .gstack/
 .claude/
+node_modules/
+.ruff_cache/
+.pytest_cache/
 *.pyc
 *.pyo
 .env
@@ -12,5 +15,12 @@ docs/
 node_modules/
 package-lock.json
 
-# Vite 构建产物（由 npm run build 生成，ComfyUI 分发需要这些文件，仅 .gitignore 排除）
+# Vite 构建产物（由 npm run build 生成）
+js/promptcraft-vue.js
+js/promptcraft-vue.css
 
+# 本地用户配置数据（运行时生成，不应提交）
+data/lora_groups.json
+data/lora_prompts.json
+data/lora_favorites.json
+data/prompt_history.json

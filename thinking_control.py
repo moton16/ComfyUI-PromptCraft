@@ -3,6 +3,7 @@
 根据模型名称自动发送关闭思维链的参数，并过滤响应中的思维链输出
 
 V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
+V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 
 参考 prompt-assistan 的 thinking_control.py 设计
 """

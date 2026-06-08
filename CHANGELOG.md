@@ -2,6 +2,40 @@
 
 ## **作者：Moton**
 
+## **v1.3.5  (2026-06-08)**
+
+### 🐛 Bug Fixes
+
+* **修复旧工作流 "Value not in list" 错误**
+  - 根因：V1.3.3 把 INPUT_TYPES 从中文标识符改成英文标识符后，旧工作流保存的中文显示值（`'——'`、`'普通扩写'` 等）与新的英文选项列表不匹配
+  - ComfyUI 前端校验在 Python 的 `_prepare_kwargs` 迁移运行之前就报错
+  - 修复：`js/index.js` 新增 `LEGACY_RANDOM_VALUES` + `LEGACY_EXPAND_VALUES` 前端迁移映射，在 `onConfigure` 钩子中自动将旧值转为新值
+  - 涉及字段：`preset`、`negative_type`、`expand_mode` 及所有分类 combo（`scene_type`、`action_pose` 等）
+
+* **修复全局随机填充会随机到 `random_all` 等标记**
+  - 根因：`randomFillAll()` 的候选值过滤只排除了 `'skip'` 和 NSFW 标签，没有排除随机标记本身
+  - 修复：候选值过滤增加 `!isRandomMarker(v)` 条件，排除 `random_all`、`random_sfw`、`random_nsfw`、`random_group_*`
+
+* **修复随机按钮显示 `canvas.random_fill` 变量名**
+  - 根因：`t('canvas.random_fill')` 这个 i18n key 在 `zh.json` 和 `en.json` 中都不存在
+  - 修复：在两个 i18n 文件中补充 `"canvas.random_fill"` key
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `js/index.js` | 新增前端迁移映射 + `migrateLegacyValue()` + `onConfigure` 迁移钩子 + `randomFillAll` 过滤修复 |
+| `js/i18n/zh.json` | 补充 `canvas.random_fill` key |
+| `js/i18n/en.json` | 补充 `canvas.random_fill` key |
+| `pyproject.toml` | 版本号 → 1.3.5 |
+| `__init__.py` | 版本号 → 1.3.5 |
+| `js/control_panel.js` | 版本号 → 1.3.5 |
+| `model_lora_loader.py` | 版本号 → 1.3.5 |
+| `README_zh.md` | 版本号 + 更新日志 |
+| `README_en.md` | 版本号 |
+
+---
+
 ## **v1.3.3  (2026-06-03)**
 
 ### 🌐 国际化

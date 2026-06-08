@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.3.3-brightgreen?style=for-the-badge" alt="Version 1.3.3"/>
+  <img src="https://img.shields.io/badge/版本-v1.3.5-brightgreen?style=for-the-badge" alt="Version 1.3.5"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -352,7 +352,13 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.3.3 (2026-06-03) — 当前版本
+### v1.3.5 (2026-06-08) — 当前版本
+
+- 🐛 **修复**：加载旧工作流时 "Value not in list" 错误 — 前端新增旧版中文值 → 英文标识符迁移
+- 🐛 **修复**：全局随机填充会随机到 `random_all` 等标记 — 候选值过滤增加 `isRandomMarker` 排除
+- 🐛 **修复**：随机按钮显示 `canvas.random_fill` 变量名 — 补充缺失的 i18n key
+
+### v1.3.3 (2026-06-03)
 
 - 🌐 **国际化**：中文变量名 → 英文标识符改造，支持 ComfyUI nodeDefs.json 双语翻译
 - 🌐 **国际化**：INPUT_TYPES 25 个中文 key、随机标记、扩写模式值全部改为英文

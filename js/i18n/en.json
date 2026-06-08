@@ -308,6 +308,7 @@
   "canvas.create_hint": "Create in Hub for this LoRA",
   "canvas.none": "None",
   "canvas.all": "All",
+  "canvas.random_fill": "🎲 Random Fill",
   "canvas.placeholder_prompt": "Enter your base prompt (will be prepended before library tags)...",
   "canvas.placeholder_llm": "Special instructions for the LLM (only effective when LLM is enabled)...",
 

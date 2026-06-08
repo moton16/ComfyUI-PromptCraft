@@ -308,6 +308,7 @@
   "canvas.create_hint": "在 Hub 中为此 LoRA 创建",
   "canvas.none": "无",
   "canvas.all": "全部",
+  "canvas.random_fill": "🎲 随机填充",
   "canvas.placeholder_prompt": "输入你的基础Prompt（将拼接在库标签之前）...",
   "canvas.placeholder_llm": "输入对LLM大模型的特殊要求（仅在启用语言大模型时生效）...",
 

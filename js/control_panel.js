@@ -32,7 +32,7 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.3.3</span>
+            <span class="pc-brand-ver">v1.3.5</span>
         </div>
     `;
 

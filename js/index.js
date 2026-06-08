@@ -33,7 +33,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.3.3';
+const VERSION = '1.3.5';
 
 // ==================== 工具函数 ====================
 
@@ -417,6 +417,57 @@ const RANDOM_MARKERS_BASE = ['random_all', 'random_sfw', 'random_nsfw'];
 const RANDOM_MARKERS_NSFW_ONLY = ['random_nsfw'];
 
 /**
+ * 旧版中文值 → 英文内部标识符迁移映射（与 Python 端 LEGACY_*_MAP 保持同步）
+ * 用于加载旧工作流时前端预迁移，避免 ComfyUI "Value not in list" 校验错误
+ */
+const LEGACY_RANDOM_VALUES = {
+    '🎲 随机选择': 'random_all',
+    '🎲 仅在普通内容库随机': 'random_sfw',
+    '🎲 仅在SFW库随机': 'random_sfw',
+    '🎲 仅在特殊内容库随机': 'random_nsfw',
+    '——': 'skip',
+    '自定义': 'custom',
+};
+const LEGACY_EXPAND_VALUES = {
+    '基础扩写': 'basic',
+    '详细扩写': 'detailed',
+    '普通扩写': 'standard',
+};
+
+/**
+ * 需要迁移的 combo widget 名称列表
+ */
+const MIGRATE_COMBO_NAMES = [
+    'scene_type', 'action_pose', 'clothing_detail', 'expression',
+    'camera_angle', 'shot_type', 'special_effect', 'lens_filter',
+    'lighting', 'visual_style', 'quality_level', 'time_setting',
+    'mood_expression', 'preset', 'negative_type', 'expand_mode',
+];
+
+/**
+ * 将旧版中文显示值迁移为英文内部标识符
+ * @param {string} widgetName - widget 名称
+ * @param {string} value - 当前值
+ * @returns {string} 迁移后的值
+ */
+function migrateLegacyValue(widgetName, value) {
+    if (!value || typeof value !== 'string') return value;
+    // 随机标记迁移
+    if (LEGACY_RANDOM_VALUES[value] !== undefined) {
+        return LEGACY_RANDOM_VALUES[value];
+    }
+    // 扩写模式迁移
+    if (LEGACY_EXPAND_VALUES[value] !== undefined) {
+        return LEGACY_EXPAND_VALUES[value];
+    }
+    // 子组随机标记前缀迁移
+    if (value.startsWith('🎲 随机·')) {
+        return SUBGROUP_RANDOM_PREFIX + value.slice('🎲 随机·'.length);
+    }
+    return value;
+}
+
+/**
  * 判定一个字符串是否属于任何随机标记（基础标记 + 子组随机标记）
  */
 function isRandomMarker(val) {
@@ -526,12 +577,17 @@ async function randomFillAll(node) {
 
         const values = widget._motonFullValues || (widget.options && widget.options.values) || [];
         // 根据特殊内容开关过滤可用值
+        // 排除: skip、随机标记（random_all/random_sfw/random_nsfw/random_group_*）、NSFW标签
         let candidates;
         if (specialEnabled) {
-            candidates = values.filter(v => v !== 'skip');
+            candidates = values.filter(v =>
+                v !== 'skip' &&
+                !isRandomMarker(v)
+            );
         } else {
             candidates = values.filter(v =>
                 v !== 'skip' &&
+                !isRandomMarker(v) &&
                 !isNsfwLabel(v)
             );
         }
@@ -727,6 +783,19 @@ app.registerExtension({
         // ============ 钩子2：节点从工作流 JSON 恢复时 ============
         const onConfigure = nodeType.prototype.onConfigure;
         nodeType.prototype.onConfigure = function (info) {
+            // 前端预迁移：旧版中文值 → 英文内部标识符（在 ComfyUI 校验之前完成）
+            if (this.widgets) {
+                for (const widget of this.widgets) {
+                    if (MIGRATE_COMBO_NAMES.includes(widget.name) && typeof widget.value === 'string') {
+                        const migrated = migrateLegacyValue(widget.name, widget.value);
+                        if (migrated !== widget.value) {
+                            log(`迁移 ${widget.name}: "${widget.value}" → "${migrated}"`);
+                            widget.value = migrated;
+                        }
+                    }
+                }
+            }
+
             const result = onConfigure ? onConfigure.apply(this, arguments) : undefined;
 
             // 恢复后重新应用 NSFW 过滤

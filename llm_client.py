@@ -4,6 +4,7 @@ LLM客户端 - 支持OpenAI兼容API
 使用 config_manager 统一管理配置
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
 V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
+V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 """
 
 import json
