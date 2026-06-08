@@ -58,26 +58,20 @@ def api_handler(log_msg=None):
 # ==================== 设置摘要 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/settings")
+@api_handler("获取设置")
 async def get_all_settings(request):
     """获取全部配置（API Key 掩码）"""
-    try:
-        settings = config_manager.get_all_settings()
-        return web.json_response(get_result_json(True, settings))
-    except Exception as e:
-        print(f"{PREFIX} 获取设置失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.get_all_settings()
 
 
 # ==================== LLM 配置 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/llm")
+@api_handler("获取 LLM 配置")
 async def get_llm_config(request):
     """获取 LLM 配置（API Key 掩码）"""
-    try:
-        settings = config_manager.get_all_settings()
-        return web.json_response(get_result_json(True, settings["llm"]))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    settings = config_manager.get_all_settings()
+    return settings["llm"]
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/llm")
@@ -120,137 +114,103 @@ async def test_llm_connection(request):
 # ==================== System Prompt API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/system_prompt")
+@api_handler("获取 System Prompt")
 async def get_system_prompt(request):
     """获取 System Prompt 配置"""
-    try:
-        sp = config_manager.load_llm_system_prompt()
-        return web.json_response(get_result_json(True, sp))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.load_llm_system_prompt()
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/system_prompt")
+@api_handler("更新 System Prompt")
 async def update_system_prompt(request):
     """更新 System Prompt 配置"""
-    try:
-        data = await request.json()
-        sp = config_manager.load_llm_system_prompt()
-        for key in ["sfw_rules", "nsfw_rules", "sfw_enabled", "nsfw_enabled"]:
-            if key in data:
-                sp[key] = data[key]
-        success = config_manager.save_llm_system_prompt(sp)
-        if success:
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="保存失败"), status=500)
-    except Exception as e:
-        print(f"{PREFIX} 更新 System Prompt 失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    sp = config_manager.load_llm_system_prompt()
+    for key in ["sfw_rules", "nsfw_rules", "sfw_enabled", "nsfw_enabled"]:
+        if key in data:
+            sp[key] = data[key]
+    success = config_manager.save_llm_system_prompt(sp)
+    if not success:
+        raise Exception("保存失败")
+    return None
 
 
 # ==================== Prompt 库 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/library/sfw")
+@api_handler("获取 SFW 库")
 async def get_sfw_library(request):
     """获取 SFW Prompt 库"""
-    try:
-        sfw = config_manager.load_sfw_library()
-        return web.json_response(get_result_json(True, sfw))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.load_sfw_library()
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/library/sfw")
+@api_handler("更新 SFW 库")
 async def update_sfw_library(request):
     """更新 SFW Prompt 库"""
-    try:
-        data = await request.json()
-        success = config_manager.save_sfw_library(data)
-        if success:
-            print(f"{PREFIX} SFW Prompt 库已更新")
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="保存失败"), status=500)
-    except Exception as e:
-        print(f"{PREFIX} 更新 SFW 库失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    success = config_manager.save_sfw_library(data)
+    if not success:
+        raise Exception("保存失败")
+    return None
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/library/nsfw")
+@api_handler("获取 NSFW 库")
 async def get_nsfw_library(request):
     """获取 NSFW Prompt 库"""
-    try:
-        nsfw = config_manager.load_nsfw_library()
-        return web.json_response(get_result_json(True, nsfw))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.load_nsfw_library()
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/library/nsfw")
+@api_handler("更新 NSFW 库")
 async def update_nsfw_library(request):
     """更新 NSFW Prompt 库"""
-    try:
-        data = await request.json()
-        success = config_manager.save_nsfw_library(data)
-        if success:
-            print(f"{PREFIX} NSFW Prompt 库已更新")
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="保存失败"), status=500)
-    except Exception as e:
-        print(f"{PREFIX} 更新 NSFW 库失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    success = config_manager.save_nsfw_library(data)
+    if not success:
+        raise Exception("保存失败")
+    return None
 
 
 # ==================== 库缓存重载 API ====================
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/library/sfw_reload")
+@api_handler("重载 SFW 库")
 async def reload_sfw_library(request):
     """强制重载 SFW Prompt 库缓存"""
-    try:
-        config_manager.load_sfw_library(force_reload=True)
-        print(f"{PREFIX} SFW Prompt 库缓存已重载")
-        return web.json_response(get_result_json(True, {"message": "SFW 库缓存已重载"}))
-    except Exception as e:
-        print(f"{PREFIX} 重载 SFW 库失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    config_manager.load_sfw_library(force_reload=True)
+    return {"message": "SFW 库缓存已重载"}
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/library/nsfw_reload")
+@api_handler("重载 NSFW 库")
 async def reload_nsfw_library(request):
     """强制重载 NSFW Prompt 库缓存"""
-    try:
-        config_manager.load_nsfw_library(force_reload=True)
-        print(f"{PREFIX} NSFW Prompt 库缓存已重载")
-        return web.json_response(get_result_json(True, {"message": "NSFW 库缓存已重载"}))
-    except Exception as e:
-        print(f"{PREFIX} 重载 NSFW 库失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    config_manager.load_nsfw_library(force_reload=True)
+    return {"message": "NSFW 库缓存已重载"}
 
 
 # ==================== 负面 Prompt 编辑器 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/negative_prompt")
+@api_handler("获取负面提示词")
 async def get_negative_prompt(request):
     """获取用户自定义负面提示词"""
-    try:
-        content = config_manager.load_negative_prompt()
-        return web.json_response(get_result_json(True, {"content": content}))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    content = config_manager.load_negative_prompt()
+    return {"content": content}
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/negative_prompt")
+@api_handler("更新负面提示词")
 async def update_negative_prompt(request):
     """更新用户自定义负面提示词"""
-    try:
-        data = await request.json()
-        content = data.get("content", "")
-        success = config_manager.save_negative_prompt(content)
-        if success:
-            print(f"{PREFIX} 负面提示词已更新")
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="保存失败"), status=500)
-    except Exception as e:
-        print(f"{PREFIX} 更新负面提示词失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    content = data.get("content", "")
+    success = config_manager.save_negative_prompt(content)
+    if not success:
+        raise Exception("保存失败")
+    return None
 
 
 # ==================== AI 聊天 API ====================
@@ -290,7 +250,7 @@ async def chat_endpoint(request):
         await resp.prepare(request)
 
         # 在后台线程中运行阻塞的 LLM 调用，通过 Queue 传递 chunk
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         queue = asyncio.Queue()
 
         def _call_llm():
@@ -362,74 +322,64 @@ async def agent_endpoint(request):
 # ==================== 多服务管理 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/services")
+@api_handler("获取服务列表")
 async def api_get_services(request):
     """获取所有服务（key 脱敏）"""
-    try:
-        cfg = config_manager.load_services_config()
-        return web.json_response(get_result_json(True, {
-            "services": config_manager.get_all_services(),
-            "current": cfg.get("current", {}),
-        }))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    cfg = config_manager.load_services_config()
+    return {
+        "services": config_manager.get_all_services(),
+        "current": cfg.get("current", {}),
+    }
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/services")
+@api_handler("创建服务")
 async def api_create_service(request):
     """创建新服务"""
-    try:
-        data = await request.json()
-        svc_id = config_manager.create_service(
-            data.get("name", "新服务"),
-            data.get("api_url", ""),
-            data.get("api_key", ""),
-        )
-        return web.json_response(get_result_json(True, {"id": svc_id}))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    svc_id = config_manager.create_service(
+        data.get("name", "新服务"),
+        data.get("api_url", ""),
+        data.get("api_key", ""),
+    )
+    return {"id": svc_id}
 
 
 @PromptServer.instance.routes.put(f"{API_PREFIX}/services/{{service_id}}")
+@api_handler("更新服务")
 async def api_update_service(request):
     """更新服务"""
-    try:
-        svc_id = request.match_info["service_id"]
-        data = await request.json()
-        ok = config_manager.update_service(svc_id, data)
-        if ok:
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="服务不存在"), status=404)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    svc_id = request.match_info["service_id"]
+    data = await request.json()
+    ok = config_manager.update_service(svc_id, data)
+    if not ok:
+        raise ValueError("服务不存在")
+    return None
 
 
 @PromptServer.instance.routes.delete(f"{API_PREFIX}/services/{{service_id}}")
+@api_handler("删除服务")
 async def api_delete_service(request):
     """删除服务"""
-    try:
-        svc_id = request.match_info["service_id"]
-        ok = config_manager.delete_service(svc_id)
-        if ok:
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="无法删除（至少保留一个服务）"), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    svc_id = request.match_info["service_id"]
+    ok = config_manager.delete_service(svc_id)
+    if not ok:
+        raise ValueError("无法删除（至少保留一个服务）")
+    return None
 
 
 @PromptServer.instance.routes.put(f"{API_PREFIX}/services/current")
+@api_handler("设置当前服务")
 async def api_set_current_service(request):
     """设置类别对应服务"""
-    try:
-        data = await request.json()
-        category = data.get("category", "")
-        service_id = data.get("service_id", "")
-        model = data.get("model", "")
-        ok = config_manager.set_current_service(category, service_id, model)
-        if ok:
-            return web.json_response(get_result_json(True))
-        return web.json_response(get_result_json(False, error="无效类别"), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    category = data.get("category", "")
+    service_id = data.get("service_id", "")
+    model = data.get("model", "")
+    ok = config_manager.set_current_service(category, service_id, model)
+    if not ok:
+        raise ValueError("无效类别")
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/services/{{service_id}}/test")
@@ -455,86 +405,78 @@ async def api_test_service(request):
 # ==================== Prompt 历史 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/prompt_history")
+@api_handler("获取 prompt 历史")
 async def api_get_prompt_history(request):
     """获取 prompt 历史记录"""
-    try:
-        data = config_manager.load_prompt_history()
-        return web.json_response(get_result_json(True, data))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.load_prompt_history()
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/prompt_history")
+@api_handler("添加 prompt 历史")
 async def api_add_prompt_history(request):
     """添加 prompt 历史记录"""
-    try:
-        body = await request.json()
-        positive = body.get("positive_prompt", "")
-        negative = body.get("negative_prompt", "")
-        extra = body.get("extra")
-        ok = config_manager.add_prompt_history(positive, negative, extra)
-        return web.json_response(get_result_json(ok))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    body = await request.json()
+    positive = body.get("positive_prompt", "")
+    negative = body.get("negative_prompt", "")
+    extra = body.get("extra")
+    ok = config_manager.add_prompt_history(positive, negative, extra)
+    if not ok:
+        raise Exception("保存失败")
+    return None
 
 
 @PromptServer.instance.routes.delete(f"{API_PREFIX}/prompt_history/{{entry_id}}")
+@api_handler("删除 prompt 历史")
 async def api_delete_prompt_history(request):
     """删除单条 prompt 历史"""
-    try:
-        entry_id = request.match_info["entry_id"]
-        ok = config_manager.delete_prompt_history(entry_id)
-        return web.json_response(get_result_json(ok))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    entry_id = request.match_info["entry_id"]
+    ok = config_manager.delete_prompt_history(entry_id)
+    if not ok:
+        raise Exception("删除失败")
+    return None
 
 
 @PromptServer.instance.routes.delete(f"{API_PREFIX}/prompt_history")
+@api_handler("清空 prompt 历史")
 async def api_clear_prompt_history(request):
     """清空 prompt 历史"""
-    try:
-        ok = config_manager.clear_prompt_history()
-        return web.json_response(get_result_json(ok))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    ok = config_manager.clear_prompt_history()
+    if not ok:
+        raise Exception("清空失败")
+    return None
 
 
 @PromptServer.instance.routes.put(f"{API_PREFIX}/prompt_history/limit")
+@api_handler("设置历史上限")
 async def api_set_history_limit(request):
     """设置 prompt 历史上限"""
-    try:
-        body = await request.json()
-        limit = body.get("limit", 50)
-        ok = config_manager.set_history_limit(limit)
-        return web.json_response(get_result_json(ok))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    body = await request.json()
+    limit = body.get("limit", 50)
+    ok = config_manager.set_history_limit(limit)
+    if not ok:
+        raise Exception("设置失败")
+    return None
 
 
 # ==================== LoRA 收藏 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_favorites")
+@api_handler("获取 LoRA 收藏")
 async def api_get_lora_favorites(request):
     """获取 LoRA 收藏列表"""
-    try:
-        favorites = config_manager.load_lora_favorites()
-        return web.json_response(get_result_json(True, favorites))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return config_manager.load_lora_favorites()
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_favorites/toggle")
+@api_handler("切换 LoRA 收藏")
 async def api_toggle_lora_favorite(request):
     """切换 LoRA 收藏状态"""
-    try:
-        body = await request.json()
-        lora_path = body.get("lora", "").strip()
-        if not lora_path:
-            return web.json_response(get_result_json(False, error="缺少 lora 参数"), status=400)
-        is_fav = config_manager.toggle_lora_favorite(lora_path)
-        return web.json_response(get_result_json(True, {"favorited": is_fav}))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    body = await request.json()
+    lora_path = body.get("lora", "").strip()
+    if not lora_path:
+        raise ValueError("缺少 lora 参数")
+    is_fav = config_manager.toggle_lora_favorite(lora_path)
+    return {"favorited": is_fav}
 
 
 from .lora_group_manager import lora_group_manager  # noqa: E402
@@ -542,212 +484,164 @@ from .lora_scanner import LoraScanner  # noqa: E402
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_groups")
+@api_handler("获取群组列表")
 async def api_get_lora_groups(request):
     """获取所有群组摘要"""
-    try:
-        summary = lora_group_manager.get_group_summary()
-        return web.json_response(get_result_json(True, summary))
-    except Exception as e:
-        print(f"{PREFIX} 获取群组列表失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return lora_group_manager.get_group_summary()
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_groups/{{name}}")
+@api_handler("获取群组详情")
 async def api_get_lora_group(request):
     """获取单个群组详情"""
-    try:
-        group_name = request.match_info["name"]
-        from urllib.parse import unquote
-        group_name = unquote(group_name)
-        group = lora_group_manager.get_group(group_name)
-        if group is None:
-            return web.json_response(
-                get_result_json(False, error=f"群组 '{group_name}' 不存在"), status=404)
-        return web.json_response(get_result_json(True, group))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    group_name = request.match_info["name"]
+    from urllib.parse import unquote
+    group_name = unquote(group_name)
+    group = lora_group_manager.get_group(group_name)
+    if group is None:
+        raise ValueError(f"群组 '{group_name}' 不存在")
+    return group
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/create")
+@api_handler("创建群组")
 async def api_create_lora_group(request):
     """创建群组"""
-    try:
-        data = await request.json()
-        name = data.get("name", "").strip()
-        if not name:
-            return web.json_response(get_result_json(False, error="名称不能为空"), status=400)
-        lora_group_manager.create_group(name, data.get("description", ""))
-        print(f"{PREFIX} 创建群组: {name}")
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    name = data.get("name", "").strip()
+    if not name:
+        raise ValueError("名称不能为空")
+    lora_group_manager.create_group(name, data.get("description", ""))
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/rename")
+@api_handler("重命名群组")
 async def api_rename_lora_group(request):
     """重命名群组"""
-    try:
-        data = await request.json()
-        old_name = data.get("old_name", "").strip()
-        new_name = data.get("new_name", "").strip()
-        if not old_name or not new_name:
-            return web.json_response(get_result_json(False, error="名称不能为空"), status=400)
-        lora_group_manager.rename_group(old_name, new_name)
-        print(f"{PREFIX} 重命名群组: {old_name} → {new_name}")
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    old_name = data.get("old_name", "").strip()
+    new_name = data.get("new_name", "").strip()
+    if not old_name or not new_name:
+        raise ValueError("名称不能为空")
+    lora_group_manager.rename_group(old_name, new_name)
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/delete")
+@api_handler("删除群组")
 async def api_delete_lora_group(request):
     """删除群组"""
-    try:
-        data = await request.json()
-        name = data.get("name", "").strip()
-        if not name:
-            return web.json_response(get_result_json(False, error="名称不能为空"), status=400)
-        lora_group_manager.delete_group(name)
-        print(f"{PREFIX} 删除群组: {name}")
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    name = data.get("name", "").strip()
+    if not name:
+        raise ValueError("名称不能为空")
+    lora_group_manager.delete_group(name)
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/add_lora")
+@api_handler("添加 LoRA 到群组")
 async def api_add_lora_to_group(request):
     """向群组添加 LoRA"""
-    try:
-        data = await request.json()
-        group = data.get("group", "").strip()
-        lora = data.get("lora", "").strip()
-        if not group or not lora:
-            return web.json_response(get_result_json(False, error="参数不完整"), status=400)
-        lora_group_manager.add_lora(
-            group, lora,
-            weight=data.get("weight", 1.0),
-            clip_weight=data.get("clip_weight", 1.0)
-        )
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    group = data.get("group", "").strip()
+    lora = data.get("lora", "").strip()
+    if not group or not lora:
+        raise ValueError("参数不完整")
+    lora_group_manager.add_lora(
+        group, lora,
+        weight=data.get("weight", 1.0),
+        clip_weight=data.get("clip_weight", 1.0)
+    )
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/remove_lora")
+@api_handler("从群组移除 LoRA")
 async def api_remove_lora_from_group(request):
     """从群组移除 LoRA"""
-    try:
-        data = await request.json()
-        group = data.get("group", "").strip()
-        lora = data.get("lora", "").strip()
-        if not group or not lora:
-            return web.json_response(get_result_json(False, error="参数不完整"), status=400)
-        lora_group_manager.remove_lora(group, lora)
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    group = data.get("group", "").strip()
+    lora = data.get("lora", "").strip()
+    if not group or not lora:
+        raise ValueError("参数不完整")
+    lora_group_manager.remove_lora(group, lora)
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/update_lora")
+@api_handler("更新群组 LoRA")
 async def api_update_lora_in_group(request):
     """更新群组中 LoRA 的属性"""
-    try:
-        data = await request.json()
-        group = data.get("group", "").strip()
-        lora = data.get("lora", "").strip()
-        if not group or not lora:
-            return web.json_response(get_result_json(False, error="参数不完整"), status=400)
-        updates = {}
-        for key in ("weight", "clip_weight", "enabled", "note"):
-            if key in data:
-                updates[key] = data[key]
-        lora_group_manager.update_lora(group, lora, **updates)
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    group = data.get("group", "").strip()
+    lora = data.get("lora", "").strip()
+    if not group or not lora:
+        raise ValueError("参数不完整")
+    updates = {}
+    for key in ("weight", "clip_weight", "enabled", "note"):
+        if key in data:
+            updates[key] = data[key]
+    lora_group_manager.update_lora(group, lora, **updates)
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_groups/reorder")
+@api_handler("重排群组 LoRA")
 async def api_reorder_loras(request):
     """重排群组内 LoRA 顺序"""
-    try:
-        data = await request.json()
-        group = data.get("group", "").strip()
-        order = data.get("order", [])
-        if not group:
-            return web.json_response(get_result_json(False, error="群组名不能为空"), status=400)
-        lora_group_manager.reorder_loras(group, order)
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    data = await request.json()
+    group = data.get("group", "").strip()
+    order = data.get("order", [])
+    if not group:
+        raise ValueError("群组名不能为空")
+    lora_group_manager.reorder_loras(group, order)
+    return None
 
 
 # ==================== LoRA 扫描 API ====================
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_scan/list")
+@api_handler("获取 LoRA 列表")
 async def api_lora_list(request):
     """全量 LoRA 列表"""
-    try:
-        return web.json_response(get_result_json(True, LoraScanner.list_all()))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return LoraScanner.list_all()
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_scan/folders")
+@api_handler("获取 LoRA 文件夹")
 async def api_lora_folders(request):
     """文件夹树"""
-    try:
-        return web.json_response(get_result_json(True, LoraScanner.list_folders()))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return LoraScanner.list_folders()
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_scan/search")
+@api_handler("搜索 LoRA")
 async def api_lora_search(request):
     """模糊搜索"""
-    try:
-        q = request.query.get("q", "")
-        return web.json_response(get_result_json(True, LoraScanner.search(q)))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    q = request.query.get("q", "")
+    return LoraScanner.search(q)
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_scan/metadata")
+@api_handler("获取 LoRA 元数据")
 async def api_lora_metadata(request):
     """单个 LoRA 元数据"""
-    try:
-        name = request.query.get("name", "")
-        if not name:
-            return web.json_response(get_result_json(False, error="缺少 name 参数"), status=400)
-        return web.json_response(get_result_json(True, LoraScanner.get_metadata(name)))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    name = request.query.get("name", "")
+    if not name:
+        raise ValueError("缺少 name 参数")
+    return LoraScanner.get_metadata(name)
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_scan/info")
+@api_handler("获取 LoRA 信息")
 async def api_lora_info(request):
     """获取 LoRA 完整信息（hash、训练词等），带 sidecar 缓存"""
-    try:
-        name = request.query.get("name", "")
-        if not name:
-            return web.json_response(get_result_json(False, error="缺少 name 参数"), status=400)
-        return web.json_response(get_result_json(True, LoraScanner.get_lora_info(name)))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    name = request.query.get("name", "")
+    if not name:
+        raise ValueError("缺少 name 参数")
+    return LoraScanner.get_lora_info(name)
 
 
 # ==================== LoRA Prompt 管理 API ====================
@@ -756,98 +650,78 @@ from .lora_prompt_manager import lora_prompt_manager  # noqa: E402
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_prompts")
+@api_handler("获取全部 LoRA prompt")
 async def api_get_all_lora_prompts(request):
     """获取全部 LoRA prompt 配置"""
-    try:
-        data = lora_prompt_manager.load_all()
-        return web.json_response(get_result_json(True, data))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    return lora_prompt_manager.load_all()
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/lora_prompts/{{lora_path}}")
+@api_handler("获取 LoRA prompt 组")
 async def api_get_lora_prompts(request):
     """获取单个 LoRA 的 prompt 组"""
-    try:
-        from urllib.parse import unquote
-        lora_path = unquote(request.match_info["lora_path"])
-        data = lora_prompt_manager.get_lora_prompts(lora_path)
-        return web.json_response(get_result_json(True, data))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    from urllib.parse import unquote
+    lora_path = unquote(request.match_info["lora_path"])
+    return lora_prompt_manager.get_lora_prompts(lora_path)
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_prompts/{{lora_path}}")
+@api_handler("设置 LoRA prompt 组")
 async def api_set_lora_prompts(request):
     """设置某个 LoRA 的全部 prompt 组"""
-    try:
-        from urllib.parse import unquote
-        lora_path = unquote(request.match_info["lora_path"])
-        data = await request.json()
-        groups = data.get("groups", [])
-        lora_prompt_manager.set_lora_prompts(lora_path, groups)
-        return web.json_response(get_result_json(True))
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    from urllib.parse import unquote
+    lora_path = unquote(request.match_info["lora_path"])
+    data = await request.json()
+    groups = data.get("groups", [])
+    lora_prompt_manager.set_lora_prompts(lora_path, groups)
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_prompts/{{lora_path}}/add_group")
+@api_handler("添加 LoRA prompt 组")
 async def api_add_lora_prompt_group(request):
     """为 LoRA 添加 prompt 组"""
-    try:
-        from urllib.parse import unquote
-        lora_path = unquote(request.match_info["lora_path"])
-        data = await request.json()
-        name = data.get("name", "").strip()
-        if not name:
-            return web.json_response(get_result_json(False, error="组名不能为空"), status=400)
-        lora_prompt_manager.add_group(
-            lora_path, name,
-            prompts=data.get("prompts", []),
-            negative=data.get("negative", ""),
-        )
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    from urllib.parse import unquote
+    lora_path = unquote(request.match_info["lora_path"])
+    data = await request.json()
+    name = data.get("name", "").strip()
+    if not name:
+        raise ValueError("组名不能为空")
+    lora_prompt_manager.add_group(
+        lora_path, name,
+        prompts=data.get("prompts", []),
+        negative=data.get("negative", ""),
+    )
+    return None
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/lora_prompts/{{lora_path}}/update_group")
+@api_handler("更新 LoRA prompt 组")
 async def api_update_lora_prompt_group(request):
     """更新 LoRA 的 prompt 组"""
-    try:
-        from urllib.parse import unquote
-        lora_path = unquote(request.match_info["lora_path"])
-        data = await request.json()
-        group_name = data.get("group_name", "").strip()
-        if not group_name:
-            return web.json_response(get_result_json(False, error="组名不能为空"), status=400)
-        updates = {}
-        for key in ("name", "prompts", "negative"):
-            if key in data:
-                updates[key] = data[key]
-        lora_prompt_manager.update_group(lora_path, group_name, **updates)
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    from urllib.parse import unquote
+    lora_path = unquote(request.match_info["lora_path"])
+    data = await request.json()
+    group_name = data.get("group_name", "").strip()
+    if not group_name:
+        raise ValueError("组名不能为空")
+    updates = {}
+    for key in ("name", "prompts", "negative"):
+        if key in data:
+            updates[key] = data[key]
+    lora_prompt_manager.update_group(lora_path, group_name, **updates)
+    return None
 
 
 @PromptServer.instance.routes.delete(f"{API_PREFIX}/lora_prompts/{{lora_path}}/group/{{group_name}}")
+@api_handler("删除 LoRA prompt 组")
 async def api_delete_lora_prompt_group(request):
     """删除 LoRA 的 prompt 组"""
-    try:
-        from urllib.parse import unquote
-        lora_path = unquote(request.match_info["lora_path"])
-        group_name = unquote(request.match_info["group_name"])
-        lora_prompt_manager.delete_group(lora_path, group_name)
-        return web.json_response(get_result_json(True))
-    except ValueError as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=400)
-    except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+    from urllib.parse import unquote
+    lora_path = unquote(request.match_info["lora_path"])
+    group_name = unquote(request.match_info["group_name"])
+    lora_prompt_manager.delete_group(lora_path, group_name)
+    return None
 
 
 print(f"{PREFIX} LoRA 群组管理 API 路由已注册")

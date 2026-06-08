@@ -249,7 +249,7 @@ function buildAboutSection() {
     card.innerHTML = `
         <div class="pc-section-body">
             <div class="pc-about-row">
-                <span>PromptCraft v1.2.5 Mod2</span>
+                <span>PromptCraft v1.3.5</span>
                 <span class="pc-about-dot"></span>
                 <span>Author: Moton</span>
             </div>

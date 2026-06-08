@@ -61,6 +61,7 @@ def _load_project_package():
         'cache_utils', 'thinking_control', 'agent_prompt',
         'config_manager', 'lora_scanner', 'lora_group_manager',
         'lora_prompt_manager', 'lora_utils', 'llm_client',
+        'legacy_migration',  # 必须在 prompt_enhancer 之前加载
         'prompt_enhancer', 'model_lora_loader', 'lora_prompt_loader',
         'clip_text_encode_pro', 'ai_chat',
     ]

@@ -10,85 +10,17 @@ import json
 import random
 from .config_manager import config_manager
 from .llm_client import LLMClient
+from .legacy_migration import (
+    LEGACY_KEY_MAP, LEGACY_RANDOM_MAP, LEGACY_EXPAND_MAP,
+    LEGACY_SUBGROUP_PREFIX_MAP,
+)
 from server import PromptServer
 
 
-# ==================== 旧版中文 key 迁移映射 ====================
-# 用于兼容旧 workflow 中保存的中文 key 和中文协议值
-
-LEGACY_KEY_MAP = {
-    "用户Prompt": "user_prompt",
-    "主体人数": "subject_count",
-    "场景类型": "scene_type",
-    "动作姿态": "action_pose",
-    "服饰细节": "clothing_detail",
-    "表情状态": "expression",
-    "权重_场景": "weight_scene",
-    "权重_动作": "weight_action",
-    "权重_服饰细节": "weight_clothing",
-    "权重_状态": "weight_expression",
-    "机位角度": "camera_angle",
-    "镜头类型": "shot_type",
-    "特效镜头": "special_effect",
-    "镜头滤镜": "lens_filter",
-    "光线类型": "lighting",
-    "视觉风格": "visual_style",
-    "质量等级": "quality_level",
-    "时间设定": "time_setting",
-    "情绪表达(忌与表情状态同时随机)": "mood_expression",
-    "预设配置": "preset",
-    "语言大模型接入": "llm_enabled",
-    "扩写模式": "expand_mode",
-    "特殊内容": "nsfw_content",
-    "负面提示词类型": "negative_type",
-    "大模型提示词": "llm_instruction",
-}
-
-LEGACY_RANDOM_MAP = {
-    "🎲 随机选择": "random_all",
-    "🎲 仅在普通内容库随机": "random_sfw",
-    "🎲 仅在SFW库随机": "random_sfw",
-    "🎲 仅在特殊内容库随机": "random_nsfw",
-    "——": "skip",
-    "自定义": "custom",
-}
-
-LEGACY_EXPAND_MAP = {
-    "基础扩写": "basic",
-    "详细扩写": "detailed",
-    "普通扩写": "standard",
-}
-
-# Library JSON category key migration (same mapping, used by config_manager)
-LIBRARY_KEY_MAP = {
-    "场景类型": "scene_type",
-    "动作姿态": "action_pose",
-    "服饰细节": "clothing_detail",
-    "表情状态": "expression",
-    "机位角度": "camera_angle",
-    "镜头类型": "shot_type",
-    "特效镜头": "special_effect",
-    "镜头滤镜": "lens_filter",
-    "光线类型": "lighting",
-    "视觉风格": "visual_style",
-    "质量等级": "quality_level",
-    "负面提示词": "negative_prompt",
-    "时间设定": "time_setting",
-    "情绪表达": "mood_expression",
-}
-
-# Preset internal key migration (keys inside each preset entry)
-PRESET_KEY_MAP = {
-    "场景类型": "scene_type",
-    "动作姿态": "action_pose",
-    "服饰细节": "clothing_detail",
-    "表情状态": "expression",
-}
-
-# 子组随机标记前缀迁移（中文前缀 → 英文前缀）
-LEGACY_SUBGROUP_PREFIX_MAP = {
-    "🎲 随机·": "random_group_",
-}
+class LLMInterruptException(Exception):
+    """用户中断 LLM 调用时抛出，由 generate() 捕获并返回部分结果"""
+    def __init__(self, positive_prompt):
+        self.positive_prompt = positive_prompt
 
 
 class PromptEnhancer:
@@ -351,7 +283,7 @@ class PromptEnhancer:
 
     def generate(self, **kwargs):
         """
-        主生成函数
+        主生成函数（调度器）
         每分类独立解析 4 种随机模式：
           skip              → 跳过
           random_all        → 跟随全局特殊内容开关决定库
@@ -359,12 +291,33 @@ class PromptEnhancer:
           random_nsfw       → 强制NSFW库（需特殊内容开启才生效）
           特定标签          → 从对应库查找映射
         """
-        # 迁移旧版中文 key（幂等）
         kwargs = self._prepare_kwargs(kwargs)
-
         special_enabled = kwargs.get("nsfw_content", False)
 
-        # ========== LoRA Prompt 注入（最前端，LLM 不碰） ==========
+        lora_pos, lora_neg = self._inject_lora_prompts(kwargs)
+        positive_prompt = self._build_prompt(kwargs, special_enabled, lora_pos)
+
+        try:
+            positive_prompt, llm_enhanced = self._enhance_with_llm(
+                positive_prompt, kwargs, lora_pos
+            )
+        except LLMInterruptException as e:
+            return (e.positive_prompt, "", "LLM调用被用户中断")
+
+        negative_prompt = self._generate_negative(
+            kwargs.get("negative_type", "标准"), lora_neg
+        )
+
+        full_info = self._build_info(positive_prompt, negative_prompt, llm_enhanced, special_enabled)
+        self._save_history(positive_prompt, negative_prompt, llm_enhanced, special_enabled)
+
+        return (positive_prompt, negative_prompt, full_info)
+
+    # ==================== generate() 子函数 ====================
+
+    @staticmethod
+    def _inject_lora_prompts(kwargs):
+        """从 lora_prompt_data JSON 中提取 LoRA 正面/负面提示词。"""
         lora_prompt_elements = []
         lora_negative_elements = []
         lora_prompt_raw = kwargs.get("lora_prompt_data", "")
@@ -383,14 +336,14 @@ class PromptEnhancer:
                     print(f"[PromptCraft] LoRA Prompt 注入: {len(lora_prompt_elements)} 条提示词")
             except (json.JSONDecodeError, TypeError, AttributeError):
                 pass
+        return lora_prompt_elements, lora_negative_elements
 
-        # 构建prompt元素列表
+    def _build_prompt(self, kwargs, special_enabled, lora_prompt_elements):
+        """构建正面提示词：预设 → 主体 → 用户输入 → 各分类标签。"""
         prompt_elements = []
-
-        # LoRA prompt 放在最前面
         prompt_elements.extend(lora_prompt_elements)
 
-        # 1. 处理预设配置
+        # 预设配置覆盖
         preset_name = kwargs.get("preset", self.NO_SELECTION)
         if preset_name and preset_name != self.NO_SELECTION:
             sfw = self._load_prompt_library()
@@ -400,206 +353,165 @@ class PromptEnhancer:
                     if key in preset_data:
                         kwargs[key] = preset_data[key]
 
-        # 3. 主体标签（仅从SFW库查找）
+        # 主体标签
         subject_count = kwargs.get("subject_count", self.NO_SELECTION)
         if subject_count and subject_count != self.NO_SELECTION:
             mapped = self._get_mapped_value_sfw("trigger_words", "核心标签", subject_count)
             if mapped:
                 prompt_elements.append(mapped)
 
-        # 4. 用户Prompt（放在库标签之前）
+        # 用户 Prompt
         user_prompt = kwargs.get("user_prompt", "").strip()
         if user_prompt:
             prompt_elements.append(user_prompt)
 
-        # 5. 核心内容分类
-        weight_scene = kwargs.get("weight_scene", 1.0)
-        weight_action = kwargs.get("weight_action", 1.0)
-        weight_clothing = kwargs.get("weight_clothing", 1.0)
-        weight_expression = kwargs.get("weight_expression", 1.0)
-
-        core_categories = [
-            ("scene_type", weight_scene),
-            ("action_pose", weight_action),
-            ("clothing_detail", weight_clothing),
-            ("expression", weight_expression),
-        ]
-
-        for cat_key, weight in core_categories:
+        # 核心内容分类（带权重）
+        for cat_key, weight_key in [
+            ("scene_type", "weight_scene"), ("action_pose", "weight_action"),
+            ("clothing_detail", "weight_clothing"), ("expression", "weight_expression"),
+        ]:
             en_tag = self._resolve_category_selection(cat_key, kwargs.get(cat_key, self.NO_SELECTION), special_enabled)
             if en_tag:
-                prompt_elements.append(self._apply_weight(en_tag, weight))
+                prompt_elements.append(self._apply_weight(en_tag, kwargs.get(weight_key, 1.0)))
 
-        # 6. 技术参数
-        tech_categories = [
-            "camera_angle", "shot_type",
-            "special_effect", "lens_filter"
-        ]
-        for cat_key in tech_categories:
+        # 技术参数
+        for cat_key in ["camera_angle", "shot_type", "special_effect", "lens_filter"]:
             en_tag = self._resolve_category_selection(cat_key, kwargs.get(cat_key, self.NO_SELECTION), special_enabled)
             if en_tag:
                 prompt_elements.append(en_tag)
 
-        # 7. 光影与色彩
-        lighting_categories = ["lighting"]
-        for cat_key in lighting_categories:
-            en_tag = self._resolve_category_selection(cat_key, kwargs.get(cat_key, self.NO_SELECTION), special_enabled)
-            if en_tag:
-                prompt_elements.append(en_tag)
-
-        # 8. 视觉风格
-        visual_style = kwargs.get("visual_style", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("visual_style", visual_style, special_enabled)
+        # 光影与色彩
+        en_tag = self._resolve_category_selection("lighting", kwargs.get("lighting", self.NO_SELECTION), special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
-        # 9. 质量等级（仅从SFW库）
+        # 视觉风格
+        en_tag = self._resolve_category_selection("visual_style", kwargs.get("visual_style", self.NO_SELECTION), special_enabled)
+        if en_tag:
+            prompt_elements.append(en_tag)
+
+        # 质量等级（仅 SFW 库）
         quality_level = kwargs.get("quality_level", self.NO_SELECTION)
         if quality_level and quality_level != self.NO_SELECTION and quality_level not in (self.RANDOM_SELECTION, self.RANDOM_SFW):
             mapped = self._get_mapped_value_sfw("categories", "quality_level", quality_level)
             if mapped:
                 prompt_elements.append(mapped)
 
-        # 10. 时间设定
-        time_setting = kwargs.get("time_setting", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("time_setting", time_setting, special_enabled)
+        # 时间设定
+        en_tag = self._resolve_category_selection("time_setting", kwargs.get("time_setting", self.NO_SELECTION), special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
-        # 11. 情绪表达
-        mood_expression = kwargs.get("mood_expression", self.NO_SELECTION)
-        en_tag = self._resolve_category_selection("mood_expression", mood_expression, special_enabled)
+        # 情绪表达
+        en_tag = self._resolve_category_selection("mood_expression", kwargs.get("mood_expression", self.NO_SELECTION), special_enabled)
         if en_tag:
             prompt_elements.append(en_tag)
 
-        # ========== 拼接正面提示词 ==========
-        if prompt_elements:
-            positive_prompt = ", ".join(prompt_elements)
-        else:
-            positive_prompt = "masterpiece, best quality"
+        return ", ".join(prompt_elements) if prompt_elements else "masterpiece, best quality"
 
-        # ========== 语言大模型接入增强 ==========
+    def _enhance_with_llm(self, positive_prompt, kwargs, lora_prompt_elements):
+        """
+        调用 LLM 增强正面提示词。
+        返回 (enhanced_prompt, llm_enhanced)。
+        用户中断时抛出 LLMInterruptException。
+        """
         llm_enhanced = False
         expand_mode = kwargs.get("expand_mode", "basic")
         llm_client = self._get_llm_client(expand_mode)
-        if llm_client.is_enabled():
-            if kwargs.get("llm_enabled", False):
-                print(f"[PromptCraft] 正在调用大模型增强（{expand_mode}）...")
-                # 发送状态事件到前端：调用中
-                PromptServer.instance.send_sync("promptcraft.llm_status", {
-                    "status": "calling",
-                    "messageKey": "llm.status_calling"
-                })
-                is_detailed = (expand_mode == "detailed")
-                llm_hint = kwargs.get("llm_instruction", "").strip()
 
-                # 保存大模型提示词到持久化存储
-                if llm_hint:
-                    try:
-                        config_manager.save_llm_hint(llm_hint)
-                    except Exception:
-                        pass
-
-                # LoRA 标记保护：用 /// 包裹 LoRA 标签，LLM 不得修改
-                lora_tag_str = ""
-                if lora_prompt_elements:
-                    lora_tag_str = "///" + ", ".join(lora_prompt_elements) + "///"
-
-                # 使用线程执行 LLM 调用，支持中断检测
-                import threading
-                result_container = {}
-
-                def _llm_call(container):
-                    try:
-                        container['result'] = llm_client.enhance_prompt(
-                            positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
-                            lora_tags=lora_tag_str
-                        )
-                    except Exception as e:
-                        container['error'] = str(e)
-
-                thread = threading.Thread(target=_llm_call, args=(result_container,))
-                thread.start()
-
-                # 轮询等待结果，同时检查中断
-                while thread.is_alive():
-                    thread.join(timeout=0.5)
-                    if not thread.is_alive():
-                        break
-                    # 检查 ComfyUI 中断信号
-                    try:
-                        import nodes
-                        nodes.before_node_execution()
-                    except KeyboardInterrupt:
-                        print("[PromptCraft] ⚠ 用户中断 LLM 调用")
-                        PromptServer.instance.send_sync("promptcraft.llm_status", {
-                            "status": "interrupted",
-                            "messageKey": "llm.status_interrupted"
-                        })
-                        return (positive_prompt, "", "LLM调用被用户中断")
-                    except Exception:
-                        pass
-
-                if 'error' in result_container:
-                    print(f"[PromptCraft] LLM调用异常: {result_container['error']}")
-                    enhanced = None
-                else:
-                    enhanced = result_container.get('result')
-                if enhanced and enhanced.strip():
-                    result = enhanced.strip()
-                    # 后验证：检查 LoRA 标签是否被 LLM 改写或丢弃
-                    if lora_prompt_elements:
-                        result_lower = result.lower()
-                        missing = [t for t in lora_prompt_elements if t.lower() not in result_lower]
-                        if missing:
-                            print(f"[PromptCraft] ⚠ LoRA 标签丢失 {len(missing)}/{len(lora_prompt_elements)} 条，自动补回")
-                            # 移除可能残留的标记符号后，把原始 LoRA 标签加回最前面
-                            result = result.replace("///", "").strip().lstrip(",").strip()
-                            result = ", ".join(lora_prompt_elements) + ", " + result
-                        else:
-                            print("[PromptCraft] ✓ LoRA 标签验证通过")
-                            result = result.replace("///", "").strip()
-                    positive_prompt = result
-                    llm_enhanced = True
-                    print("[PromptCraft] 大模型增强成功")
-                    # 发送状态事件到前端：成功
-                    PromptServer.instance.send_sync("promptcraft.llm_status", {
-                        "status": "success",
-                        "messageKey": "llm.status_success"
-                    })
-                else:
-                    print("[PromptCraft] 大模型增强失败，使用原始prompt")
-                    # 发送状态事件到前端：失败
-                    PromptServer.instance.send_sync("promptcraft.llm_status", {
-                        "status": "error",
-                        "messageKey": "llm.status_failed"
-                    })
-            else:
-                print("[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")
-        else:
+        if not llm_client.is_enabled():
             print("[PromptCraft] 大模型未在设置面板中启用或配置不完整，跳过增强")
+            return positive_prompt, llm_enhanced
 
-        # ========== 生成负面提示词 ==========
-        negative_prompt = self._generate_negative(
-            kwargs.get("negative_type", "标准")
-        )
-        # 追加 LoRA 负面提示词
-        if lora_negative_elements:
-            neg_extra = ", ".join(lora_negative_elements)
-            negative_prompt = f"{negative_prompt}, {neg_extra}" if negative_prompt else neg_extra
+        if not kwargs.get("llm_enabled", False):
+            print("[PromptCraft] 节点未开启【语言大模型接入】，跳过增强")
+            return positive_prompt, llm_enhanced
 
-        # ========== 构建完整信息 ==========
-        info_parts = [f"**Positive ({len(positive_prompt)} chars):** {positive_prompt[:200]}..."]
-        info_parts.append(f"**Negative:** {negative_prompt[:150]}...")
-        if llm_enhanced:
-            info_parts.append("**大模型:** ✅ 增强成功")
-        info_parts.append(f"**特殊内容:** {'启用' if special_enabled else '禁用'}")
+        print(f"[PromptCraft] 正在调用大模型增强（{expand_mode}）...")
+        PromptServer.instance.send_sync("promptcraft.llm_status", {
+            "status": "calling", "messageKey": "llm.status_calling"
+        })
 
-        full_info = "\n".join(info_parts)
+        is_detailed = (expand_mode == "detailed")
+        llm_hint = kwargs.get("llm_instruction", "").strip()
 
-        print(f"[PromptCraft] 生成完成 | Positive: {len(positive_prompt)} chars | Negative: {len(negative_prompt)} chars | 特殊内容: {special_enabled}")
+        if llm_hint:
+            try:
+                config_manager.save_llm_hint(llm_hint)
+            except Exception:
+                pass
 
-        # ========== 自动保存 Prompt 历史 ==========
+        lora_tag_str = ""
+        if lora_prompt_elements:
+            lora_tag_str = "///" + ", ".join(lora_prompt_elements) + "///"
+
+        import threading
+        result_container = {}
+
+        def _llm_call(container):
+            try:
+                container['result'] = llm_client.enhance_prompt(
+                    positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
+                    lora_tags=lora_tag_str
+                )
+            except Exception as e:
+                container['error'] = str(e)
+
+        # daemon=True: 用户中断时线程不阻塞进程退出
+        thread = threading.Thread(target=_llm_call, args=(result_container,), daemon=True)
+        thread.start()
+
+        while thread.is_alive():
+            thread.join(timeout=0.5)
+            if not thread.is_alive():
+                break
+            try:
+                import nodes
+                nodes.before_node_execution()
+            except KeyboardInterrupt:
+                print("[PromptCraft] ⚠ 用户中断 LLM 调用")
+                PromptServer.instance.send_sync("promptcraft.llm_status", {
+                    "status": "interrupted", "messageKey": "llm.status_interrupted"
+                })
+                raise LLMInterruptException(positive_prompt)
+            except Exception:
+                pass
+
+        if 'error' in result_container:
+            print(f"[PromptCraft] LLM调用异常: {result_container['error']}")
+            enhanced = None
+        else:
+            enhanced = result_container.get('result')
+
+        if enhanced and enhanced.strip():
+            result = enhanced.strip()
+            if lora_prompt_elements:
+                result_lower = result.lower()
+                missing = [t for t in lora_prompt_elements if t.lower() not in result_lower]
+                if missing:
+                    print(f"[PromptCraft] ⚠ LoRA 标签丢失 {len(missing)}/{len(lora_prompt_elements)} 条，自动补回")
+                    result = result.replace("///", "").strip().lstrip(",").strip()
+                    result = ", ".join(lora_prompt_elements) + ", " + result
+                else:
+                    print("[PromptCraft] ✓ LoRA 标签验证通过")
+                    result = result.replace("///", "").strip()
+            positive_prompt = result
+            llm_enhanced = True
+            print("[PromptCraft] 大模型增强成功")
+            PromptServer.instance.send_sync("promptcraft.llm_status", {
+                "status": "success", "messageKey": "llm.status_success"
+            })
+        else:
+            print("[PromptCraft] 大模型增强失败，使用原始prompt")
+            PromptServer.instance.send_sync("promptcraft.llm_status", {
+                "status": "error", "messageKey": "llm.status_failed"
+            })
+
+        return positive_prompt, llm_enhanced
+
+    @staticmethod
+    def _save_history(positive_prompt, negative_prompt, llm_enhanced, special_enabled):
+        """保存 Prompt 历史记录。"""
         try:
             config_manager.add_prompt_history(
                 positive_prompt, negative_prompt,
@@ -608,7 +520,21 @@ class PromptEnhancer:
         except Exception as e:
             print(f"[PromptCraft] 保存历史记录失败: {e}")
 
-        return (positive_prompt, negative_prompt, full_info)
+    @staticmethod
+    def _build_info(positive_prompt, negative_prompt, llm_enhanced, special_enabled):
+        """构建生成结果的摘要信息。"""
+        pos_preview = positive_prompt[:200]
+        pos_suffix = "..." if len(positive_prompt) > 200 else ""
+        neg_preview = negative_prompt[:150]
+        neg_suffix = "..." if len(negative_prompt) > 150 else ""
+        info_parts = [f"**Positive ({len(positive_prompt)} chars):** {pos_preview}{pos_suffix}"]
+        info_parts.append(f"**Negative:** {neg_preview}{neg_suffix}")
+        if llm_enhanced:
+            info_parts.append("**大模型:** ✅ 增强成功")
+        info_parts.append(f"**特殊内容:** {'启用' if special_enabled else '禁用'}")
+        full_info = "\n".join(info_parts)
+        print(f"[PromptCraft] 生成完成 | Positive: {len(positive_prompt)} chars | Negative: {len(negative_prompt)} chars | 特殊内容: {special_enabled}")
+        return full_info
 
     # ==================== 分类解析 ====================
 
@@ -781,16 +707,25 @@ class PromptEnhancer:
             end_brackets = "]" * bracket_count
             return f"{brackets}{tag}{end_brackets}"
 
-    def _generate_negative(self, negative_type):
-        """生成负面提示词 — 从双库 categories.negative_prompt 中查找"""
+    def _generate_negative(self, negative_type, lora_negative_elements=None):
+        """生成负面提示词 — 从双库 categories.negative_prompt 中查找，追加 LoRA 负面提示词"""
         if not negative_type or negative_type == self.NO_SELECTION:
-            return "low quality, worst quality, normal quality"
+            negative_prompt = "low quality, worst quality, normal quality"
+        else:
+            negative_prompt = "low quality, worst quality, normal quality"
+            found = False
+            for lib in [self._load_prompt_library(False, False), self._load_prompt_library(False, True)]:
+                if found:
+                    break
+                cat = lib.get("categories", {}).get("negative_prompt", {})
+                for opt in cat.get("options", []):
+                    if opt.get("label") == negative_type:
+                        negative_prompt = opt.get("en", "low quality, worst quality")
+                        found = True
+                        break
 
-        # 从双库的 categories.negative_prompt 中查找
-        for lib in [self._load_prompt_library(False, False), self._load_prompt_library(False, True)]:
-            cat = lib.get("categories", {}).get("negative_prompt", {})
-            for opt in cat.get("options", []):
-                if opt.get("label") == negative_type:
-                    return opt.get("en", "low quality, worst quality")
+        if lora_negative_elements:
+            neg_extra = ", ".join(lora_negative_elements)
+            negative_prompt = f"{negative_prompt}, {neg_extra}" if negative_prompt else neg_extra
 
-        return "low quality, worst quality, normal quality"
+        return negative_prompt

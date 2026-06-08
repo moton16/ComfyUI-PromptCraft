@@ -1,12 +1,12 @@
 """
 PromptEnhancer 核心节点测试
-覆盖: 选项构建 / 随机选择 / 子组收集 / 节点属性 / 迁移兼容
+覆盖: 选项构建 / 随机选择 / 子组收集 / 节点属性 / 迁移兼容 / 子函数单元测试
 """
 
 import pytest
 from unittest.mock import patch, MagicMock
-from promptcraft.prompt_enhancer import (
-    PromptEnhancer,
+from promptcraft.prompt_enhancer import PromptEnhancer, LLMInterruptException
+from promptcraft.legacy_migration import (
     LEGACY_KEY_MAP,
     LEGACY_RANDOM_MAP,
     LEGACY_EXPAND_MAP,
@@ -375,3 +375,143 @@ class TestGenerateIntegration:
         positive, negative, info = result
         assert isinstance(positive, str)
         assert len(positive) > 0
+
+
+class TestInjectLoraPrompts:
+    """_inject_lora_prompts 单元测试"""
+
+    def test_empty_data(self):
+        """空数据返回空列表"""
+        pos, neg = PromptEnhancer._inject_lora_prompts({})
+        assert pos == []
+        assert neg == []
+
+    def test_invalid_json(self):
+        """无效 JSON 返回空列表"""
+        pos, neg = PromptEnhancer._inject_lora_prompts({"lora_prompt_data": "not json"})
+        assert pos == []
+        assert neg == []
+
+    def test_empty_json_object(self):
+        """空 JSON 对象返回空列表"""
+        pos, neg = PromptEnhancer._inject_lora_prompts({"lora_prompt_data": "{}"})
+        assert pos == []
+        assert neg == []
+
+    def test_valid_lora_data(self):
+        """有效 LoRA 数据提取正面/负面提示词"""
+        import json
+        data = {
+            "lora_prompt_data": json.dumps({
+                "style/cyber.safetensors": {
+                    "groups": [
+                        {"name": "默认", "prompts": ["neon lights", "cyberpunk city"], "negative": "daylight"},
+                        {"name": "战斗", "prompts": ["energy blast"], "negative": ""},
+                    ]
+                }
+            })
+        }
+        pos, neg = PromptEnhancer._inject_lora_prompts(data)
+        assert "neon lights" in pos
+        assert "cyberpunk city" in pos
+        assert "energy blast" in pos
+        assert "daylight" in neg
+
+    def test_dedup_prompts(self):
+        """重复提示词自动去重"""
+        import json
+        data = {
+            "lora_prompt_data": json.dumps({
+                "a.safetensors": {"groups": [{"name": "默认", "prompts": ["tag1"], "negative": ""}]},
+                "b.safetensors": {"groups": [{"name": "默认", "prompts": ["tag1"], "negative": ""}]},
+            })
+        }
+        pos, _ = PromptEnhancer._inject_lora_prompts(data)
+        assert pos.count("tag1") == 1
+
+
+class TestBuildPrompt:
+    """_build_prompt 单元测试"""
+
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_empty_kwargs_returns_default(self, mock_cm):
+        """空 kwargs 返回默认提示词"""
+        mock_cm.load_sfw_library.return_value = {"categories": {}, "presets": {}}
+        mock_cm.load_nsfw_library.return_value = {"categories": {}}
+        node = PromptEnhancer()
+        result = node._build_prompt({}, False, [])
+        assert result == "masterpiece, best quality"
+
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_user_prompt_included(self, mock_cm):
+        """用户提示词被包含在结果中"""
+        mock_cm.load_sfw_library.return_value = {"categories": {}, "presets": {}}
+        mock_cm.load_nsfw_library.return_value = {"categories": {}}
+        node = PromptEnhancer()
+        result = node._build_prompt({"user_prompt": "a beautiful sunset"}, False, [])
+        assert "a beautiful sunset" in result
+
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_lora_elements_prepended(self, mock_cm):
+        """LoRA 提示词放在最前面"""
+        mock_cm.load_sfw_library.return_value = {"categories": {}, "presets": {}}
+        mock_cm.load_nsfw_library.return_value = {"categories": {}}
+        node = PromptEnhancer()
+        result = node._build_prompt({"user_prompt": "test"}, False, ["lora_tag_1"])
+        assert result.startswith("lora_tag_1")
+
+
+class TestGenerateNegative:
+    """_generate_negative 单元测试"""
+
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_default_negative(self, mock_cm):
+        """默认负面提示词"""
+        mock_cm.load_sfw_library.return_value = {"categories": {"negative_prompt": {"options": []}}}
+        mock_cm.load_nsfw_library.return_value = {"categories": {}}
+        node = PromptEnhancer()
+        result = node._generate_negative("标准")
+        assert "low quality" in result
+
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_lora_negatives_appended(self, mock_cm):
+        """LoRA 负面提示词被追加"""
+        mock_cm.load_sfw_library.return_value = {"categories": {"negative_prompt": {"options": []}}}
+        mock_cm.load_nsfw_library.return_value = {"categories": {}}
+        node = PromptEnhancer()
+        result = node._generate_negative("标准", ["daylight", "nature"])
+        assert "daylight" in result
+        assert "nature" in result
+
+
+class TestBuildInfo:
+    """_build_info 单元测试"""
+
+    def test_basic_info(self):
+        """基本信息包含 positive 和 negative"""
+        info = PromptEnhancer._build_info("test prompt", "neg prompt", False, False)
+        assert "test prompt" in info
+        assert "neg prompt" in info
+
+    def test_llm_enhanced_flag(self):
+        """LLM 增强标记显示"""
+        info = PromptEnhancer._build_info("p", "n", True, False)
+        assert "✅" in info
+
+    def test_special_enabled_flag(self):
+        """特殊内容标记显示"""
+        info = PromptEnhancer._build_info("p", "n", False, True)
+        assert "启用" in info
+
+
+class TestLLMInterruptException:
+    """LLMInterruptException 测试"""
+
+    def test_exception_carries_prompt(self):
+        """异常携带当前正面提示词"""
+        exc = LLMInterruptException("test prompt")
+        assert exc.positive_prompt == "test prompt"
+
+    def test_is_exception(self):
+        """是 Exception 子类"""
+        assert issubclass(LLMInterruptException, Exception)

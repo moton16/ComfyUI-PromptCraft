@@ -14,6 +14,7 @@ node_modules/
 # Node.js
 node_modules/
 package-lock.json
+CLAUDE.md
 
 # Vite 构建产物（由 npm run build 生成）
 js/promptcraft-vue.js
