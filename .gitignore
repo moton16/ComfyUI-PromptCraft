@@ -2,6 +2,7 @@ __pycache__/
 design/
 docs/
 .gstack/
+CODE_QUALITY_FIX_PLAN.md
 .claude/
 node_modules/
 .ruff_cache/
