@@ -22,4 +22,6 @@ js/promptcraft-vue.css
 # 本地用户配置数据（运行时生成，不应提交）
 data/lora_groups.json
 data/lora_prompts.json
+data/lora_favorites.json
+data/prompt_history.json
 
