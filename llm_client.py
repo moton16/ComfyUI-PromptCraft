@@ -14,6 +14,12 @@ import httpx
 import traceback
 from pathlib import Path
 
+try:
+    import certifi
+    _SSL_VERIFY = certifi.where()
+except ImportError:
+    _SSL_VERIFY = False
+
 
 class LLMClient:
     """OpenAI兼容的LLM客户端"""
@@ -130,8 +136,10 @@ class LLMClient:
         return thinking_params
 
     def _prepare_url(self) -> str:
-        """获取并规范化 API URL（自动补全 /chat/completions 路径）"""
+        """获取并规范化 API URL（自动补全 scheme 和 /chat/completions 路径）"""
         url = self.config.get("api_url", "").strip()
+        if url and not url.startswith(("http://", "https://")):
+            url = "http://" + url
         if url and not url.endswith("/chat/completions"):
             url = url.rstrip("/") + "/chat/completions"
         return url
@@ -145,7 +153,7 @@ class LLMClient:
 
     def _post(self, url: str, payload: dict, timeout_s: float = 30.0) -> dict:
         """发送 POST 请求并返回 JSON 响应（统一错误处理）"""
-        with httpx.Client(timeout=httpx.Timeout(timeout_s, connect=10.0)) as client:
+        with httpx.Client(timeout=httpx.Timeout(timeout_s, connect=10.0), verify=_SSL_VERIFY) as client:
             resp = client.post(url, json=payload, headers=self._prepare_headers())
             resp.raise_for_status()
             return resp.json()
@@ -267,6 +275,14 @@ class LLMClient:
             self.last_error = f"网络错误: {e}"
             print(f"[LLMClient] {self.last_error}")
             return None
+        except FileNotFoundError as e:
+            self.last_error = f"文件未找到（可能是 API URL 格式错误）: {e} | URL: {self.config.get('api_url', '')}"
+            print(f"[LLMClient] {self.last_error}")
+            return None
+        except OSError as e:
+            self.last_error = f"系统错误: {e}"
+            print(f"[LLMClient] {self.last_error}")
+            return None
         except Exception as e:
             self.last_error = f"未知错误: {e}"
             print(f"[LLMClient] {self.last_error}")
@@ -309,6 +325,10 @@ class LLMClient:
             return False, f"HTTP {e.response.status_code}: {e.response.text[:300]}"
         except httpx.RequestError as e:
             return False, f"网络错误: {e}"
+        except FileNotFoundError as e:
+            return False, f"文件未找到（可能是 API URL 格式错误）: {e} | URL: {self.config.get('api_url', '')}"
+        except OSError as e:
+            return False, f"系统错误: {e}"
         except Exception as e:
             return False, str(e)
 
@@ -348,7 +368,7 @@ class LLMClient:
         filter_output = self.config.get("filter_thinking_output", True)
 
         try:
-            with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
+            with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0), verify=_SSL_VERIFY) as client:
                 with client.stream(
                     "POST", api_url, json=payload,
                     headers=self._prepare_headers()
