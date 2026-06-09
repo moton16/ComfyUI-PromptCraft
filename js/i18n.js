@@ -37,6 +37,7 @@ function getI18nBaseUrl() {
 
 /**
  * 初始化 i18n：检测语言并加载翻译文件
+ * 同时暴露到 window.__promptcraft_i18n 供 Vue 组件使用（避免 Vite 打包导致双重实例）
  */
 export async function initI18n() {
     currentLang = detectLang();
@@ -59,6 +60,9 @@ export async function initI18n() {
     } catch (e) {
         console.warn('[i18n] Load error:', e);
     }
+
+    // 暴露到全局，供 Vue 打包产物中的 t() 使用
+    window.__promptcraft_i18n = { t, getLang, setLang, translations };
 }
 
 /**

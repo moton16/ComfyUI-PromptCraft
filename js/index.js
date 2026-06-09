@@ -817,10 +817,7 @@ app.registerExtension({
 
 // ==================== 全局初始化 ====================
 
-// 0. 初始化 i18n（必须在所有 t() 调用之前）
-initI18n();
-
-// 1. 控制面板 → 子面板事件桥接
+// 1. 控制面板 → 子面板事件桥接（不依赖 i18n，立即注册）
 window.addEventListener('promptcraft:open-rule-manager', () => openRuleManager());
 window.addEventListener('promptcraft:open-library-editor', () => openLibraryEditor());
 window.addEventListener('promptcraft:open-history', () => openPromptHistory());
@@ -838,13 +835,18 @@ window.addEventListener('promptcraft:toggle-panel', (e) => {
     toggleFallbackPanel(e.detail.visible);
 });
 
-// 1. 加载 NSFW 标签缓存
+// 2. 加载 NSFW 标签缓存（不依赖 i18n）
 loadNsfwLabelCache();
 
-// 2. 注册设置面板
-registerSettings();
+// 3. 初始化 i18n → 注册设置面板（确保翻译加载完成后再注册）
+initI18n().then(() => {
+    registerSettings();
+    log(`V${VERSION} 前端模块加载完成`);
+}).catch(e => {
+    console.warn('[PromptCraft] i18n init failed, registering settings anyway:', e);
+    registerSettings();
+    log(`V${VERSION} 前端模块加载完成（i18n 降级）`);
+});
 
-// 3. 创建浮动快捷面板（兜底入口）
+// 4. 创建浮动快捷面板（兜底入口）
 setTimeout(() => ensureFallbackPanel(), 3000);
-
-log(`V${VERSION} 前端模块加载完成`);
