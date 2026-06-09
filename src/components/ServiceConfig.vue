@@ -173,8 +173,14 @@ async function handleCategoryChange(category, serviceId) {
 // 计算属性：获取服务的 badge
 function getServiceBadges(svc) {
   const badges = []
-  if (current.value.enhance?.service_id === svc.id) {
-    badges.push({ text: t('service_config.badge.enhance'), class: 'lsc-badge-amber' })
+  if (current.value.enhance_basic?.service_id === svc.id) {
+    badges.push({ text: t('settings.basic_enhance'), class: 'lsc-badge-amber' })
+  }
+  if (current.value.enhance_detail?.service_id === svc.id) {
+    badges.push({ text: t('settings.detail_enhance'), class: 'lsc-badge-amber' })
+  }
+  if (current.value.enhance_normal?.service_id === svc.id) {
+    badges.push({ text: t('settings.normal_enhance'), class: 'lsc-badge-amber' })
   }
   if (current.value.agent?.service_id === svc.id) {
     badges.push({ text: 'Agent', class: 'lsc-badge-copper' })
@@ -194,11 +200,35 @@ onMounted(loadServices)
     <!-- 分类选择栏 -->
     <div class="lsc-cat-bar">
       <div class="lsc-cat-item">
-        <span class="lsc-cat-label">{{ t('service_config.prompt_enhance') }}</span>
+        <span class="lsc-cat-label">{{ t('settings.basic_enhance') }}</span>
         <select
           class="lsc-cat-select"
-          :value="current.enhance?.service_id || ''"
-          @change="handleCategoryChange('enhance', $event.target.value)"
+          :value="current.enhance_basic?.service_id || ''"
+          @change="handleCategoryChange('enhance_basic', $event.target.value)"
+        >
+          <option v-for="svc in services" :key="svc.id" :value="svc.id">
+            {{ svc.name }}
+          </option>
+        </select>
+      </div>
+      <div class="lsc-cat-item">
+        <span class="lsc-cat-label">{{ t('settings.detail_enhance') }}</span>
+        <select
+          class="lsc-cat-select"
+          :value="current.enhance_detail?.service_id || ''"
+          @change="handleCategoryChange('enhance_detail', $event.target.value)"
+        >
+          <option v-for="svc in services" :key="svc.id" :value="svc.id">
+            {{ svc.name }}
+          </option>
+        </select>
+      </div>
+      <div class="lsc-cat-item">
+        <span class="lsc-cat-label">{{ t('settings.normal_enhance') }}</span>
+        <select
+          class="lsc-cat-select"
+          :value="current.enhance_normal?.service_id || ''"
+          @change="handleCategoryChange('enhance_normal', $event.target.value)"
         >
           <option v-for="svc in services" :key="svc.id" :value="svc.id">
             {{ svc.name }}
