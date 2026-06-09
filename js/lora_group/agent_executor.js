@@ -164,7 +164,7 @@ const HANDLERS = {
             })),
             stack_count: stack.items.length,
         };
-        return { message: '当前状态', state };
+        return { message: t('agent.shortcut_status'), state };
     },
 };
 

@@ -124,6 +124,8 @@
   "service_config.service_name": "服务名称",
   "service_config.api_endpoint": "API 端点 URL",
   "service_config.api_key": "API Key",
+  "service_config.temperature": "Temperature",
+  "service_config.max_tokens": "Max Tokens",
   "service_config.api_key_placeholder_set": "已设置（留空则保留原值）",
   "service_config.api_key_placeholder_unset": "输入 API Key",
   "service_config.model_name": "模型名称",

@@ -88,7 +88,7 @@ class HubPanel {
         header.className = 'lhub-header';
         header.innerHTML = `
             <div class="lhub-header-left">
-                <h2 class="lhub-title">LoRA Hub</h2>
+                <h2 class="lhub-title">${t('hub.title')}</h2>
             </div>
             <div class="lhub-header-right">
                 <button class="lhub-btn lhub-btn-sm" data-action="export" title="${t('hub.export_title')}">${t('hub.export')}</button>
@@ -151,7 +151,7 @@ class HubPanel {
                     <span class="lhub-tab-icon">✦</span> ${t('hub.tab_group')}
                 </button>
                 <button class="lhub-tab" data-tab="agent">
-                    <span class="lhub-tab-icon">◈</span> Agent
+                    <span class="lhub-tab-icon">◈</span> ${t('hub.tab_agent')}
                 </button>
             </div>
             <div class="lhub-search">
@@ -542,7 +542,7 @@ class HubPanel {
         this.content.innerHTML = `
             <div class="lhub-welcome">
                 <div class="lhub-welcome-icon">◆</div>
-                <div class="lhub-welcome-title">LoRA Hub</div>
+                <div class="lhub-welcome-title">${t('hub.title')}</div>
                 <div class="lhub-welcome-desc">
                     ${t('hub.welcome_desc')}
                 </div>

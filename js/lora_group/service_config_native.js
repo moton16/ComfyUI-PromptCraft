@@ -179,7 +179,7 @@ async function selectService(backdrop, svcId) {
                     <input class="lsc-input" data-field="api_url" value="${escAttr(svc.api_url)}" placeholder="https://api.example.com/v1/chat/completions" />
                 </div>
                 <div class="lsc-field">
-                    <label>API Key</label>
+                    <label>${t('service_config.api_key')}</label>
                     <input class="lsc-input" type="password" data-field="api_key" data-masked="true" value="" placeholder="${svc.api_key ? t('service_config.api_key_placeholder_set') : t('service_config.api_key_placeholder_unset')}" />
                 </div>
                 <div class="lsc-field">
@@ -188,11 +188,11 @@ async function selectService(backdrop, svcId) {
                 </div>
                 <div class="lsc-field-row">
                     <div class="lsc-field lsc-field-half">
-                        <label>Temperature</label>
+                        <label>${t('service_config.temperature')}</label>
                         <input class="lsc-input" type="number" step="0.05" min="0" max="2" data-field="temperature" value="${svc.temperature}" />
                     </div>
                     <div class="lsc-field lsc-field-half">
-                        <label>Max Tokens</label>
+                        <label>${t('service_config.max_tokens')}</label>
                         <input class="lsc-input" type="number" step="50" min="50" max="4000" data-field="max_tokens" value="${svc.max_tokens}" />
                     </div>
                 </div>

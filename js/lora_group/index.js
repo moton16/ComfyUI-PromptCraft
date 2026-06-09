@@ -67,7 +67,7 @@ app.registerExtension({
             menuOptions.push(
                 { content: null },
                 {
-                    content: '⚙ LoRA Hub',
+                    content: t('context.hub'),
                     callback: () => openHubPanel(this),
                 },
                 {

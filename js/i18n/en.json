@@ -124,6 +124,8 @@
   "service_config.service_name": "Service Name",
   "service_config.api_endpoint": "API Endpoint URL",
   "service_config.api_key": "API Key",
+  "service_config.temperature": "Temperature",
+  "service_config.max_tokens": "Max Tokens",
   "service_config.api_key_placeholder_set": "Already set (leave empty to keep)",
   "service_config.api_key_placeholder_unset": "Enter API Key",
   "service_config.model_name": "Model Name",

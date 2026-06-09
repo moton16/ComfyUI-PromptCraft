@@ -114,13 +114,26 @@ export function onLangChange(callback) {
 
 /**
  * 检测语言偏好
- * 优先级: localStorage → navigator.language → 默认 'zh'
+ * 优先级: PromptCraft 设置 → ComfyUI 设置 → navigator.language → 默认 'zh'
  */
 function detectLang() {
+    // 1. 优先读 PromptCraft 自己的语言设置
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'zh' || stored === 'en') return stored;
 
+    // 2. 读 ComfyUI 全局语言设置
+    const comfyLang = localStorage.getItem('Comfy.LocaleId') ||
+                      localStorage.getItem('comfy-locale') ||
+                      localStorage.getItem('AG.Lang');
+    if (comfyLang) {
+        if (comfyLang.startsWith('zh')) return 'zh';
+        if (comfyLang.startsWith('en')) return 'en';
+    }
+
+    // 3. 浏览器语言
     const nav = navigator.language || navigator.userLanguage || '';
     if (nav.startsWith('zh')) return 'zh';
-    return 'zh'; // 默认中文，保持向后兼容
+
+    // 4. 默认中文，保持向后兼容
+    return 'zh';
 }

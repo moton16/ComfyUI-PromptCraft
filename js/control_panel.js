@@ -119,7 +119,7 @@ function buildApiSection() {
             <select class="pc-cat-select" data-cat="enhance_normal"><option>${t('common.loading')}</option></select>
         </div>
         <div class="pc-cat-item">
-            <span class="pc-cat-label">AI Agent</span>
+            <span class="pc-cat-label">${t('service_config.agent')}</span>
             <select class="pc-cat-select" data-cat="agent"><option>${t('common.loading')}</option></select>
         </div>
     `;
@@ -218,7 +218,7 @@ function buildToolsSection() {
 }
 
 function buildHubSection() {
-    const card = createSectionCard('⬡', 'LoRA Hub');
+    const card = createSectionCard('⬡', t('hub.title'));
 
     const link = document.createElement('div');
     link.className = 'pc-tool-grid-wide';
