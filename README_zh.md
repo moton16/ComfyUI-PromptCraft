@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.3.5Mod1-brightgreen?style=for-the-badge" alt="Version 1.3.5Mod1"/>
+  <img src="https://img.shields.io/badge/版本-v1.3.6-brightgreen?style=for-the-badge" alt="Version 1.3.6"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -352,7 +352,12 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.3.5 (2026-06-08) — 当前版本
+### v1.3.6 (2026-06-09) — 当前版本
+
+- 🐛 **修复**：Windows 上 HTTPS API 调用报 `[Errno 2]` — httpx SSL 证书路径问题，引入 certifi 显式指定
+- 🔧 **调整**：版本号统一更新，去除 Mod 后缀
+
+### v1.3.5 (2026-06-08)
 
 - 🐛 **修复**：加载旧工作流时 "Value not in list" 错误 — 前端新增旧版中文值 → 英文标识符迁移
 - 🐛 **修复**：全局随机填充会随机到 `random_all` 等标记 — 候选值过滤增加 `isRandomMarker` 排除
@@ -362,34 +367,29 @@ moton-promptcraft/
 
 - 🌐 **国际化**：中文变量名 → 英文标识符改造，支持 ComfyUI nodeDefs.json 双语翻译
 - 🌐 **国际化**：INPUT_TYPES 25 个中文 key、随机标记、扩写模式值全部改为英文
-- 🌐 **国际化**：prompt library JSON category key + preset 内部 key 全部迁移
-- 🌐 **国际化**：旧 workflow 兼容迁移（自动检测中文 key → 英文 key，幂等）
-- 🧪 **测试**：测试从 194 个增加到 208 个（含迁移测试 + 集成测试）
+- 🧪 **测试**：测试从 194 个增加到 208 个
 
-### v1.3.2 (2026-06-02)
+### v1.3.1 (2026-06-02)
 
-- 🚀 **新增**：批量组件迁移 — Prompt 库编辑器、历史记录管理器、浮动快捷面板、Toast 通知
-- 🚀 **新增**：Vue 桥接模块扩展 (支持 FloatingPanel 和 Toast)
-- 🔧 **优化**：进一步减少原生 JS 代码量，统一 Vue 组件生命周期管理
+- 🚀 **新增**：Vue 3 + Vite 前端重构，批量迁移组件至 Vue 3
+- 🚀 **新增**：全面测试套件（194 个测试用例，覆盖 9 个 Python 模块）
+- 🔧 **优化**：LoRA 缓存线程安全、思维链 mtime 缓存、LLM 客户端代码去重
 
-### v1.3.0_Beta1 (2026-05-31)
+### v1.2.5 (2026-05-28)
 
-- 🚀 **新增**：Vue 3 + Vite 前端重构
-- 🚀 **新增**：StackAPI 发布-订阅机制
-- 🚀 **新增**：Vue Composables (useStackApi, useDraggable)
-- 🚀 **新增**：CSS 设计 Token 系统
-- 🔧 **重构**：服务配置面板、负面提示词编辑器、规则管理器迁移至 Vue 3
+- 🚀 **新增**：LoRA 备注功能、三种扩写模式独立 API 配置、浮窗 Prompt 历史
+- 🔧 **调整**：负面提示词纳入双库管理，节点字段改名（服饰→服饰细节，情绪氛围→表情状态）
+- 🐛 **修复**：i18n 翻译 URL 推导正则修正、画布节点翻译修复
 
-### v1.2.5 Mod2 (2026-05-27)
+### v1.2.4 (2026-05-27)
 
-- 🔧 **更新**：Prompt库整合优化，整合V1.2.1测试改进版内容
-- 🔧 **优化**：提升使用稳定性
+- 🌐 **国际化**：新增中英双语支持 (i18n)，~310 keys 翻译，设置面板语言切换
 
 ### v1.2.1 (2026-05-24)
 
-- 🔧 **调整**：LoRA Prompt Loader 底模加载逻辑修正
-- 🔧 **调整**：LoRA 应用问题修复，隐藏 widget 改为 optional input 方式
-- 🐛 **修复**：Prompt 组过滤与群组引用展开逻辑修正
+- 🚀 **新增**：LLM 调用可中断（httpx 替换 urllib）、画布 LLM 状态提示、大模型提示词记忆
+- 🔧 **调整**：移除自定义前缀/后缀，质量等级不参与随机填充
+- 🐛 **修复**：SFW 库英文标签拼写错误
 
 ### v1.2.0 (2026-05-21) — 大版本更新
 

@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/Version-v1.3.5Mod1-brightgreen?style=for-the-badge" alt="Version 1.3.5Mod1"/>
+  <img src="https://img.shields.io/badge/Version-v1.3.6-brightgreen?style=for-the-badge" alt="Version 1.3.6"/>
   <img src="https://img.shields.io/badge/Status-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -353,16 +353,43 @@ moton-promptcraft/
 
 ## 📝 Version History
 
-### v1.2.5 Mod2 (2026-05-27) — Current Version
+### v1.3.6 (2026-06-09) — Current Version
 
-- 🔧 **Update**: Prompt library consolidation and optimization, integrated V1.2.1 test improvements
-- 🔧 **Optimize**: Improved stability
+- 🐛 **Fix**: Windows HTTPS API `[Errno 2]` — httpx SSL certificate path issue, added certifi explicit verification
+- 🔧 **Adjust**: Version number unified, removed Mod suffix
+
+### v1.3.5 (2026-06-08)
+
+- 🐛 **Fix**: "Value not in list" error on old workflows — frontend legacy value migration
+- 🐛 **Fix**: Random fill picking `random_all` markers — added `isRandomMarker` filter
+- 🐛 **Fix**: Random button showing `canvas.random_fill` variable — added missing i18n key
+
+### v1.3.3 (2026-06-03)
+
+- 🌐 **i18n**: Chinese variable names → English identifiers, nodeDefs.json bilingual translation
+- 🧪 **Test**: Tests increased from 194 to 208
+
+### v1.3.1 (2026-06-02)
+
+- 🚀 **New**: Vue 3 + Vite frontend refactor, batch component migration
+- 🚀 **New**: Full test suite (194 tests covering 9 Python modules)
+- 🔧 **Optimize**: LoRA cache thread safety, thinking chain mtime cache, LLM client dedup
+
+### v1.2.5 (2026-05-28)
+
+- 🚀 **New**: LoRA notes, 3 expand mode independent API configs, floating panel history
+- 🔧 **Adjust**: Negative prompts into dual-library, field renames
+- 🐛 **Fix**: i18n URL regex fix, canvas node translation fix
+
+### v1.2.4 (2026-05-27)
+
+- 🌐 **i18n**: Added bilingual support (i18n), ~310 keys, settings panel language switch
 
 ### v1.2.1 (2026-05-24)
 
-- 🔧 **Adjust**: LoRA Prompt Loader base model loading logic fix
-- 🔧 **Adjust**: LoRA application fix, hidden widgets changed to optional input method
-- 🐛 **Fix**: Prompt group filtering and group reference expansion logic fix
+- 🚀 **New**: LLM call interruptible (httpx replaces urllib), canvas LLM status, LLM hint persistence
+- 🔧 **Adjust**: Removed custom prefix/suffix, quality level not affected by random fill
+- 🐛 **Fix**: SFW library English tag typo
 
 ### v1.2.0 (2026-05-21) — Major Update
 
