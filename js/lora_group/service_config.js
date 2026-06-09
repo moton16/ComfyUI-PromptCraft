@@ -28,7 +28,7 @@ async function loadVueModule() {
 
     _isLoading = true;
     try {
-        _vueModule = await import('./promptcraft-vue.js');
+        _vueModule = await import('../promptcraft-vue.js');
         return _vueModule;
     } catch (e) {
         console.error('[PromptCraft] Failed to load Vue module:', e);

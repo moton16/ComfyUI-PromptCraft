@@ -32,7 +32,7 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.3.5</span>
+            <span class="pc-brand-ver">v1.3.5Mod1X</span>
         </div>
     `;
 
@@ -206,12 +206,26 @@ function buildToolsSection() {
     `;
     card.body.appendChild(grid);
 
+    // 事件委托（原有方式）
     card.root.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
+        console.log(`[PromptCraft DEBUG] Delegated click: action=${action}`);
         if (action === 'open-rules') window.dispatchEvent(new CustomEvent('promptcraft:open-rule-manager'));
         if (action === 'open-library') window.dispatchEvent(new CustomEvent('promptcraft:open-library-editor'));
         if (action === 'open-history') window.dispatchEvent(new CustomEvent('promptcraft:open-history'));
         if (action === 'reload-cache') handleReloadCache(e.target.closest('.pc-tool-card'));
+    });
+
+    // 直接绑定到每个工具卡片（备用方式，排除事件委托问题）
+    grid.querySelectorAll('.pc-tool-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            const action = card.dataset.action;
+            console.log(`[PromptCraft DEBUG] Direct click: action=${action}`);
+            if (action === 'open-rules') window.dispatchEvent(new CustomEvent('promptcraft:open-rule-manager'));
+            if (action === 'open-library') window.dispatchEvent(new CustomEvent('promptcraft:open-library-editor'));
+            if (action === 'open-history') window.dispatchEvent(new CustomEvent('promptcraft:open-history'));
+            if (action === 'reload-cache') handleReloadCache(card);
+        });
     });
 
     return card.root;

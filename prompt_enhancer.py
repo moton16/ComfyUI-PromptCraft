@@ -454,6 +454,9 @@ class PromptEnhancer:
                     positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
                     lora_tags=lora_tag_str
                 )
+                # 如果 enhance_prompt 返回 None 但没有抛异常，从 last_error 获取原因
+                if container['result'] is None and llm_client.last_error:
+                    container['error'] = llm_client.last_error
             except Exception as e:
                 container['error'] = str(e)
 
@@ -502,10 +505,17 @@ class PromptEnhancer:
                 "status": "success", "messageKey": "llm.status_success"
             })
         else:
-            print("[PromptCraft] 大模型增强失败，使用原始prompt")
-            PromptServer.instance.send_sync("promptcraft.llm_status", {
-                "status": "error", "messageKey": "llm.status_failed"
-            })
+            error_detail = result_container.get('error', '')
+            if error_detail:
+                print(f"[PromptCraft] 大模型增强失败: {error_detail}")
+                PromptServer.instance.send_sync("promptcraft.llm_status", {
+                    "status": "error", "message": f"LLM error: {error_detail}"
+                })
+            else:
+                print("[PromptCraft] 大模型增强失败，返回空结果")
+                PromptServer.instance.send_sync("promptcraft.llm_status", {
+                    "status": "error", "messageKey": "llm.status_failed"
+                })
 
         return positive_prompt, llm_enhanced
 

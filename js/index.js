@@ -33,7 +33,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.3.5';
+const VERSION = '1.3.5Mod1';
 
 // ==================== 工具函数 ====================
 
@@ -80,6 +80,7 @@ function openNegativePromptEditor() {
 // 使用 Vue 3 重构版本
 
 function openRuleManager() {
+    console.log('[PromptCraft DEBUG] openRuleManager called');
     openRuleManagerVue();
 }
 
@@ -87,6 +88,7 @@ function openRuleManager() {
 // 已迁移到 Vue: src/components/dialogs/LibraryEditor.vue
 
 function openLibraryEditor() {
+    console.log('[PromptCraft DEBUG] openLibraryEditor called');
     openLibraryEditorVue();
 }
 
@@ -94,6 +96,7 @@ function openLibraryEditor() {
 // 已迁移到 Vue: src/components/dialogs/PromptHistory.vue
 
 function openPromptHistory() {
+    console.log('[PromptCraft DEBUG] openPromptHistory called');
     openPromptHistoryVue();
 }
 
@@ -818,10 +821,10 @@ app.registerExtension({
 // ==================== 全局初始化 ====================
 
 // 1. 控制面板 → 子面板事件桥接（不依赖 i18n，立即注册）
-window.addEventListener('promptcraft:open-rule-manager', () => openRuleManager());
-window.addEventListener('promptcraft:open-library-editor', () => openLibraryEditor());
-window.addEventListener('promptcraft:open-history', () => openPromptHistory());
-window.addEventListener('promptcraft:open-services', () => openServiceConfigModal());
+window.addEventListener('promptcraft:open-rule-manager', () => { console.log('[PromptCraft DEBUG] Event: open-rule-manager'); openRuleManager(); });
+window.addEventListener('promptcraft:open-library-editor', () => { console.log('[PromptCraft DEBUG] Event: open-library-editor'); openLibraryEditor(); });
+window.addEventListener('promptcraft:open-history', () => { console.log('[PromptCraft DEBUG] Event: open-history'); openPromptHistory(); });
+window.addEventListener('promptcraft:open-services', () => { console.log('[PromptCraft DEBUG] Event: open-services'); openServiceConfigModal(); });
 window.addEventListener('promptcraft:open-hub', () => {
     // Find a ModelLoraGroupLoader node on the canvas
     const node = app.graph._nodes?.find(n => n.type === 'ModelLoraGroupLoader');
@@ -837,6 +840,14 @@ window.addEventListener('promptcraft:toggle-panel', (e) => {
 
 // 2. 加载 NSFW 标签缓存（不依赖 i18n）
 loadNsfwLabelCache();
+
+// DEBUG: 全局点击监听，追踪 data-action 元素的点击
+document.addEventListener('click', (e) => {
+    const actionEl = e.target.closest('[data-action]');
+    if (actionEl) {
+        console.log(`[PromptCraft DEBUG] Global click on data-action="${actionEl.dataset.action}", element=`, actionEl.tagName, actionEl.className);
+    }
+}, true); // 使用捕获阶段
 
 // 3. 初始化 i18n → 注册设置面板（确保翻译加载完成后再注册）
 initI18n().then(() => {

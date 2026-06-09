@@ -47,7 +47,9 @@ async function loadVueModule() {
         loadVueCss();
 
         // 加载 JS 模块
+        console.log('[PromptCraft DEBUG] Loading Vue module...');
         _vueModule = await import('./promptcraft-vue.js');
+        console.log('[PromptCraft DEBUG] Vue module loaded:', _vueModule ? Object.keys(_vueModule).join(', ') : 'NULL');
         return _vueModule;
     } catch (e) {
         console.error('[PromptCraft] Failed to load Vue module:', e);
@@ -68,7 +70,9 @@ export async function openNegativePromptEditorVue() {
 }
 
 export async function openRuleManagerVue() {
+    console.log('[PromptCraft DEBUG] openRuleManagerVue called');
     const vueModule = await loadVueModule();
+    console.log('[PromptCraft DEBUG] Vue module:', vueModule ? 'loaded' : 'NULL', vueModule?.openRuleManager ? 'has openRuleManager' : 'MISSING openRuleManager');
     if (vueModule && vueModule.openRuleManager) {
         vueModule.openRuleManager(api);
     } else {

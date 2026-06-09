@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/Version-v1.3.5-brightgreen?style=for-the-badge" alt="Version 1.3.5"/>
+  <img src="https://img.shields.io/badge/Version-v1.3.5Mod1-brightgreen?style=for-the-badge" alt="Version 1.3.5Mod1"/>
   <img src="https://img.shields.io/badge/Status-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>

@@ -5,6 +5,7 @@ LLM客户端 - 支持OpenAI兼容API
 V1.2.1 — 使用 httpx 实现可中断的 API 调用
 V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
 V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
+V1.3.5Mod1 — 版本号更新
 """
 
 import json
@@ -26,6 +27,7 @@ class LLMClient:
             service_config: 直接传入的服务配置（多服务模式）
         """
         self._config_manager = config_manager
+        self.last_error = ""  # 记录最后一次错误信息
         if service_config:
             self.config = service_config
         else:
@@ -249,20 +251,25 @@ class LLMClient:
                     content = self._filter_content(content)
                     return content.strip()
 
-            print(f"[LLMClient] API响应格式异常: {json.dumps(result, ensure_ascii=False)[:300]}")
+            self.last_error = f"API响应格式异常: {json.dumps(result, ensure_ascii=False)[:300]}"
+            print(f"[LLMClient] {self.last_error}")
             return None
 
         except httpx.TimeoutException as e:
-            print(f"[LLMClient] 请求超时: {e}")
+            self.last_error = f"请求超时: {e}"
+            print(f"[LLMClient] {self.last_error}")
             return None
         except httpx.HTTPStatusError as e:
-            print(f"[LLMClient] HTTP错误 {e.response.status_code}: {e.response.text[:500]}")
+            self.last_error = f"HTTP {e.response.status_code}: {e.response.text[:300]}"
+            print(f"[LLMClient] {self.last_error}")
             return None
         except httpx.RequestError as e:
-            print(f"[LLMClient] 网络错误: {e}")
+            self.last_error = f"网络错误: {e}"
+            print(f"[LLMClient] {self.last_error}")
             return None
         except Exception as e:
-            print(f"[LLMClient] 未知错误: {e}")
+            self.last_error = f"未知错误: {e}"
+            print(f"[LLMClient] {self.last_error}")
             traceback.print_exc()
             return None
 
