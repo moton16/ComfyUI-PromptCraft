@@ -6,6 +6,7 @@ V1.2.1 — 使用 httpx 实现可中断的 API 调用
 V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
 V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 V1.3.6 — 修复 Windows HTTPS SSL 证书路径问题
+V1.3.7 — 优化代码结构，提取通用 JSON 缓存加载方法
 """
 
 import json

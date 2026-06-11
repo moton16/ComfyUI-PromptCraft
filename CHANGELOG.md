@@ -2,6 +2,20 @@
 
 ## **作者：Moton**
 
+## **V1.3.7  (2026-06-11)**
+
+### 🔧 调整
+
+* **优化代码结构**
+  - `api_routes.py`：将 3 个文件底部散落的 import 移至顶部，符合 PEP8 规范
+  - `config_manager.py`：提取 `_load_json_cached()` 通用方法，消除 3 处重复的 JSON 缓存加载模式
+  - `config_manager.py`：将 `_svc_cache`、`_history_cache`、`_llm_hint_cache`、`_favorites_cache` 统一在 `__init__` 中初始化，消除 `hasattr` 防御检查
+  - `config_manager.py`：删除冗余的 `_services_cache()` 包装方法，直接使用 `_svc_cache` 属性
+  - 测试 fixture 同步更新缓存属性初始化
+* **代码质量审计（fuck-u-code）综合评分：83.3/100（良好）**
+
+---
+
 ## **V1.3.6  (2026-06-09)**
 
 ### 🐛 Bug Fixes

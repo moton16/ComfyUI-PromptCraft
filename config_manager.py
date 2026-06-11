@@ -80,6 +80,10 @@ class ConfigManager:
         self._nsfw_cache_mtime = 0
         self._llm_config_cache = None
         self._llm_system_prompt_cache = None
+        self._svc_cache = None
+        self._history_cache = None
+        self._llm_hint_cache = None
+        self._favorites_cache = None
 
         print("[PromptCraft] 配置管理器已初始化")
         print(f"[PromptCraft]   用户配置目录: {self.user_config_dir}")
@@ -117,6 +121,27 @@ class ConfigManager:
                     os.unlink(temp_path)
                 except Exception:
                     pass
+
+    def _load_json_cached(self, file_path: str, cache_attr: str,
+                          default_factory, force_reload: bool = False):
+        """通用 JSON 缓存加载（消除 6+ 处重复模式）
+
+        Args:
+            file_path: JSON 文件路径
+            cache_attr: 缓存属性名（如 '_llm_config_cache'）
+            default_factory: 加载失败时的默认值工厂（无参 callable）
+            force_reload: 是否强制跳过缓存
+        """
+        if not force_reload and getattr(self, cache_attr, None) is not None:
+            return getattr(self, cache_attr)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            setattr(self, cache_attr, data)
+        except Exception as e:
+            self._log(f"加载配置失败 [{os.path.basename(file_path)}]: {e}")
+            setattr(self, cache_attr, default_factory())
+        return getattr(self, cache_attr)
 
     def _copy_template_if_missing(self, template_path: str, target_path: str) -> bool:
         """如果目标文件不存在，从模板复制"""
@@ -306,15 +331,9 @@ class ConfigManager:
     # ==================== LLM 配置 CRUD ====================
 
     def load_llm_config(self, force_reload: bool = False) -> dict:
-        if not force_reload and self._llm_config_cache is not None:
-            return self._llm_config_cache
-        try:
-            with open(self.llm_config_path, 'r', encoding='utf-8') as f:
-                self._llm_config_cache = json.load(f)
-        except Exception as e:
-            self._log(f"加载 LLM 配置失败: {e}")
-            self._llm_config_cache = self._get_default_llm_config()
-        return self._llm_config_cache
+        return self._load_json_cached(
+            self.llm_config_path, '_llm_config_cache',
+            self._get_default_llm_config, force_reload)
 
     def save_llm_config(self, data: dict) -> bool:
         success = self._atomic_write_json(self.llm_config_path, data)
@@ -325,15 +344,9 @@ class ConfigManager:
     # ==================== LLM System Prompt CRUD ====================
 
     def load_llm_system_prompt(self, force_reload: bool = False) -> dict:
-        if not force_reload and self._llm_system_prompt_cache is not None:
-            return self._llm_system_prompt_cache
-        try:
-            with open(self.llm_system_prompt_path, 'r', encoding='utf-8') as f:
-                self._llm_system_prompt_cache = json.load(f)
-        except Exception as e:
-            self._log(f"加载 LLM System Prompt 失败: {e}")
-            self._llm_system_prompt_cache = self._get_default_llm_system_prompt()
-        return self._llm_system_prompt_cache
+        return self._load_json_cached(
+            self.llm_system_prompt_path, '_llm_system_prompt_cache',
+            self._get_default_llm_system_prompt, force_reload)
 
     def save_llm_system_prompt(self, data: dict) -> bool:
         success = self._atomic_write_json(self.llm_system_prompt_path, data)
@@ -417,14 +430,9 @@ class ConfigManager:
         # 兜底：创建默认
         self._atomic_write_json(self.llm_services_path, self._get_default_services_config())
 
-    def _services_cache(self):
-        if not hasattr(self, '_svc_cache'):
-            self._svc_cache = None
-        return self._svc_cache
-
     def load_services_config(self, force_reload=False) -> dict:
-        if not force_reload and self._services_cache() is not None:
-            return self._services_cache()
+        if not force_reload and self._svc_cache is not None:
+            return self._svc_cache
         try:
             with open(self.llm_services_path, 'r', encoding='utf-8') as f:
                 self._svc_cache = json.load(f)
@@ -555,18 +563,9 @@ class ConfigManager:
 
     def load_prompt_history(self, force_reload: bool = False) -> dict:
         """加载 prompt 历史记录配置"""
-        if not force_reload and hasattr(self, '_history_cache') and self._history_cache is not None:
-            return self._history_cache
-        try:
-            if os.path.exists(self.prompt_history_path):
-                with open(self.prompt_history_path, 'r', encoding='utf-8') as f:
-                    self._history_cache = json.load(f)
-            else:
-                self._history_cache = self._get_default_prompt_history()
-        except Exception as e:
-            self._log(f"加载 Prompt 历史失败: {e}")
-            self._history_cache = self._get_default_prompt_history()
-        return self._history_cache
+        return self._load_json_cached(
+            self.prompt_history_path, '_history_cache',
+            self._get_default_prompt_history, force_reload)
 
     def save_prompt_history(self, data: dict) -> bool:
         success = self._atomic_write_json(self.prompt_history_path, data)

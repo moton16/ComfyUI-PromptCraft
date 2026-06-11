@@ -6,7 +6,6 @@
 import os
 import json
 import pytest
-from unittest.mock import patch, MagicMock
 from promptcraft.config_manager import ConfigManager
 
 
@@ -63,6 +62,10 @@ def config_mgr(tmp_dir):
     mgr._nsfw_cache_mtime = 0
     mgr._llm_config_cache = None
     mgr._llm_system_prompt_cache = None
+    mgr._svc_cache = None
+    mgr._history_cache = None
+    mgr._llm_hint_cache = None
+    mgr._favorites_cache = None
 
     yield mgr
     ConfigManager._instance = None
@@ -239,3 +242,35 @@ class TestMaskApiKey:
 
     def test_mask_empty_key(self):
         assert ConfigManager._mask_key("") == ""
+
+
+class TestServicesCRUD:
+
+    def test_get_all_services_returns_list(self, config_mgr):
+        config_mgr._init_config_files()
+        result = config_mgr.get_all_services()
+        assert isinstance(result, list)
+
+    def test_get_all_services_masks_keys(self, config_mgr):
+        config_mgr._init_config_files()
+        config_mgr.create_service("test_svc", api_url="http://test.com", api_key="sk-1234567890abcdef")
+        result = config_mgr.get_all_services()
+        test_svc = [s for s in result if s["name"] == "test_svc"]
+        assert len(test_svc) == 1
+        assert "****" in test_svc[0]["api_key"]
+
+
+class TestMaskKey:
+
+    def test_long_key_masks_middle(self):
+        result = ConfigManager._mask_key("sk-12345678901234567890")
+        assert "sk-1" in result
+        assert "****" in result
+
+    def test_short_key_returns_stars(self):
+        result = ConfigManager._mask_key("sk-12")
+        assert result == "****"
+
+    def test_empty_key_returns_empty(self):
+        result = ConfigManager._mask_key("")
+        assert result == ""

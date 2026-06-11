@@ -5,6 +5,7 @@
 V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语翻译
 V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 V1.3.6 — 版本号更新
+V1.3.7 — 优化代码结构
 
 参考 prompt-assistan 的 thinking_control.py 设计
 """
