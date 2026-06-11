@@ -12,7 +12,6 @@
   - `config_manager.py`：将 `_svc_cache`、`_history_cache`、`_llm_hint_cache`、`_favorites_cache` 统一在 `__init__` 中初始化，消除 `hasattr` 防御检查
   - `config_manager.py`：删除冗余的 `_services_cache()` 包装方法，直接使用 `_svc_cache` 属性
   - 测试 fixture 同步更新缓存属性初始化
-* **代码质量审计（fuck-u-code）综合评分：83.3/100（良好）**
 
 ---
 

@@ -238,3 +238,122 @@ def sample_llm_config():
         },
         "active_service": "enhance_basic",
     }
+
+
+# ==================== 新增集成测试 fixtures ====================
+
+@pytest.fixture
+def tmp_data_dir(tmp_dir):
+    """创建带 data/ 子目录 + 模板文件的临时目录（模拟插件目录结构）"""
+    data_dir = os.path.join(tmp_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    # 创建最小 SFW 模板
+    sfw_path = os.path.join(data_dir, "sfw_prompt_library.json")
+    with open(sfw_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "version": "1.0.0",
+            "categories": {
+                "scene_type": {
+                    "label": "场景类型",
+                    "options": [
+                        {"label": "city street", "en": "city street"},
+                        {"label": "forest", "en": "forest"},
+                        {"label": "beach", "en": "beach"},
+                    ]
+                },
+                "quality_level": {
+                    "label": "质量等级",
+                    "options": [
+                        {"label": "标准", "en": "detailed, high quality"},
+                    ]
+                },
+                "negative_prompt": {
+                    "label": "负面提示词",
+                    "options": [
+                        {"label": "标准", "en": "low quality, worst quality"},
+                    ]
+                }
+            },
+            "presets": {},
+            "trigger_words": {}
+        }, f, ensure_ascii=False, indent=2)
+    # 创建最小 NSFW 模板
+    nsfw_path = os.path.join(data_dir, "nsfw_prompt_library.json")
+    with open(nsfw_path, "w", encoding="utf-8") as f:
+        json.dump({"version": "1.0.0", "categories": {}}, f, ensure_ascii=False, indent=2)
+    # 创建 LLM 配置
+    llm_path = os.path.join(data_dir, "llm_config.json")
+    with open(llm_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "enabled": True,
+            "api_url": "https://api.openai.com/v1",
+            "api_key": "sk-test123456789",
+            "model": "gpt-4",
+            "temperature": 0.7,
+            "max_tokens": 2000,
+        }, f, ensure_ascii=False, indent=2)
+    return tmp_dir
+
+
+@pytest.fixture
+def mock_comfy_runtime():
+    """模拟 ComfyUI 运行时依赖（folder_paths, comfy.sd, comfy.utils）"""
+    mock_model = MagicMock(name="MODEL")
+    mock_clip = MagicMock(name="CLIP")
+    mock_vae = MagicMock(name="VAE")
+    mock_clip.tokenize.return_value = {"input_ids": MagicMock()}
+    mock_clip.encode_from_tokens_scheduled.return_value = [[mock_model]]
+
+    with patch.dict('sys.modules', {
+        'folder_paths': MagicMock(
+            get_filename_list=MagicMock(return_value=["model_v1.safetensors", "model_v2.safetensors"]),
+            get_full_path_or_raise=MagicMock(side_effect=lambda cat, name: f"/mock/{cat}/{name}"),
+            get_folder_paths=MagicMock(return_value="/mock/embeddings"),
+            get_full_path=MagicMock(side_effect=lambda cat, name: f"/mock/{cat}/{name}"),
+        ),
+        'comfy': MagicMock(),
+        'comfy.sd': MagicMock(
+            load_checkpoint_guess_config=MagicMock(return_value=(mock_model, mock_clip, mock_vae)),
+            load_lora_for_models=MagicMock(return_value=(mock_model, mock_clip)),
+        ),
+        'comfy.utils': MagicMock(),
+    }):
+        yield {
+            "model": mock_model,
+            "clip": mock_clip,
+            "vae": mock_vae,
+        }
+
+
+@pytest.fixture
+def mock_prompt_server():
+    """模拟 PromptServer.instance"""
+    server = MagicMock()
+    server.send_sync = MagicMock()
+    server.routes = MagicMock()
+    return server
+
+
+@pytest.fixture
+def sample_lora_stack_data():
+    """示例 LoRA 栈 JSON（前端隐藏 widget 格式）"""
+    return json.dumps({
+        "items": [
+            {
+                "type": "individual",
+                "lora": "style/cyberpunk.safetensors",
+                "weight": 0.8,
+                "clip_weight": 0.8,
+                "enabled": True,
+                "selected_group": None,
+            },
+            {
+                "type": "individual",
+                "lora": "character/amiya.safetensors",
+                "weight": 0.6,
+                "clip_weight": 0.6,
+                "enabled": True,
+                "selected_group": "战斗",
+            },
+        ]
+    }, ensure_ascii=False)

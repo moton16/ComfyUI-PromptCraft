@@ -6,6 +6,7 @@
 const STORAGE_KEY = 'promptcraft-lang';
 let currentLang = 'zh';
 let translations = {};
+let nodeDefsTranslations = {};
 let _listeners = [];
 
 /**
@@ -63,6 +64,25 @@ export async function initI18n() {
 
     // 暴露到全局，供 Vue 打包产物中的 t() 使用
     window.__promptcraft_i18n = { t, getLang, setLang, translations };
+
+    // 加载 nodeDefs.json 翻译（画布节点标签）
+    // 通过 API 端点加载，因为 locales/ 不在 WEB_DIRECTORY 下
+    try {
+        const nodeDefsUrl = `/moton_prompt_enhancer/api/nodedefs?lang=${currentLang}`;
+        console.log(`[i18n] Fetching nodeDefs via API: ${nodeDefsUrl}`);
+        const nodeDefsResp = await fetch(nodeDefsUrl);
+        if (nodeDefsResp.ok) {
+            const result = await nodeDefsResp.json();
+            if (result.success && result.data) {
+                nodeDefsTranslations = result.data;
+                console.log(`[i18n] Loaded nodeDefs for ${currentLang}: ${Object.keys(nodeDefsTranslations).length} nodes`);
+            }
+        } else {
+            console.warn(`[i18n] nodeDefs API failed: ${nodeDefsResp.status}`);
+        }
+    } catch (e) {
+        console.warn('[i18n] nodeDefs load error:', e);
+    }
 }
 
 /**
@@ -91,6 +111,14 @@ export function t(key, params) {
  */
 export function getLang() {
     return currentLang;
+}
+
+/**
+ * 获取 nodeDefs 翻译数据（画布节点标签翻译）
+ * @returns {Object} nodeDefs 翻译对象，key 为节点类名
+ */
+export function getNodeDefsTranslations() {
+    return nodeDefsTranslations;
 }
 
 /**

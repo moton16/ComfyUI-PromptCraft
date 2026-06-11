@@ -11,7 +11,7 @@
 
 import { app } from '../../../scripts/app.js';
 import { api } from '../../../scripts/api.js';
-import { t, initI18n } from './i18n.js';
+import { t, initI18n, getNodeDefsTranslations, getLang } from './i18n.js';
 
 // LoRA Group Manager 模块
 import './lora_group/index.js';
@@ -26,7 +26,7 @@ import './chat_panel.js';
 import { openServiceConfigModal } from './lora_group/service_config.js';
 
 // Vue 桥接模块
-import { openNegativePromptEditorVue, openRuleManagerVue, openLibraryEditorVue, openPromptHistoryVue } from './vue_bridge.js';
+import { openNegativePromptEditorVue, openRuleManagerVue, openLibraryEditorVue, openPromptHistoryVue, mountToastVue } from './vue_bridge.js';
 
 // 设置面板内容生成器
 import { createSettingsContent } from './control_panel.js';
@@ -686,6 +686,43 @@ api.addEventListener('promptcraft.llm_status', (event) => {
     showLlmStatusToast(status, message);
 });
 
+function applyNodeDefTranslations(node) {
+    const nodeDefs = getNodeDefsTranslations();
+    const lang = getLang();
+    if (lang === 'zh' || !nodeDefs || Object.keys(nodeDefs).length === 0) return;
+
+    const nodeType = node.comfyClass || node.type;
+    const def = nodeDefs[nodeType];
+    if (!def) return;
+
+    const inputDef = def.inputs || def.input;
+    if (inputDef && node.widgets) {
+        for (const widget of node.widgets) {
+            const tr = inputDef[widget.name];
+            if (tr && tr.name) {
+                widget.label = tr.name;
+            }
+        }
+    }
+
+    const outputDef = def.outputs || def.output;
+    if (outputDef && node.outputs) {
+        for (let i = 0; i < node.outputs.length; i++) {
+            const tr = outputDef[String(i)];
+            if (tr && tr.name) {
+                node.outputs[i].label = tr.name;
+                node.outputs[i].name = tr.name;
+            }
+        }
+    }
+
+    if (def.display_name) {
+        node.title = def.display_name;
+    }
+
+    node.graph?.setDirtyCanvas(true, true);
+}
+
 app.registerExtension({
     name: 'Moton.PromptCraft',
 
@@ -816,6 +853,10 @@ app.registerExtension({
 
         log('✅ PromptCraft LiteGraph 生命周期钩子已注册');
     },
+
+    async nodeCreated(node) {
+        applyNodeDefTranslations(node);
+    },
 });
 
 // ==================== 全局初始化 ====================
@@ -841,17 +882,11 @@ window.addEventListener('promptcraft:toggle-panel', (e) => {
 // 2. 加载 NSFW 标签缓存（不依赖 i18n）
 loadNsfwLabelCache();
 
-// DEBUG: 全局点击监听，追踪 data-action 元素的点击
-document.addEventListener('click', (e) => {
-    const actionEl = e.target.closest('[data-action]');
-    if (actionEl) {
-        console.log(`[PromptCraft DEBUG] Global click on data-action="${actionEl.dataset.action}", element=`, actionEl.tagName, actionEl.className);
-    }
-}, true); // 使用捕获阶段
-
 // 3. 初始化 i18n → 注册设置面板（确保翻译加载完成后再注册）
 initI18n().then(() => {
     registerSettings();
+    // 预加载 Vue 模块 + Toast（非阻塞，避免首次点击延迟）
+    mountToastVue().catch(() => {});
     log(`V${VERSION} 前端模块加载完成`);
 }).catch(e => {
     console.warn('[PromptCraft] i18n init failed, registering settings anyway:', e);

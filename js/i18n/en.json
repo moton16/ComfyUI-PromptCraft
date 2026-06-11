@@ -90,6 +90,10 @@
 
   "settings.language": "Language / 语言",
   "settings.language_hint": "Page will refresh after switching language",
+  "settings.usage_help": "Usage Help",
+  "settings.usage_help_desc": "View PromptCraft usage guide",
+  "help.title": "PromptCraft Usage Help",
+  "help.load_failed": "Failed to load help document",
   "settings.api_services": "API Service Configuration",
   "settings.basic_enhance": "Basic Enhancement",
   "settings.detail_enhance": "Detail Enhancement",

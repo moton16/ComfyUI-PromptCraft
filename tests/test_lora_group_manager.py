@@ -6,7 +6,6 @@ LoRA 群组管理器测试
 import os
 import json
 import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
 from promptcraft.lora_group_manager import LoraGroupManager
 
 

@@ -3098,3 +3098,78 @@
     opacity: 1;
     transform: translateX(-50%) scale(1);
 }
+
+/* ============================================
+   Help Modal — Markdown Content
+   ============================================ */
+
+.pc-help-content h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary, #fff);
+    margin: 16px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--interface-stroke, #313235);
+}
+
+.pc-help-content h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    margin: 14px 0 8px;
+}
+
+.pc-help-content h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary, #9c9eab);
+    margin: 12px 0 6px;
+}
+
+.pc-help-content p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary, #9c9eab);
+    margin: 8px 0;
+}
+
+.pc-help-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.pc-help-content li {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary, #9c9eab);
+    margin: 3px 0;
+}
+
+.pc-help-content code {
+    background: var(--comfy-input-bg, #222);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--primary-background, #0b8ce9);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.pc-help-content strong {
+    color: var(--text-primary, #fff);
+    font-weight: 600;
+}
+
+.pc-help-content a {
+    color: var(--primary-background, #0b8ce9);
+    text-decoration: none;
+}
+
+.pc-help-content a:hover {
+    text-decoration: underline;
+}
+
+.pc-help-content hr {
+    border: none;
+    border-top: 1px solid var(--interface-stroke, #313235);
+    margin: 16px 0;
+}

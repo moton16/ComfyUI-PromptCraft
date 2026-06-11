@@ -3,13 +3,10 @@ PromptEnhancer 核心节点测试
 覆盖: 选项构建 / 随机选择 / 子组收集 / 节点属性 / 迁移兼容 / 子函数单元测试
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
 from promptcraft.prompt_enhancer import PromptEnhancer, LLMInterruptException
 from promptcraft.legacy_migration import (
     LEGACY_KEY_MAP,
-    LEGACY_RANDOM_MAP,
-    LEGACY_EXPAND_MAP,
     LIBRARY_KEY_MAP,
     PRESET_KEY_MAP,
 )
@@ -515,3 +512,180 @@ class TestLLMInterruptException:
     def test_is_exception(self):
         """是 Exception 子类"""
         assert issubclass(LLMInterruptException, Exception)
+
+
+class TestApplyWeight:
+    """_apply_weight 权重语法测试"""
+
+    def test_weight_1_returns_bare_tag(self):
+        """weight=1.0 返回裸标签"""
+        assert PromptEnhancer()._apply_weight("tag", 1.0) == "tag"
+
+    def test_weight_gt_1_wraps_in_parens(self):
+        """weight>1.0 返回 (tag:weight) 格式"""
+        result = PromptEnhancer()._apply_weight("tag", 1.5)
+        assert result.startswith("(")
+        assert result.endswith(")")
+        assert "tag" in result
+        assert "1.5" in result
+
+    def test_weight_gt_1_higher_weight_more_nesting(self):
+        """weight 越大嵌套越深"""
+        r1 = PromptEnhancer()._apply_weight("tag", 1.2)
+        r2 = PromptEnhancer()._apply_weight("tag", 1.8)
+        assert r1.count("(") <= r2.count("(")
+
+    def test_weight_lt_1_wraps_in_brackets(self):
+        """0<weight<1 返回 [tag] 格式"""
+        result = PromptEnhancer()._apply_weight("tag", 0.5)
+        assert result.startswith("[")
+        assert result.endswith("]")
+        assert "tag" in result
+
+    def test_weight_lt_1_lower_weight_more_nesting(self):
+        """weight 越小嵌套越深"""
+        r1 = PromptEnhancer()._apply_weight("tag", 0.8)
+        r2 = PromptEnhancer()._apply_weight("tag", 0.3)
+        assert r1.count("[") <= r2.count("[")
+
+    def test_weight_zero_returns_empty(self):
+        """weight=0.0 返回空字符串"""
+        assert PromptEnhancer()._apply_weight("tag", 0.0) == ""
+
+    def test_weight_negative_returns_empty(self):
+        """weight 为负数返回空字符串"""
+        assert PromptEnhancer()._apply_weight("tag", -0.5) == ""
+        assert PromptEnhancer()._apply_weight("tag", -1.0) == ""
+
+
+class TestRandomPick:
+    """_random_pick 随机抽取测试"""
+
+    def test_empty_libraries_returns_empty(self):
+        """空库列表返回空字符串"""
+        result = PromptEnhancer._random_pick("scene_type", [])
+        assert result == ""
+
+    def test_single_item_returns_it(self):
+        """单个选项时返回该选项的 en 值"""
+        lib = {"categories": {"scene_type": {"options": [{"label": "city", "en": "city street"}]}}}
+        result = PromptEnhancer._random_pick("scene_type", [lib])
+        assert result == "city street"
+
+    def test_returns_from_list(self):
+        """多选项时返回其中之一"""
+        lib = {"categories": {"scene_type": {"options": [
+            {"label": "city", "en": "city street"},
+            {"label": "forest", "en": "forest"},
+        ]}}}
+        result = PromptEnhancer._random_pick("scene_type", [lib])
+        assert result in ("city street", "forest")
+
+    def test_merges_multiple_libraries(self):
+        """合并多个库的选项"""
+        lib1 = {"categories": {"scene_type": {"options": [{"label": "city", "en": "city street"}]}}}
+        lib2 = {"categories": {"scene_type": {"options": [{"label": "forest", "en": "forest"}]}}}
+        results = {PromptEnhancer._random_pick("scene_type", [lib1, lib2]) for _ in range(20)}
+        assert "city street" in results
+        assert "forest" in results
+
+    def test_subgroup_pick(self):
+        """子组随机抽取"""
+        lib = {"categories": {"scene_type": {"subgroups": {
+            "indoor": {"options": [{"label": "room", "en": "room"}]},
+        }}}}
+        result = PromptEnhancer._random_pick("scene_type", [lib], subgroup_key="indoor")
+        assert result == "room"
+
+    def test_empty_category_returns_empty(self):
+        """不存在的分类返回空字符串"""
+        lib = {"categories": {"scene_type": {"options": []}}}
+        assert PromptEnhancer._random_pick("nonexistent", [lib]) == ""
+
+
+class TestMergeLibs:
+    """_merge_libs 库合并测试"""
+
+    def test_merge_basic(self):
+        """合并 SFW + NSFW 基本选项"""
+        sfw = {"categories": {"scene": {"options": [{"label": "city", "en": "city street"}]}}}
+        nsfw = {"categories": {"scene": {"options": [{"label": "bedroom", "en": "bedroom"}]}}}
+        merged = PromptEnhancer._merge_libs(sfw, nsfw)
+        labels = [o["label"] for o in merged["categories"]["scene"]["options"]]
+        assert "city" in labels
+        assert "bedroom" in labels
+
+    def test_nsfw_only_adds_new_categories(self):
+        """NSFW 独有分类被添加"""
+        sfw = {"categories": {"scene": {"options": []}}}
+        nsfw = {"categories": {"extra_cat": {"options": [{"label": "x", "en": "x"}]}}}
+        merged = PromptEnhancer._merge_libs(sfw, nsfw)
+        assert "scene" in merged["categories"]
+        assert "extra_cat" in merged["categories"]
+
+    def test_dedup_same_label(self):
+        """相同 label 不重复"""
+        sfw = {"categories": {"scene": {"options": [{"label": "city", "en": "city street"}]}}}
+        nsfw = {"categories": {"scene": {"options": [{"label": "city", "en": "city street"}]}}}
+        merged = PromptEnhancer._merge_libs(sfw, nsfw)
+        count = sum(1 for o in merged["categories"]["scene"]["options"] if o["label"] == "city")
+        assert count == 1
+
+    def test_merge_subgroups(self):
+        """合并子组"""
+        sfw = {"categories": {"scene": {"subgroups": {"indoor": {"options": [{"label": "room", "en": "room"}]}}}}}
+        nsfw = {"categories": {"scene": {"subgroups": {"outdoor": {"options": [{"label": "park", "en": "park"}]}}}}}
+        merged = PromptEnhancer._merge_libs(sfw, nsfw)
+        assert "indoor" in merged["categories"]["scene"]["subgroups"]
+        assert "outdoor" in merged["categories"]["scene"]["subgroups"]
+
+    def test_nsfw_empty_categories(self):
+        """NSFW 无 categories 时返回 SFW 原样"""
+        sfw = {"categories": {"scene": {"options": []}}}
+        nsfw = {"categories": {}}
+        merged = PromptEnhancer._merge_libs(sfw, nsfw)
+        assert "scene" in merged["categories"]
+
+
+class TestInputTypes:
+    """INPUT_TYPES() 字段完整性测试"""
+
+    @patch.object(PromptEnhancer, '_build_trigger_word_options', return_value=["skip"])
+    @patch.object(PromptEnhancer, '_build_category_full_options', return_value=["skip", "random_all"])
+    @patch.object(PromptEnhancer, '_build_preset_options', return_value=["skip"])
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_has_required_fields(self, mock_cm, mock_preset, mock_cat, mock_tw):
+        """INPUT_TYPES 包含所有必需字段"""
+        mock_cm.load_llm_hint.return_value = ""
+        result = PromptEnhancer.INPUT_TYPES()
+        assert "required" in result
+        req = result["required"]
+        for key in ["user_prompt", "scene_type", "action_pose", "clothing_detail", "expression",
+                     "weight_scene", "weight_action", "weight_clothing", "weight_expression",
+                     "camera_angle", "shot_type", "special_effect", "lens_filter",
+                     "lighting", "visual_style", "quality_level", "time_setting",
+                     "mood_expression", "preset", "llm_enabled", "expand_mode",
+                     "nsfw_content", "negative_type", "llm_instruction", "subject_count"]:
+            assert key in req, f"Missing required field: {key}"
+
+    @patch.object(PromptEnhancer, '_build_trigger_word_options', return_value=["skip"])
+    @patch.object(PromptEnhancer, '_build_category_full_options', return_value=["skip"])
+    @patch.object(PromptEnhancer, '_build_preset_options', return_value=["skip"])
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_optional_lora_field(self, mock_cm, mock_preset, mock_cat, mock_tw):
+        """INPUT_TYPES 包含可选 lora_prompt_data 字段"""
+        mock_cm.load_llm_hint.return_value = ""
+        result = PromptEnhancer.INPUT_TYPES()
+        assert "optional" in result
+        assert "lora_prompt_data" in result["optional"]
+
+    @patch.object(PromptEnhancer, '_build_trigger_word_options', return_value=["skip"])
+    @patch.object(PromptEnhancer, '_build_category_full_options', return_value=["skip"])
+    @patch.object(PromptEnhancer, '_build_preset_options', return_value=["skip"])
+    @patch('promptcraft.prompt_enhancer.config_manager')
+    def test_weight_fields_are_float(self, mock_cm, mock_preset, mock_cat, mock_tw):
+        """权重字段类型为 FLOAT"""
+        mock_cm.load_llm_hint.return_value = ""
+        result = PromptEnhancer.INPUT_TYPES()
+        for key in ["weight_scene", "weight_action", "weight_clothing", "weight_expression"]:
+            assert result["required"][key][0] == "FLOAT"

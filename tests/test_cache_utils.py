@@ -5,8 +5,6 @@ MtimeCacheMixin 测试
 
 import os
 import json
-import time
-import pytest
 from cache_utils import MtimeCacheMixin
 
 

@@ -3,13 +3,10 @@ Agent Prompt 模块测试
 覆盖: get_agent_system_prompt / build_agent_context
 """
 
-import json
-import pytest
 from agent_prompt import (
     get_agent_system_prompt,
     build_agent_context,
     AGENT_SYSTEM_PROMPT,
-    AGENT_CONTEXT_TEMPLATE,
 )
 
 

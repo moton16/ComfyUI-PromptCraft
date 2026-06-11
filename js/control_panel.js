@@ -54,6 +54,9 @@ export function createSettingsContent() {
     langSelect.value = getLang();
     langSelect.addEventListener('change', () => setLang(langSelect.value));
 
+    // Section: Usage Help
+    root.appendChild(buildHelpSection());
+
     // Section: API Services
     root.appendChild(buildApiSection());
 
@@ -96,6 +99,101 @@ function buildPanelSwitch() {
     });
 
     return card.root;
+}
+
+
+function buildHelpSection() {
+    const card = createSectionCard('❓', t('settings.usage_help'));
+
+    const row = document.createElement('div');
+    row.className = 'pc-tool-grid-wide';
+    row.innerHTML = `
+        <div class="pc-tool-card-wide" data-action="open-help">
+            <div class="pc-tool-icon" style="font-size:22px">📖</div>
+            <div class="pc-tool-info">
+                <div class="pc-tool-name" style="font-size:14px">${t('settings.usage_help')}</div>
+                <div class="pc-tool-desc">${t('settings.usage_help_desc')}</div>
+            </div>
+            <span class="pc-tool-arrow">→</span>
+        </div>
+    `;
+    card.body.appendChild(row);
+
+    card.root.addEventListener('click', (e) => {
+        if (e.target.closest('[data-action="open-help"]')) {
+            openHelpModal();
+        }
+    });
+
+    return card.root;
+}
+
+async function openHelpModal() {
+    const lang = getLang();
+    try {
+        const res = await apiRequest('GET', `/help?lang=${lang}`);
+        if (!res.success) throw new Error(res.error);
+        renderHelpModal(res.data.content);
+    } catch (e) {
+        console.error('[PromptCraft] Failed to load help:', e);
+        alert(t('help.load_failed'));
+    }
+}
+
+function renderHelpModal(markdown) {
+    const existing = document.getElementById('pc-help-modal');
+    if (existing) existing.remove();
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'pc-help-modal';
+    backdrop.className = 'lhub-backdrop';
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+
+    const modal = document.createElement('div');
+    modal.className = 'lhub-modal';
+    modal.style.cssText = 'width:780px;height:80vh;';
+
+    modal.innerHTML = `
+        <div class="lhub-header">
+            <div class="lhub-header-left">
+                <span style="font-size:18px">📖</span>
+                <h2 class="lhub-title">${t('help.title')}</h2>
+            </div>
+            <div class="lhub-header-right">
+                <button class="lhub-close-btn" data-action="close-help">✕</button>
+            </div>
+        </div>
+        <div class="lhub-body" style="overflow-y:auto;padding:20px 24px;">
+            <div class="pc-help-content">${renderMarkdown(markdown)}</div>
+        </div>
+    `;
+
+    modal.querySelector('[data-action="close-help"]').addEventListener('click', () => backdrop.remove());
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+}
+
+function renderMarkdown(md) {
+    const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    let html = escapeHtml(md);
+
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^---$/gm, '<hr>');
+
+    html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, (match) => `<ul>${match}</ul>`);
+
+    html = html.replace(/\n{2,}/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+
+    return `<p>${html}</p>`;
 }
 
 
@@ -206,26 +304,12 @@ function buildToolsSection() {
     `;
     card.body.appendChild(grid);
 
-    // 事件委托（原有方式）
     card.root.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
-        console.log(`[PromptCraft DEBUG] Delegated click: action=${action}`);
         if (action === 'open-rules') window.dispatchEvent(new CustomEvent('promptcraft:open-rule-manager'));
         if (action === 'open-library') window.dispatchEvent(new CustomEvent('promptcraft:open-library-editor'));
         if (action === 'open-history') window.dispatchEvent(new CustomEvent('promptcraft:open-history'));
         if (action === 'reload-cache') handleReloadCache(e.target.closest('.pc-tool-card'));
-    });
-
-    // 直接绑定到每个工具卡片（备用方式，排除事件委托问题）
-    grid.querySelectorAll('.pc-tool-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            const action = card.dataset.action;
-            console.log(`[PromptCraft DEBUG] Direct click: action=${action}`);
-            if (action === 'open-rules') window.dispatchEvent(new CustomEvent('promptcraft:open-rule-manager'));
-            if (action === 'open-library') window.dispatchEvent(new CustomEvent('promptcraft:open-library-editor'));
-            if (action === 'open-history') window.dispatchEvent(new CustomEvent('promptcraft:open-history'));
-            if (action === 'reload-cache') handleReloadCache(card);
-        });
     });
 
     return card.root;

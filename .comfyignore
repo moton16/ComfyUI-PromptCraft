@@ -3,6 +3,7 @@ design/
 docs/
 .gstack/
 .claude/
+.mimocode/
 node_modules/
 .ruff_cache/
 .pytest_cache/

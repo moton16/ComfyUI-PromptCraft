@@ -8,6 +8,7 @@ import json
 import asyncio
 import threading
 import functools
+import os
 from aiohttp import web
 from server import PromptServer
 from .config_manager import config_manager
@@ -719,6 +720,42 @@ async def api_delete_lora_prompt_group(request):
     group_name = unquote(request.match_info["group_name"])
     lora_prompt_manager.delete_group(lora_path, group_name)
     return None
+
+
+@PromptServer.instance.routes.get(f"{API_PREFIX}/help")
+async def get_help_doc(request):
+    """获取使用帮助文档（markdown 格式）"""
+    try:
+        lang = request.query.get('lang', 'zh')
+        if lang not in ('zh', 'en'):
+            lang = 'zh'
+        filename = f"usage_help_{lang}.md"
+        help_path = os.path.join(os.path.dirname(__file__), 'data', filename)
+        if not os.path.exists(help_path):
+            return web.json_response(get_result_json(False, error=f"Help file not found: {filename}"), status=404)
+        with open(help_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return web.json_response(get_result_json(True, {"content": content, "lang": lang}))
+    except Exception as e:
+        return web.json_response(get_result_json(False, error=str(e)), status=500)
+
+
+@PromptServer.instance.routes.get(f"{API_PREFIX}/nodedefs")
+async def get_nodedefs(request):
+    """获取 nodeDefs.json 翻译文件（画布节点标签翻译）"""
+    try:
+        lang = request.query.get('lang', 'zh')
+        if lang not in ('zh', 'en'):
+            lang = 'zh'
+        filename = 'nodeDefs.json'
+        nodedefs_path = os.path.join(os.path.dirname(__file__), 'locales', lang, filename)
+        if not os.path.exists(nodedefs_path):
+            return web.json_response(get_result_json(False, error=f"nodeDefs not found: {lang}/{filename}"), status=404)
+        with open(nodedefs_path, 'r', encoding='utf-8') as f:
+            content = json.load(f)
+        return web.json_response(get_result_json(True, content))
+    except Exception as e:
+        return web.json_response(get_result_json(False, error=str(e)), status=500)
 
 
 print(f"{PREFIX} LoRA 群组管理 API 路由已注册")

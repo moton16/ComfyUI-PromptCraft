@@ -1,6 +1,7 @@
 __pycache__/
 design/
 docs/
+.mimocode/
 .gstack/
 CODE_QUALITY_FIX_PLAN.md
 .claude/

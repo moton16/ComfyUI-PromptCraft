@@ -4,7 +4,6 @@ LLM 客户端测试
 注意: 实际 HTTP 调用需要 mock httpx
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
 from llm_client import LLMClient
 
@@ -144,7 +143,7 @@ class TestLLMClientFactory:
             "api_url": "http://test.com",
             "api_key": "sk-test",
         }
-        client = LLMClient.for_category(mock_cm, "enhance_basic")
+        LLMClient.for_category(mock_cm, "enhance_basic")
         mock_cm.get_current_service_config.assert_called_with("enhance_basic")
 
 

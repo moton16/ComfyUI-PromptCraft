@@ -5,7 +5,7 @@ LoRA 工具函数测试
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestFlattenStack:

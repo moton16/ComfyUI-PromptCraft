@@ -90,6 +90,10 @@
 
   "settings.language": "语言 / Language",
   "settings.language_hint": "切换语言后页面将刷新",
+  "settings.usage_help": "使用帮助",
+  "settings.usage_help_desc": "查看 PromptCraft 使用说明",
+  "help.title": "PromptCraft 使用帮助",
+  "help.load_failed": "加载帮助文档失败",
   "settings.api_services": "API 服务配置",
   "settings.basic_enhance": "基础扩写",
   "settings.detail_enhance": "详细扩写",

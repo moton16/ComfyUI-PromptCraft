@@ -3,7 +3,6 @@
 覆盖: build_thinking_suppression / filter_thinking_content / filter_thinking_stream / validate_custom_rule
 """
 
-import pytest
 from thinking_control import (
     build_thinking_suppression,
     filter_thinking_content,
@@ -11,7 +10,6 @@ from thinking_control import (
     validate_custom_rule,
     get_supported_models,
     THINKING_CONTROL_RULES,
-    EXCLUDE_PATTERNS,
     FUZZY_KEYWORDS,
 )
 

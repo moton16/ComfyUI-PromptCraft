@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "loras": {
+    "style/cyberpunk.safetensors": {
+      "groups": [
+        {
+          "name": "默认",
+          "prompts": ["neon lights, cyberpunk city", "holographic display"],
+          "negative": "daylight, nature"
+        }
+      ]
+    }
+  }
+}

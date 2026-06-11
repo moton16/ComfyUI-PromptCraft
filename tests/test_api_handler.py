@@ -3,11 +3,10 @@ api_handler 装饰器测试
 覆盖: 成功响应 / ValueError 处理 / 通用异常处理 / 响应格式
 """
 
-import pytest
 import asyncio
 import sys
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 # mock aiohttp 必须在 import api_routes 之前（无论是否已安装）
 _mock_web = MagicMock()
@@ -29,7 +28,7 @@ if 'nodes' not in sys.modules:
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from promptcraft.api_routes import api_handler, get_result_json
+from promptcraft.api_routes import api_handler, get_result_json  # noqa: E402
 
 
 class TestGetResultJson:

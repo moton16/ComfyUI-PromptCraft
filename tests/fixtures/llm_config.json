@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "api_url": "https://api.openai.com/v1",
+  "api_key": "sk-test-key-12345",
+  "model": "gpt-4",
+  "temperature": 0.7,
+  "max_tokens": 2000,
+  "alternative_models": ["gpt-3.5-turbo"],
+  "disable_thinking": true,
+  "filter_thinking_output": true
+}

@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "categories": {
+    "scene_type": {
+      "label": "场景类型",
+      "options": [
+        {"label": "dark alley", "en": "dark alley"}
+      ]
+    }
+  }
+}

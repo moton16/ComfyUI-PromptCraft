@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "categories": {
+    "scene_type": {
+      "label": "场景类型",
+      "options": [
+        {"label": "city street", "en": "city street"},
+        {"label": "forest", "en": "forest"},
+        {"label": "beach", "en": "beach"},
+        {"label": "night sky", "en": "night sky"}
+      ],
+      "subgroups": {
+        "indoor": {
+          "label": "室内",
+          "options": [
+            {"label": "room", "en": "room interior"},
+            {"label": "library", "en": "library interior"}
+          ]
+        }
+      }
+    },
+    "action_pose": {
+      "label": "动作姿态",
+      "options": [
+        {"label": "standing", "en": "standing pose"},
+        {"label": "sitting", "en": "sitting pose"}
+      ]
+    },
+    "quality_level": {
+      "label": "质量等级",
+      "options": [
+        {"label": "标准", "en": "detailed, high quality"},
+        {"label": "高画质", "en": "masterpiece, best quality"}
+      ]
+    },
+    "negative_prompt": {
+      "label": "负面提示词",
+      "options": [
+        {"label": "标准", "en": "low quality, worst quality"},
+        {"label": "严格", "en": "low quality, worst quality, blurry"}
+      ]
+    }
+  },
+  "presets": {
+    "anime": {
+      "label": "动漫风",
+      "values": {
+        "scene_type": "forest",
+        "quality_level": "高画质"
+      }
+    }
+  },
+  "trigger_words": {
+    "style/cyberpunk.safetensors": ["cyberpunk", "neon"]
+  }
+}
