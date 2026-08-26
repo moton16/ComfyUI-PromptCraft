@@ -4,19 +4,21 @@ Moton's Prompt Enhancer 设置面板 API 路由
 注意：文件名改为 api_routes.py 避免与 ComfyUI 内置 server 模块冲突
 """
 
-import json
-import asyncio
-import threading
 import functools
+import json
 import os
+import traceback
+from typing import Any, Optional
+
 from aiohttp import web
-from server import PromptServer
+
+from server import PromptServer  # type: ignore[attr-defined]
+
 from .config_manager import config_manager
 from .llm_client import LLMClient
 from .lora_group_manager import lora_group_manager
-from .lora_scanner import LoraScanner
 from .lora_prompt_manager import lora_prompt_manager
-import traceback
+from .lora_scanner import LoraScanner
 
 # API 前缀
 API_PREFIX = "/moton_prompt_enhancer/api"
@@ -24,9 +26,9 @@ API_PREFIX = "/moton_prompt_enhancer/api"
 PREFIX = "[PromptCraft]"
 
 
-def get_result_json(success: bool, data=None, error: str = None) -> dict:
+def get_result_json(success: bool, data: Any = None, error: Optional[str] = None) -> dict:
     """构建标准响应"""
-    result = {"success": success}
+    result: dict = {"success": success}
     if data is not None:
         result["data"] = data
     if error:
@@ -42,6 +44,9 @@ def api_handler(log_msg=None):
         @api_handler("获取 XXX")
         async def xxx(request):
             return config_manager.load_xxx()
+
+    V1-SEC-01: Exception 返回通用消息（不泄露内部错误），详细错误 print 到日志。
+    ValueError 保留 str(e)（客户端输入错误需明确反馈）。
     """
     def decorator(func):
         @functools.wraps(func)
@@ -54,7 +59,14 @@ def api_handler(log_msg=None):
             except Exception as e:
                 if log_msg:
                     print(f"{PREFIX} {log_msg}失败: {e}")
-                return web.json_response(get_result_json(False, error=str(e)), status=500)
+                else:
+                    print(f"{PREFIX} 内部错误: {e}")
+                traceback.print_exc()
+                # V1-SEC-01: 返回通用消息，不泄露内部实现细节
+                return web.json_response(
+                    get_result_json(False, error="服务器内部错误，请查看日志"),
+                    status=500,
+                )
         return wrapper
     return decorator
 
@@ -101,7 +113,11 @@ async def update_llm_config(request):
         return web.json_response(get_result_json(False, error="保存失败"), status=500)
     except Exception as e:
         print(f"{PREFIX} 更新 LLM 配置失败: {e}")
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        traceback.print_exc()
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="更新 LLM 配置失败，请查看日志"), status=500
+        )
 
 
 @PromptServer.instance.routes.post(f"{API_PREFIX}/llm/test")
@@ -109,10 +125,13 @@ async def test_llm_connection(request):
     """测试 LLM 连接"""
     try:
         client = LLMClient(config_manager)
-        success, msg = client.test_connection()
+        success, msg = await client.test_connection()
         return web.json_response(get_result_json(success, {"message": msg}))
     except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)))
+        print(f"{PREFIX} 测试连接失败: {e}")
+        traceback.print_exc()
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(get_result_json(False, error="测试连接失败，请查看日志"))
 
 
 # ==================== System Prompt API ====================
@@ -238,7 +257,7 @@ async def chat_endpoint(request):
             )
 
         client = LLMClient(config_manager)
-        client._load_config()
+        # 注：LLMClient(config_manager) 构造函数已调用 _load_config()，无需重复调用
 
         if not client.is_enabled():
             return web.json_response(
@@ -253,24 +272,9 @@ async def chat_endpoint(request):
         })
         await resp.prepare(request)
 
-        # 在后台线程中运行阻塞的 LLM 调用，通过 Queue 传递 chunk
-        loop = asyncio.get_running_loop()
-        queue = asyncio.Queue()
-
-        def _call_llm():
-            try:
-                for chunk in client.chat_stream(messages, temperature, max_tokens):
-                    loop.call_soon_threadsafe(queue.put_nowait, chunk)
-            finally:
-                loop.call_soon_threadsafe(queue.put_nowait, None)  # 结束标记
-
-        t = threading.Thread(target=_call_llm, daemon=True)
-        t.start()
-
-        while True:
-            chunk = await queue.get()
-            if chunk is None:
-                break
+        # V0-ASYNC-02: 直接 async for，删除子线程 + call_soon_threadsafe 内存泄漏模式
+        # 客户端断开时 aiohttp 自动抛 CancelledError，连接自动释放
+        async for chunk in client.chat_stream(messages, temperature, max_tokens):
             payload = json.dumps({"content": chunk}, ensure_ascii=False)
             await resp.write(f"data: {payload}\n\n".encode("utf-8"))
 
@@ -281,7 +285,10 @@ async def chat_endpoint(request):
     except Exception as e:
         print(f"{PREFIX} 聊天错误: {e}")
         traceback.print_exc()
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="聊天服务异常，请查看日志"), status=500
+        )
 
 
 # ==================== AI Agent API ====================
@@ -308,7 +315,7 @@ async def agent_endpoint(request):
                 get_result_json(False, error="Agent LLM 未启用或配置不完整"), status=400
             )
 
-        result = client.agent_call(current_state, instruction)
+        result = await client.agent_call(current_state, instruction)
 
         if result is None:
             return web.json_response(
@@ -320,7 +327,10 @@ async def agent_endpoint(request):
     except Exception as e:
         print(f"{PREFIX} Agent 错误: {e}")
         traceback.print_exc()
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="Agent 服务异常，请查看日志"), status=500
+        )
 
 
 # ==================== 多服务管理 API ====================
@@ -380,9 +390,19 @@ async def api_set_current_service(request):
     category = data.get("category", "")
     service_id = data.get("service_id", "")
     model = data.get("model", "")
+    # Bug fix: 区分失败原因，提供准确的错误消息
+    # 先校验类别
+    normalized_category = "enhance_basic" if category == "enhance" else category
+    if normalized_category not in ("enhance_basic", "enhance_detail", "enhance_normal", "agent"):
+        raise ValueError(f"无效类别: {category}")
+    # 再校验 service_id 存在
+    svc_cfg = config_manager.load_services_config()
+    valid_ids = {svc["id"] for svc in svc_cfg.get("services", [])}
+    if service_id not in valid_ids:
+        raise ValueError(f"服务 ID 不存在: {service_id}")
     ok = config_manager.set_current_service(category, service_id, model)
     if not ok:
-        raise ValueError("无效类别")
+        raise ValueError("设置当前服务失败")
     return None
 
 
@@ -398,12 +418,17 @@ async def api_test_service(request):
             from .llm_client import LLMClient
             inline_config["enabled"] = True
             client = LLMClient(service_config=inline_config)
-            success, msg = client.test_connection()
+            success, msg = await client.test_connection()
         else:
-            success, msg = config_manager.test_service_connection(svc_id)
+            success, msg = await config_manager.test_service_connection(svc_id)
         return web.json_response(get_result_json(success, {"message": msg}))
     except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        print(f"{PREFIX} 测试服务失败: {e}")
+        traceback.print_exc()
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="测试服务失败，请查看日志"), status=500
+        )
 
 
 # ==================== Prompt 历史 API ====================
@@ -737,7 +762,12 @@ async def get_help_doc(request):
             content = f.read()
         return web.json_response(get_result_json(True, {"content": content, "lang": lang}))
     except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        print(f"{PREFIX} 获取帮助文档失败: {e}")
+        traceback.print_exc()
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="获取帮助文档失败，请查看日志"), status=500
+        )
 
 
 @PromptServer.instance.routes.get(f"{API_PREFIX}/nodedefs")
@@ -755,7 +785,12 @@ async def get_nodedefs(request):
             content = json.load(f)
         return web.json_response(get_result_json(True, content))
     except Exception as e:
-        return web.json_response(get_result_json(False, error=str(e)), status=500)
+        print(f"{PREFIX} 获取 nodeDefs 失败: {e}")
+        traceback.print_exc()
+        # V1-SEC-01: 不泄露内部错误
+        return web.json_response(
+            get_result_json(False, error="获取 nodeDefs 失败，请查看日志"), status=500
+        )
 
 
 print(f"{PREFIX} LoRA 群组管理 API 路由已注册")

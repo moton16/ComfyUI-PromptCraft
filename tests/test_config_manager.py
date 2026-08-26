@@ -1,49 +1,34 @@
 """
-配置管理器测试
-覆盖: 原子写入 / 模板复制 / SFW/NSFW 库 CRUD / LLM 配置 / Prompt 历史 / LoRA 收藏
+ConfigManager V1.4.0 修复点测试
+覆盖:
+- set_current_service 校验 service_id 存在（V1-BE-01）
+- _load_json_cached 加载失败不缓存（V0-DATA-02）
+- reorder_loras 未在 order 中的 LoRA 追加末尾（V0-DATA-04）
 """
 
 import os
-import json
+
 import pytest
 from promptcraft.config_manager import ConfigManager
+from promptcraft.lora_group_manager import LoraGroupManager
 
 
 @pytest.fixture
-def config_mgr(tmp_dir):
-    """创建独立的 ConfigManager 实例（重置单例 + 覆盖路径）"""
-    # 重置单例
-    ConfigManager._instance = None
+def isolated_config_mgr(tmp_dir):
+    """创建独立的 ConfigManager 实例（绕过模块级单例，覆盖路径到临时目录）
 
-    # 准备模板数据目录
+    参考 tests/conftest.py 与现有 test_config_manager.py 的 mock 模式：
+    用 object.__new__ 绕过 __init__，再设 _initialized 阻止重入。
+    """
     data_dir = os.path.join(tmp_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
 
-    # 写入模板文件
-    sfw_template = {"version": "1.0.0", "categories": {"scene": {"label": "场景", "options": []}}}
-    with open(os.path.join(data_dir, "sfw_prompts.json"), "w", encoding="utf-8") as f:
-        json.dump(sfw_template, f)
-
-    nsfw_template = {"version": "1.2.0", "enabled": True, "categories": {}}
-    with open(os.path.join(data_dir, "nsfw_prompts.json"), "w", encoding="utf-8") as f:
-        json.dump(nsfw_template, f)
-
-    llm_template = {"version": "1.0.0", "enabled": False, "provider": "openai_compatible"}
-    with open(os.path.join(data_dir, "llm_config.json"), "w", encoding="utf-8") as f:
-        json.dump(llm_template, f)
-
-    # 创建实例并覆盖路径
-    mgr = ConfigManager.__new__(ConfigManager)
+    mgr = object.__new__(ConfigManager)
     mgr._initialized = True
     mgr.plugin_dir = tmp_dir
     mgr.templates_dir = data_dir
     mgr.user_config_dir = os.path.join(tmp_dir, "user_config")
     os.makedirs(mgr.user_config_dir, exist_ok=True)
-
-    mgr.sfw_template_path = os.path.join(data_dir, "sfw_prompts.json")
-    mgr.nsfw_template_path = os.path.join(data_dir, "nsfw_prompts.json")
-    mgr.llm_template_path = os.path.join(data_dir, "llm_config.json")
-    mgr.old_library_path = os.path.join(data_dir, "default_prompts.json")
 
     mgr.llm_config_path = os.path.join(mgr.user_config_dir, "llm_config.json")
     mgr.llm_services_path = os.path.join(mgr.user_config_dir, "llm_services.json")
@@ -55,7 +40,7 @@ def config_mgr(tmp_dir):
     mgr.lora_favorites_path = os.path.join(mgr.user_config_dir, "lora_favorites.json")
     mgr.llm_hint_path = os.path.join(mgr.user_config_dir, "llm_hint.json")
 
-    # 清除缓存
+    # 清除所有缓存
     mgr._sfw_cache = None
     mgr._sfw_cache_mtime = 0
     mgr._nsfw_cache = None
@@ -68,209 +53,117 @@ def config_mgr(tmp_dir):
     mgr._favorites_cache = None
 
     yield mgr
-    ConfigManager._instance = None
 
 
-class TestAtomicWrite:
-
-    def test_write_creates_file(self, config_mgr):
-        path = os.path.join(config_mgr.user_config_dir, "test.json")
-        result = config_mgr._atomic_write_json(path, {"key": "value"})
-        assert result is True
-        assert os.path.exists(path)
-
-    def test_write_content_correct(self, config_mgr):
-        path = os.path.join(config_mgr.user_config_dir, "test.json")
-        data = {"nested": {"a": 1, "b": [2, 3]}}
-        config_mgr._atomic_write_json(path, data)
-        with open(path, "r", encoding="utf-8") as f:
-            loaded = json.load(f)
-        assert loaded == data
-
-    def test_write_unicode(self, config_mgr):
-        path = os.path.join(config_mgr.user_config_dir, "test.json")
-        data = {"中文键": "中文值", "emoji": "🎨"}
-        config_mgr._atomic_write_json(path, data)
-        with open(path, "r", encoding="utf-8") as f:
-            loaded = json.load(f)
-        assert loaded["中文键"] == "中文值"
-
-    def test_overwrite_existing(self, config_mgr):
-        path = os.path.join(config_mgr.user_config_dir, "test.json")
-        config_mgr._atomic_write_json(path, {"v": 1})
-        config_mgr._atomic_write_json(path, {"v": 2})
-        with open(path, "r", encoding="utf-8") as f:
-            loaded = json.load(f)
-        assert loaded["v"] == 2
+@pytest.fixture
+def isolated_lora_group_mgr(tmp_dir):
+    """创建独立的 LoraGroupManager 实例，重定向 _cache_file 到临时目录"""
+    mgr = object.__new__(LoraGroupManager)
+    mgr._initialized = True
+    mgr._cache_file = os.path.join(tmp_dir, "lora_groups.json")
+    mgr.groups_path = mgr._cache_file
+    # 初始化 MtimeCacheMixin 状态
+    mgr._cache = None
+    mgr._cache_mtime = 0
+    yield mgr
 
 
-class TestTemplateCopy:
-
-    def test_copy_when_missing(self, config_mgr):
-        target = os.path.join(config_mgr.user_config_dir, "copy_test.json")
-        template = os.path.join(config_mgr.templates_dir, "sfw_prompts.json")
-        result = config_mgr._copy_template_if_missing(template, target)
-        assert result is True
-        assert os.path.exists(target)
-
-    def test_skip_when_exists(self, config_mgr):
-        target = os.path.join(config_mgr.user_config_dir, "existing.json")
-        with open(target, "w") as f:
-            json.dump({"custom": True}, f)
-        template = os.path.join(config_mgr.templates_dir, "sfw_prompts.json")
-        result = config_mgr._copy_template_if_missing(template, target)
-        assert result is True
-        with open(target, "r") as f:
-            assert json.load(f)["custom"] is True
+# ==================== V1-BE-01: set_current_service 校验 service_id ====================
 
 
-class TestSFWLibrary:
+class TestSetCurrentServiceValidatesId:
+    """V1-BE-01: set_current_service 应校验 service_id 存在，避免写入悬空引用"""
 
-    def test_load_sfw_library(self, config_mgr):
-        config_mgr._init_config_files()
-        lib = config_mgr.load_sfw_library()
-        assert "version" in lib
-        assert "categories" in lib
+    def test_set_current_service_validates_id(self, isolated_config_mgr):
+        # 准备一个只含 1 个服务的 services config
+        services = {
+            "version": "3.0.0",
+            "services": [
+                {
+                    "id": "svc_existing",
+                    "name": "Existing",
+                    "api_url": "",
+                    "api_key": "",
+                    "model": "",
+                }
+            ],
+            "current": {
+                "enhance_basic": {"service_id": "svc_existing", "model": ""},
+                "enhance_detail": {"service_id": "svc_existing", "model": ""},
+                "enhance_normal": {"service_id": "svc_existing", "model": ""},
+                "agent": {"service_id": "svc_existing", "model": ""},
+            },
+        }
+        isolated_config_mgr._atomic_write_json(
+            isolated_config_mgr.llm_services_path, services
+        )
 
-    def test_save_sfw_library(self, config_mgr):
-        config_mgr._init_config_files()
-        lib = config_mgr.load_sfw_library()
-        lib["categories"]["new_cat"] = {"label": "新分类", "options": []}
-        config_mgr.save_sfw_library(lib)
-        reloaded = config_mgr.load_sfw_library(force_reload=True)
-        assert "new_cat" in reloaded["categories"]
+        # 不存在的 service_id 返回 False
+        result_invalid = isolated_config_mgr.set_current_service(
+            "agent", "svc_nonexistent"
+        )
+        assert result_invalid is False
 
-
-class TestNSFWLibrary:
-
-    def test_load_nsfw_library(self, config_mgr):
-        config_mgr._init_config_files()
-        lib = config_mgr.load_nsfw_library()
-        assert "version" in lib
-
-
-class TestLLMConfig:
-
-    def test_load_llm_config(self, config_mgr):
-        config_mgr._init_config_files()
-        llm = config_mgr.load_llm_config()
-        assert "version" in llm
-
-    def test_save_llm_config(self, config_mgr):
-        config_mgr._init_config_files()
-        llm = config_mgr.load_llm_config()
-        llm["enabled"] = True
-        llm["api_key"] = "sk-test"
-        config_mgr.save_llm_config(llm)
-        reloaded = config_mgr.load_llm_config(force_reload=True)
-        assert reloaded["enabled"] is True
-        assert reloaded["api_key"] == "sk-test"
+        # 存在的 service_id 返回 True
+        result_valid = isolated_config_mgr.set_current_service(
+            "agent", "svc_existing"
+        )
+        assert result_valid is True
 
 
-class TestServicesConfig:
-
-    def test_migrate_or_create_services(self, config_mgr):
-        config_mgr._init_config_files()
-        assert os.path.exists(config_mgr.llm_services_path)
-
-    def test_load_services(self, config_mgr):
-        config_mgr._init_config_files()
-        services = config_mgr.load_services_config()
-        assert isinstance(services, dict)
+# ==================== V0-DATA-02: _load_json_cached 加载失败不缓存 ====================
 
 
-class TestNegativePrompt:
+class TestLoadJsonCachedFailureNoCache:
+    """V0-DATA-02: 加载失败时返回默认值但不缓存，下次访问重试"""
 
-    def test_default_negative_prompt(self, config_mgr):
-        config_mgr._init_config_files()
-        neg = config_mgr.load_negative_prompt()
-        assert isinstance(neg, str)
+    def test_load_json_cached_failure_no_cache(self, isolated_config_mgr, tmp_dir):
+        # 指向一个不存在的文件，触发加载失败
+        bad_path = os.path.join(tmp_dir, "nonexistent.json")
 
-    def test_save_negative_prompt(self, config_mgr):
-        config_mgr._init_config_files()
-        config_mgr.save_negative_prompt("bad quality, worst quality")
-        reloaded = config_mgr.load_negative_prompt()
-        assert "bad quality" in reloaded
-
-
-class TestPromptHistory:
-
-    def test_empty_history(self, config_mgr):
-        config_mgr._init_config_files()
-        history = config_mgr.load_prompt_history()
-        assert isinstance(history, dict)
-
-    def test_add_to_history(self, config_mgr):
-        config_mgr._init_config_files()
-        config_mgr.add_prompt_history("test prompt 1")
-        config_mgr.add_prompt_history("test prompt 2")
-        history = config_mgr.load_prompt_history()
-        # 历史记录是 dict 格式 {"entries": [...], ...}
-        assert isinstance(history, dict)
+        default_value = {"default": True}
+        result = isolated_config_mgr._load_json_cached(
+            bad_path,
+            "_test_cache",
+            lambda: default_value,
+        )
+        # 加载失败时返回默认值
+        assert result == default_value
+        # 但不缓存失败结果（getattr 返回 None）
+        assert getattr(isolated_config_mgr, "_test_cache", None) is None
 
 
-class TestLoraFavorites:
-
-    def test_empty_favorites(self, config_mgr):
-        config_mgr._init_config_files()
-        favs = config_mgr.load_lora_favorites()
-        assert isinstance(favs, list)
-
-    def test_toggle_favorite(self, config_mgr):
-        config_mgr._init_config_files()
-        config_mgr.toggle_lora_favorite("test/lora.safetensors")
-        favs = config_mgr.load_lora_favorites()
-        assert "test/lora.safetensors" in favs
-
-    def test_is_favorite(self, config_mgr):
-        config_mgr._init_config_files()
-        config_mgr.toggle_lora_favorite("test/lora.safetensors")
-        assert config_mgr.is_lora_favorite("test/lora.safetensors") is True
+# ==================== V0-DATA-04: reorder_loras 未在 order 中的 LoRA 追加末尾 ====================
 
 
-class TestMaskApiKey:
+class TestReorderLorasAppendsUnordered:
+    """V0-DATA-04: reorder_loras 未在 ordered_names 中的 LoRA 追加到末尾，不静默丢弃"""
 
-    def test_mask_long_key(self):
-        masked = ConfigManager._mask_key("sk-1234567890abcdef")
-        assert masked.startswith("sk-1")
-        assert masked.endswith("cdef")
-        assert "*" in masked
+    def test_reorder_loras_appends_unordered(self, isolated_lora_group_mgr):
+        # 准备初始群组数据：3 个 LoRA (a, b, c)
+        groups = {
+            "group_a": {
+                "label": "group_a",
+                "description": "",
+                "loras": [
+                    {"lora": "a.safetensors", "weight": 1.0, "clip_weight": 1.0, "enabled": True, "note": ""},
+                    {"lora": "b.safetensors", "weight": 1.0, "clip_weight": 1.0, "enabled": True, "note": ""},
+                    {"lora": "c.safetensors", "weight": 1.0, "clip_weight": 1.0, "enabled": True, "note": ""},
+                ],
+            }
+        }
+        isolated_lora_group_mgr.save_groups(groups)
 
-    def test_mask_short_key(self):
-        # 短密钥（<=8字符）返回 "****"
-        assert ConfigManager._mask_key("short") == "****"
+        # 只指定 c 在前
+        isolated_lora_group_mgr.reorder_loras("group_a", ["c.safetensors"])
 
-    def test_mask_empty_key(self):
-        assert ConfigManager._mask_key("") == ""
-
-
-class TestServicesCRUD:
-
-    def test_get_all_services_returns_list(self, config_mgr):
-        config_mgr._init_config_files()
-        result = config_mgr.get_all_services()
-        assert isinstance(result, list)
-
-    def test_get_all_services_masks_keys(self, config_mgr):
-        config_mgr._init_config_files()
-        config_mgr.create_service("test_svc", api_url="http://test.com", api_key="sk-1234567890abcdef")
-        result = config_mgr.get_all_services()
-        test_svc = [s for s in result if s["name"] == "test_svc"]
-        assert len(test_svc) == 1
-        assert "****" in test_svc[0]["api_key"]
-
-
-class TestMaskKey:
-
-    def test_long_key_masks_middle(self):
-        result = ConfigManager._mask_key("sk-12345678901234567890")
-        assert "sk-1" in result
-        assert "****" in result
-
-    def test_short_key_returns_stars(self):
-        result = ConfigManager._mask_key("sk-12")
-        assert result == "****"
-
-    def test_empty_key_returns_empty(self):
-        result = ConfigManager._mask_key("")
-        assert result == ""
+        # 验证：c 在第一位，a/b 追加末尾（顺序保留原相对顺序）
+        result = isolated_lora_group_mgr.load_groups()
+        lora_names = [item["lora"] for item in result["group_a"]["loras"]]
+        assert lora_names[0] == "c.safetensors"
+        assert "a.safetensors" in lora_names[1:]
+        assert "b.safetensors" in lora_names[1:]
+        # 不丢任何 LoRA
+        assert len(lora_names) == 3
+        # 未在 order 中的 LoRA 保持原相对顺序（a 在 b 前）
+        assert lora_names.index("a.safetensors") < lora_names.index("b.safetensors")

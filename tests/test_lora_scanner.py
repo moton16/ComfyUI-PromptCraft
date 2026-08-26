@@ -4,14 +4,13 @@ LoraScanner 测试
       list_folders, search, get_lora_info
 """
 
-import json
 import hashlib
-import struct
+import json
 import os
+import struct
 from unittest.mock import patch
 
 from lora_scanner import LoraScanner
-
 
 # ==================== _parse_training_words ====================
 

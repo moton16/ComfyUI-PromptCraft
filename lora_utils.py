@@ -5,11 +5,12 @@ LoRA 公共工具函数
 
 import threading
 from collections import OrderedDict
+from typing import Any
 
 try:
-    import folder_paths
     import comfy.sd
     import comfy.utils
+    import folder_paths
     HAS_COMFY = True
 except ImportError:
     HAS_COMFY = False
@@ -19,7 +20,7 @@ from .lora_scanner import LoraScanner
 
 # 共享 LoRA 文件缓存 — 线程安全 + LRU 驱逐（最多 8 个文件）
 _LORA_CACHE_MAX = 8
-_lora_cache = OrderedDict()
+_lora_cache: OrderedDict[str, Any] = OrderedDict()
 _lora_cache_lock = threading.Lock()
 
 

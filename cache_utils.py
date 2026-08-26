@@ -3,8 +3,8 @@ Mtime 缓存 Mixin
 抽取自 config_manager / lora_group_manager / lora_prompt_manager 的重复缓存模式
 """
 
-import os
 import json
+import os
 
 
 class MtimeCacheMixin:
@@ -60,11 +60,17 @@ class MtimeCacheMixin:
     def _save_json_and_update_cache(self, data):
         """原子写入 JSON 并更新缓存
 
-        子类需提供 self._save_raw(data) 方法
+        子类需提供 self._save_raw(data) -> bool 方法。
+
+        V1-BE-09: 检查 _save_raw 返回值，写入失败时不更新缓存（保留旧缓存），
+        避免缓存与磁盘数据不一致。
         """
-        self._save_raw(data)
+        success = self._save_raw(data)
+        if not success:
+            return False
         self._cache = data
         try:
             self._cache_mtime = os.path.getmtime(self._cache_file)
         except OSError:
             self._cache_mtime = 0
+        return True

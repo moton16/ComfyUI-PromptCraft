@@ -4,21 +4,22 @@ LoRA Prompt Loader 节点
 输出可直接接入标准 CLIP 文本编码器的纯文本 STRING
 """
 
-import os
-import json
 import hashlib
+import json
+import os
 
 try:
-    import folder_paths
     import comfy.sd
     import comfy.utils
+    import folder_paths
     HAS_COMFY = True
 except ImportError:
     HAS_COMFY = False
 
 from .lora_group_manager import lora_group_manager
 from .lora_prompt_manager import lora_prompt_manager
-from .lora_utils import flatten_stack, load_single_lora, clear_cache as _clear_lora_cache
+from .lora_utils import clear_cache as _clear_lora_cache
+from .lora_utils import flatten_stack, load_single_lora
 
 
 class LoraPromptLoader:

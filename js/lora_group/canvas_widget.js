@@ -10,6 +10,10 @@ import { openHubPanel, setHubRefreshCallback } from './hub_panel.js';
 import { t } from '../i18n.js';
 
 const NODE_WIDTH = 320;
+// 栈 widget 底边与节点底边的留白
+const STACK_BOTTOM_PAD = 8;
+// 栈 widget 最小高度（保证空状态区域可交互）
+const STACK_MIN_HEIGHT = 76;
 
 // 注册栈刷新回调（避免循环依赖）
 setHubRefreshCallback((node) => renderStack(node));
@@ -34,10 +38,15 @@ export function initCanvasWidget(node) {
     }
     // 标记节点尚未完成 configure 恢复（防止 renderStack 在恢复前覆盖 widget）
     node._loraConfigured = false;
-    // 新建节点不会触发 onConfigure，用延迟兜底解锁 syncToWidget
+    // 新建节点不会触发 onConfigure：LiteGraph 的 configure() 与 onNodeCreated 在同一同步栈内完成，
+    // 用 setTimeout(0) 兜底解锁（替代固定 500ms，避免新建节点早期修改在保存时丢失）
     setTimeout(() => {
-        if (node._loraConfigured === false) node._loraConfigured = true;
-    }, 500);
+        if (node._loraConfigured === false) {
+            node._loraConfigured = true;
+            // 解锁后强制把内存中的 stack 回写一次 widget 值
+            syncToWidget(node);
+        }
+    }, 0);
 
     // 创建内联 LoRA 栈 DOM widget
     createStackWidget(node);
@@ -116,20 +125,63 @@ function createStackWidget(node) {
 
     node._loraStackEl = el;
 
-    // 设置节点最小宽度
+    // 设置节点最小宽度，并在拖动缩放时同步栈 widget 高度
     const origResize = node.onResize;
     node.onResize = function () {
         let [w, h] = this.size;
         if (w < NODE_WIDTH) w = NODE_WIDTH;
         this.size = [w, h];
         if (origResize) origResize.apply(this, arguments);
+        updateStackSize(this);
     };
+
+    // 初始布局完成后同步一次高度（此时 widget.y 才可用）
+    requestAnimationFrame(() => updateStackSize(node));
+}
+
+/**
+ * 让栈 widget 高度跟随节点尺寸：
+ * 至少为内容自然高度；节点被拉大时撑满节点剩余空间，内部列表滚动
+ */
+function updateStackSize(node) {
+    if (!node) return;
+    const el = node._loraStackEl;
+    const widget = node.widgets?.find(w => w.name === 'lora_stack_ui');
+    if (!el || !widget) return;
+
+    // 先释放固定高度，测量内容自然高度（避免把上次撑大的高度当作内容高度）
+    el.style.height = 'auto';
+    const naturalH = Math.ceil(el.getBoundingClientRect().height);
+
+    const availH = node.size[1] - getWidgetTop(node, widget) - STACK_BOTTOM_PAD;
+    el.style.height = Math.max(naturalH, availH, STACK_MIN_HEIGHT) + 'px';
+}
+
+/**
+ * 获取栈 widget 的纵向布局位置（LiteGraph 布局后写回 widget.y，早期用估算兜底）
+ */
+function getWidgetTop(node, widget) {
+    if (typeof widget.y === 'number' && widget.y > 0) return widget.y;
+    let y = node.constructor?.slot_start_y || 30;
+    for (const w of node.widgets || []) {
+        if (w === widget) break;
+        let h = 20;
+        if (w.computeSize) {
+            const sz = w.computeSize(node.size?.[0] || NODE_WIDTH);
+            if (sz && typeof sz[1] === 'number') h = sz[1];
+        }
+        if (h < 0) continue; // 隐藏 widget 不占高度（如 lora_stack_data）
+        y += h;
+    }
+    return y;
 }
 
 /**
  * 渲染整个栈
  */
 export function renderStack(node) {
+    // V1-FE-20: node 为 null（如 Agent 面板未关联节点时）直接返回
+    if (!node) return;
     const el = node._loraStackEl;
     if (!el) return;
 
@@ -145,6 +197,7 @@ export function renderStack(node) {
         stackEl.innerHTML = '';
         emptyEl.style.display = '';
         syncToWidget(node);
+        updateStackSize(node);
         return;
     }
 
@@ -159,6 +212,8 @@ export function renderStack(node) {
     // Drag & drop
     setupDragDrop(stackEl, node);
     syncToWidget(node);
+    // 内容条目变化后重新同步高度（自然高度可能变化）
+    updateStackSize(node);
 }
 
 /**
@@ -424,6 +479,9 @@ function handleStackChange(node) {
  * Drag & drop 重排序
  */
 function setupDragDrop(container, node) {
+    // V0-FE-02: 单次注册，避免 renderStack 重复调用导致监听器堆积
+    if (container._pcDragDropBound) return;
+    container._pcDragDropBound = true;
     let dragIdx = null;
 
     container.addEventListener('dragstart', (e) => {
@@ -472,6 +530,34 @@ function setupDragDrop(container, node) {
 }
 
 /**
+ * 为下拉菜单挂载统一关闭机制：× 按钮、点击外部（捕获阶段）、Esc 键
+ * 返回 closeMenu()，关闭时会同时清理 document 监听器。
+ * 捕获阶段监听保证点击节点自身区域（其 mousedown 被 stopPropagation）也能关闭菜单
+ */
+function attachDropdownClose(menu) {
+    const listeners = [];
+    const closeMenu = () => {
+        if (!menu.isConnected) return;
+        menu.remove();
+        for (const [type, fn, opts] of listeners) {
+            document.removeEventListener(type, fn, opts);
+        }
+    };
+
+    const onMouseDown = (e) => { if (!menu.contains(e.target)) closeMenu(); };
+    const onKeyDown = (e) => { if (e.key === 'Escape') closeMenu(); };
+    listeners.push(['mousedown', onMouseDown, true], ['keydown', onKeyDown, true]);
+    // 延迟注册，避免打开菜单的点击立即触发关闭（保持原有行为）
+    setTimeout(() => {
+        document.addEventListener('mousedown', onMouseDown, true);
+        document.addEventListener('keydown', onKeyDown, true);
+    }, 100);
+
+    menu.querySelector('[data-action="close-menu"]')?.addEventListener('click', closeMenu);
+    return closeMenu;
+}
+
+/**
  * 显示添加 LoRA 菜单（搜索 + 浏览）
  */
 async function showAddLoraMenu(node, anchorBtn) {
@@ -480,6 +566,10 @@ async function showAddLoraMenu(node, anchorBtn) {
     const menu = document.createElement('div');
     menu.className = 'lsw-dropdown';
     menu.innerHTML = `
+        <div class="lsw-dropdown-header">
+            <span>${t('canvas.add_lora_title')}</span>
+            <button class="lsw-dropdown-close" data-action="close-menu" title="${t('common.close')}">×</button>
+        </div>
         <div class="lsw-dropdown-search">
             <input class="lsw-dropdown-input" placeholder="${t('canvas.search_lora')}" data-role="search" />
         </div>
@@ -497,6 +587,7 @@ async function showAddLoraMenu(node, anchorBtn) {
     document.body.appendChild(menu);
     menu.addEventListener('mousedown', e => e.stopPropagation());
     menu.addEventListener('click', e => e.stopPropagation());
+    const closeMenu = attachDropdownClose(menu);
 
     let allLoras = [];
     let favorites = [];
@@ -578,7 +669,7 @@ async function showAddLoraMenu(node, anchorBtn) {
                 if (StackAPI.addLora(node.id, file)) {
                     renderStack(node);
                 }
-                menu.remove();
+                closeMenu();
             });
             listEl.appendChild(item);
         }
@@ -595,14 +686,6 @@ async function showAddLoraMenu(node, anchorBtn) {
     });
 
     setTimeout(() => menu.querySelector('[data-role="search"]').focus(), 50);
-
-    const closeHandler = (e) => {
-        if (!menu.contains(e.target)) {
-            menu.remove();
-            document.removeEventListener('mousedown', closeHandler);
-        }
-    };
-    setTimeout(() => document.addEventListener('mousedown', closeHandler), 100);
 }
 
 /**
@@ -619,7 +702,10 @@ async function showAddGroupMenu(node, anchorBtn) {
     menu.innerHTML = `
         <div class="lsw-dropdown-header">
             <span>${t('canvas.group_ref')}</span>
-            <button class="lsw-dropdown-manage" data-action="manage">${t('canvas.open_hub')}</button>
+            <span class="lsw-dropdown-header-actions">
+                <button class="lsw-dropdown-manage" data-action="manage">${t('canvas.open_hub')}</button>
+                <button class="lsw-dropdown-close" data-action="close-menu" title="${t('common.close')}">×</button>
+            </span>
         </div>
         <div class="lsw-dropdown-list" data-role="list"></div>
     `;
@@ -632,6 +718,7 @@ async function showAddGroupMenu(node, anchorBtn) {
 
     document.body.appendChild(menu);
     menu.addEventListener('mousedown', e => e.stopPropagation());
+    const closeMenu = attachDropdownClose(menu);
 
     const listEl = menu.querySelector('[data-role="list"]');
 
@@ -657,24 +744,16 @@ async function showAddGroupMenu(node, anchorBtn) {
                 if (StackAPI.addGroup(node.id, name)) {
                     renderStack(node);
                 }
-                menu.remove();
+                closeMenu();
             });
             listEl.appendChild(item);
         }
     }
 
     menu.querySelector('[data-action="manage"]').addEventListener('click', () => {
-        menu.remove();
+        closeMenu();
         openHubPanel(node);
     });
-
-    const closeHandler = (e) => {
-        if (!menu.contains(e.target)) {
-            menu.remove();
-            document.removeEventListener('mousedown', closeHandler);
-        }
-    };
-    setTimeout(() => document.addEventListener('mousedown', closeHandler), 100);
 }
 
 /**
@@ -794,6 +873,7 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
 
     html += '</div>';
     menu.innerHTML = html;
+    const closeMenu = attachDropdownClose(menu);
 
     menu.addEventListener('click', (e) => {
         const groupItem = e.target.closest('[data-group]');
@@ -806,16 +886,8 @@ async function showPromptGroupMenu(node, idx, itemId, anchorEl) {
         if (labelEl) {
             labelEl.textContent = groupName === '__none__' ? t('canvas.none') : (groupName || t('canvas.all'));
         }
-        menu.remove();
+        closeMenu();
     });
-
-    const closeHandler = (e) => {
-        if (!menu.contains(e.target)) {
-            menu.remove();
-            document.removeEventListener('mousedown', closeHandler);
-        }
-    };
-    setTimeout(() => document.addEventListener('mousedown', closeHandler), 100);
 }
 
 /**
@@ -841,10 +913,10 @@ export function refreshGroupStatus(node) {
 
 function escapeHtml(str) {
     const d = document.createElement('div');
-    d.textContent = str;
+    d.textContent = str || '';  // Bug fix: null/undefined 容错
     return d.innerHTML;
 }
 
 function escapeAttr(str) {
-    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return (str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');  // Bug fix: null/undefined 容错
 }

@@ -3,10 +3,10 @@ API 路由模块测试
 覆盖: get_result_json / api_handler 装饰器 / 路由集成
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
-from promptcraft.api_routes import get_result_json, api_handler
+import pytest
+from promptcraft.api_routes import api_handler, get_result_json
 
 
 class TestGetResultJson:

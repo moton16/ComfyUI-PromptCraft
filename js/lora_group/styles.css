@@ -863,6 +863,9 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     width: 100%;
     pointer-events: auto;
+    /* 弹性纵向布局：高度由 JS 按节点尺寸同步，列表/空状态撑满剩余空间 */
+    display: flex;
+    flex-direction: column;
 }
 
 .lsw-root * {
@@ -961,6 +964,9 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* Empty state */
@@ -968,7 +974,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 30px;
+    flex: 1;
+    min-height: 30px;
     border: 1px dashed rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     margin-top: 2px;
@@ -1495,6 +1502,30 @@
 
 .lsw-dropdown-manage:hover {
     background: rgba(11, 140, 233, 0.1);
+}
+
+/* 头部右侧按钮组（管理 + 关闭） */
+.lsw-dropdown-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* 下拉菜单关闭按钮 */
+.lsw-dropdown-close {
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground, #8a8a8a);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.lsw-dropdown-close:hover {
+    background: rgba(255, 85, 85, 0.12);
+    color: #ff6b6b;
 }
 
 .lsw-dropdown-list {
@@ -3172,4 +3203,48 @@
     border: none;
     border-top: 1px solid var(--interface-stroke, #313235);
     margin: 16px 0;
+}
+
+/* ============================================
+   V1-FE-14: 可访问性 — 焦点环（仅 Agent + Hub 面板）
+   ============================================ */
+
+.pc-agent-retry-btn:focus-visible,
+.pc-agent-input:focus-visible,
+.lhub-btn:focus-visible,
+.lhub-close:focus-visible,
+.lhub-tab:focus-visible,
+.lsw-item:focus-visible,
+.lhub-chip:focus-visible,
+.lhub-hash-copy:focus-visible {
+    outline: 2px solid var(--border-color, #4a9eff);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* partial 状态卡片（V0-FE-05） */
+.pc-agent-op-partial {
+    border-left: 3px solid #f0ad4e;
+    background: rgba(240, 173, 78, 0.08);
+}
+
+/* 超时状态（V1-FE-12） */
+.pc-agent-timeout {
+    color: #f0ad4e;
+    font-style: italic;
+}
+
+/* retry 按钮（V1-FE-13） */
+.pc-agent-retry-btn {
+    margin-top: 8px;
+    padding: 4px 12px;
+    background: var(--comfy-input-bg, #2a2a2a);
+    color: var(--input-text, #ddd);
+    border: 1px solid var(--border-color, #555);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.pc-agent-retry-btn:hover {
+    background: var(--comfy-button-bg, #3a3a3a);
 }

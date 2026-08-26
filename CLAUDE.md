@@ -2,7 +2,7 @@
 
 ## ⚠️ 版本号位置索引（更新版本时必改）
 
-> 当前版本：**V1.3.6**
+> 当前版本：**V1.4.0**
 > 以下位置都硬编码了版本号，发版时必须同步更新：
 
 | 文件 | 行号 | 内容 |
@@ -14,6 +14,7 @@
 | `model_lora_loader.py` | 文件头 docstring | 节点版本注释 |
 | `llm_client.py` | 文件头 docstring | 模块版本注释 |
 | `thinking_control.py` | 文件头 docstring | 模块版本注释 |
+| `prompt_enhancer.py` | 文件头 docstring | 节点版本注释 |
 | `README_zh.md` | badge + 版本历史 | 中文 README |
 | `README_en.md` | badge | 英文 README |
 | `CHANGELOG.md` | 顶部条目 | 更新日志 |

@@ -1,5 +1,6 @@
 {
   "version": "2.0.0",
+  "_template_version": "1.4.0",
   "services": [
     {
       "id": "default",

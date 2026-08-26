@@ -33,7 +33,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.3.7';
+const VERSION = '1.4.0';
 
 // ==================== 工具函数 ====================
 
@@ -53,13 +53,26 @@ async function request(method, endpoint, body = null) {
     if (body) {
         options.body = JSON.stringify(body);
     }
+    // V1-FE-02: 30s 超时 + 响应状态检查
+    const controller = new AbortController();
+    options.signal = controller.signal;
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
         const res = await api.fetchApi(`${API_PREFIX}${endpoint}`, options);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
         const json = await res.json();
         return json;
     } catch (err) {
+        if (err.name === 'AbortError') {
+            log(`请求超时 ${endpoint}`);
+            return { success: false, error: '请求超时（30s）' };
+        }
         log(`请求失败 ${endpoint}:`, err);
         return { success: false, error: err.message };
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 

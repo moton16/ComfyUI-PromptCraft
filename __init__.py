@@ -67,7 +67,7 @@ except Exception as e:
 
 # 尝试导入 API 路由（设置面板 API）- 注意改名避免与 ComfyUI 内置 server 冲突
 try:
-    from . import api_routes  # noqa: F401
+    from . import api_routes  # type: ignore[attr-defined]  # noqa: F401
     print("[PromptCraft] 设置面板 API 已加载")
 except ImportError as e:
     print(f"[PromptCraft] Warning: 设置面板 API 导入失败: {e}")
@@ -85,8 +85,8 @@ if old_library.exists() and not sfw_library.exists():
     shutil.copy(old_library, sfw_library)
     print(f"[PromptCraft] 已迁移旧库文件: {old_library.name} -> {sfw_library.name}")
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY", "api_routes"]
 
-print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.3.7 节点加载完成\033[0m | "
+print(f"\033[94m[PromptCraft]\033[0m \033[92mV1.4.0 节点加载完成\033[0m | "
       f"\033[93m{len(NODE_CLASS_MAPPINGS)} 个节点\033[0m | "
       f"\033[96m面板目录: js/\033[0m")

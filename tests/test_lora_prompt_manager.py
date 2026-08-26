@@ -3,18 +3,17 @@ LoRA Prompt 管理器测试
 覆盖: CRUD / 批量查询 / 注入数据 / 错误处理
 """
 
-import os
 import json
+import os
+
 import pytest
 from promptcraft.lora_prompt_manager import LoraPromptManager
 
 
 @pytest.fixture
 def prompt_manager(tmp_dir):
-    """创建独立的 LoraPromptManager 实例"""
-    LoraPromptManager._instance = None
-
-    mgr = LoraPromptManager.__new__(LoraPromptManager)
+    """创建独立的 LoraPromptManager 实例（绕过模块级单例）"""
+    mgr = object.__new__(LoraPromptManager)
     mgr._initialized = True
     mgr.user_dir = tmp_dir
     mgr._cache_file = os.path.join(tmp_dir, "lora_prompts.json")
@@ -35,7 +34,6 @@ def prompt_manager(tmp_dir):
     mgr._save_raw = _save_raw
 
     yield mgr
-    LoraPromptManager._instance = None
 
 
 class TestLoraPromptManagerCRUD:

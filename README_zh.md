@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.3.7-brightgreen?style=for-the-badge" alt="Version 1.3.7"/>
+  <img src="https://img.shields.io/badge/版本-v1.4.0-brightgreen?style=for-the-badge" alt="Version 1.4.0"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -352,7 +352,20 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.3.6 (2026-06-09) — 当前版本
+### v1.4.0 (2026-07-28) — 当前版本
+
+> ⚠️ **架构整改大版本**：本次为 major 版本，包含破坏性变更，请升级前阅读 [MIGRATION.md](./MIGRATION.md)
+
+- 🏗️ **架构整改**：整合 91 项审查问题，聚焦数据安全、异步架构、版本一致性
+- 💥 **破坏性变更**：
+  - Prompt 权重语法统一为 SD 标准 `(tag:weight)` 冒号语法，删除多层括号/中括号旧语法（启动时自动迁移 + 备份）
+  - API 路由重命名：`/agent_endpoint` → `/agent`、`/chat_endpoint` → `/chat`
+  - LLMClient 全异步化：`aiohttp.ClientSession` 替换 `httpx.Client`
+- 🐛 **严重修复**：单例线程安全（`threading.Lock`）；模板同步基于 version 字段 + 备份；XSS 防护；SSRF 防护；异常信息脱敏；LoRA 元数据轻量读取
+- 🔧 **优化**：Vue 死代码清理；CI/CD（GitHub Actions + pre-commit + Makefile）；新增 MIGRATION.md / DEVELOPMENT.md
+- 📦 **依赖**：`pyproject.toml` 显式声明 `aiohttp>=3.8.0`
+
+### v1.3.6 (2026-06-09)
 
 - 🐛 **修复**：Windows 上 HTTPS API 调用报 `[Errno 2]` — httpx SSL 证书路径问题，引入 certifi 显式指定
 - 🔧 **调整**：版本号统一更新，去除 Mod 后缀

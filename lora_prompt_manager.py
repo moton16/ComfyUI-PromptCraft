@@ -4,24 +4,33 @@ LoRA Prompt 管理器 — 每个 LoRA 可存储多组 prompt
 """
 
 import os
+import threading
+from typing import Optional
+
 from .cache_utils import MtimeCacheMixin
 
 
 class LoraPromptManager(MtimeCacheMixin):
-    """LoRA prompt 组 CRUD 管理器（单例）"""
+    """LoRA prompt 组 CRUD 管理器（模块级单例 + Lock 线程安全初始化）"""
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    _init_lock = threading.Lock()
 
     def __init__(self):
-        if self._initialized:
+        if getattr(self, "_initialized", False):
             return
-        self._initialized = True
+        with self._init_lock:
+            if getattr(self, "_initialized", False):
+                return
+            # Phase 3 #19: _do_init 异常时不设 _initialized，下次调用可重试
+            try:
+                self._do_init()
+            except Exception as e:
+                print(f"[PromptCraft] LoraPromptManager 初始化失败: {e}", flush=True)
+                raise
+            self._initialized = True
+
+    def _do_init(self):
+        """首次初始化逻辑（由 __init__ 在 Lock 保护下调用一次）"""
 
         from .config_manager import config_manager
         self.user_dir = config_manager.user_config_dir
@@ -38,7 +47,7 @@ class LoraPromptManager(MtimeCacheMixin):
 
     def _save_raw(self, data):
         from .config_manager import config_manager
-        config_manager._atomic_write_json(self._cache_file, data)
+        return config_manager._atomic_write_json(self._cache_file, data)
 
     # ==================== 加载 ====================
 
@@ -60,7 +69,7 @@ class LoraPromptManager(MtimeCacheMixin):
         all_data = self.load_all()
         return all_data.get(lora_path, {"groups": []})
 
-    def get_all_for_stack(self, lora_paths: list, selected_groups: dict = None) -> dict:
+    def get_all_for_stack(self, lora_paths: list, selected_groups: Optional[dict] = None) -> dict:
         """批量获取栈中所有 LoRA 的 prompt 数据（供节点输出用）
         selected_groups: {lora_path: group_name_or_None} — None 表示全部组
         """
@@ -97,7 +106,7 @@ class LoraPromptManager(MtimeCacheMixin):
         self.save_all(all_data)
 
     def add_group(self, lora_path: str, name: str,
-                  prompts: list = None, negative: str = ""):
+                  prompts: Optional[list] = None, negative: str = ""):
         """为某个 LoRA 添加一个 prompt 组"""
         all_data = self.load_all()
         if lora_path not in all_data:

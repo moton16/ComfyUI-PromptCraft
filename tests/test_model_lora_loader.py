@@ -4,9 +4,9 @@ ModelLoraGroupLoader 节点测试
 """
 
 import json
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from promptcraft.model_lora_loader import ModelLoraGroupLoader
 
 

@@ -28,3 +28,16 @@ data/lora_prompts.json
 data/lora_favorites.json
 data/prompt_history.json
 
+# V0-SEC-01: 备份文件与运行时缓存（可能含用户数据）
+*.bak
+*.prompt.bak
+*.pc-info.json
+
+# V0-SEC-01: 含 API key 的本地配置（用户配置目录运行时生成）
+user_config/
+data/llm_config.json
+data/llm_services.json
+data/llm_system_prompt.json
+data/custom_thinking_rules.json
+data/custom_thinking_params.json
+

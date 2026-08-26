@@ -3,13 +3,14 @@ PromptEnhancer 核心节点测试
 覆盖: 选项构建 / 随机选择 / 子组收集 / 节点属性 / 迁移兼容 / 子函数单元测试
 """
 
-from unittest.mock import patch, MagicMock
-from promptcraft.prompt_enhancer import PromptEnhancer, LLMInterruptException
+from unittest.mock import MagicMock, patch
+
 from promptcraft.legacy_migration import (
     LEGACY_KEY_MAP,
     LIBRARY_KEY_MAP,
     PRESET_KEY_MAP,
 )
+from promptcraft.prompt_enhancer import LLMInterruptException, PromptEnhancer
 
 
 class TestNodeProperties:
@@ -515,7 +516,10 @@ class TestLLMInterruptException:
 
 
 class TestApplyWeight:
-    """_apply_weight 权重语法测试"""
+    """_apply_weight 权重语法测试
+
+    V1.4.0: 统一为 (tag:weight) 冒号语法，删除多层括号/中括号旧语法。
+    """
 
     def test_weight_1_returns_bare_tag(self):
         """weight=1.0 返回裸标签"""
@@ -529,24 +533,22 @@ class TestApplyWeight:
         assert "tag" in result
         assert "1.5" in result
 
-    def test_weight_gt_1_higher_weight_more_nesting(self):
-        """weight 越大嵌套越深"""
-        r1 = PromptEnhancer()._apply_weight("tag", 1.2)
-        r2 = PromptEnhancer()._apply_weight("tag", 1.8)
-        assert r1.count("(") <= r2.count("(")
-
-    def test_weight_lt_1_wraps_in_brackets(self):
-        """0<weight<1 返回 [tag] 格式"""
+    def test_weight_lt_1_wraps_in_parens_colon_syntax(self):
+        """V1.4.0: 0<weight<1 返回 (tag:weight) 冒号语法，不再使用 [tag]"""
         result = PromptEnhancer()._apply_weight("tag", 0.5)
-        assert result.startswith("[")
-        assert result.endswith("]")
+        assert result.startswith("(")
+        assert result.endswith(")")
         assert "tag" in result
+        assert "0.5" in result or "0.50" in result
 
-    def test_weight_lt_1_lower_weight_more_nesting(self):
-        """weight 越小嵌套越深"""
-        r1 = PromptEnhancer()._apply_weight("tag", 0.8)
-        r2 = PromptEnhancer()._apply_weight("tag", 0.3)
-        assert r1.count("[") <= r2.count("[")
+    def test_weight_clamped_to_valid_range(self):
+        """V1.4.0: 权重钳制到 [0.1, 10.0] 避免极端值"""
+        # 0 < weight < 0.1 → 钳制到 0.1
+        r_min = PromptEnhancer()._apply_weight("tag", 0.05)
+        assert "0.10" in r_min or "0.1" in r_min
+        # weight > 10 → 钳制到 10.0
+        r_max = PromptEnhancer()._apply_weight("tag", 15.0)
+        assert "10.00" in r_max or "10.0" in r_max
 
     def test_weight_zero_returns_empty(self):
         """weight=0.0 返回空字符串"""

@@ -55,4 +55,3 @@ A: Use the "Library Editor" in the settings panel to directly edit categories an
 
 ---
 
-*This document is maintained by developers. Edit `data/usage_help_en.md` to update content.*

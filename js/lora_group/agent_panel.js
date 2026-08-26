@@ -10,8 +10,7 @@ import { renderStack } from './canvas_widget.js';
 import { t } from '../i18n.js';
 
 // ==================== 对话状态 ====================
-
-const agentMessages = []; // [{role, content, operations?}]
+// V0-SEC-03: this.agentMessages 改为实例属性（原模块级变量导致多实例共享对话历史）
 
 // ==================== 公共入口 ====================
 
@@ -68,6 +67,7 @@ class AgentPanelUI {
         this.container = container;
         this.node = node;
         this.mode = options.mode || 'hub'; // 'hub' | 'floating'
+        this.agentMessages = []; // V0-SEC-03: 实例级对话历史
         this._build();
     }
 
@@ -77,10 +77,10 @@ class AgentPanelUI {
         this.messagesEl.className = 'pc-agent-messages';
 
         // 渲染历史消息或欢迎
-        if (agentMessages.length === 0) {
+        if (this.agentMessages.length === 0) {
             this._renderWelcome();
         } else {
-            for (const msg of agentMessages) {
+            for (const msg of this.agentMessages) {
                 this._appendBubble(msg.role, msg.content, msg.operations);
             }
         }
@@ -160,7 +160,7 @@ class AgentPanelUI {
         if (welcome) welcome.remove();
 
         // 添加用户消息
-        agentMessages.push({ role: 'user', content: instruction });
+        this.agentMessages.push({ role: 'user', content: instruction });
         this._appendBubble('user', instruction);
         this._scrollToBottom();
 
@@ -178,10 +178,10 @@ class AgentPanelUI {
             const parsed = Executor.parseAgentResponse(responseText);
 
             if (parsed.error) {
-                agentMessages.push({ role: 'assistant', content: `${t('common.error')}: ${parsed.error}` });
+                this.agentMessages.push({ role: 'assistant', content: `${t('common.error')}: ${parsed.error}` });
                 this._appendBubble('assistant', `${t('common.error')}: ${parsed.error}`);
             } else if (parsed.clarification) {
-                agentMessages.push({ role: 'assistant', content: parsed.clarification });
+                this.agentMessages.push({ role: 'assistant', content: parsed.clarification });
                 this._appendBubble('assistant', parsed.clarification);
             } else if (parsed.operations) {
                 // 执行操作
@@ -201,7 +201,7 @@ class AgentPanelUI {
                     replyText += ` ${t('agent.ops_failed', { count: failCount })}`;
                 }
 
-                agentMessages.push({ role: 'assistant', content: replyText, operations: results });
+                this.agentMessages.push({ role: 'assistant', content: replyText, operations: results });
                 this._appendBubble('assistant', replyText, results);
             }
 
@@ -210,10 +210,13 @@ class AgentPanelUI {
 
         } catch (e) {
             const errMsg = t('agent.request_failed', { error: e.message });
-            agentMessages.push({ role: 'assistant', content: errMsg });
-            this._appendBubble('assistant', errMsg);
-            this.statusBar.textContent = t('common.error');
-            this.statusBar.className = 'pc-agent-status pc-agent-error';
+            this.agentMessages.push({ role: 'assistant', content: errMsg });
+            // V1-FE-13: 失败气泡带 retry 按钮
+            this._appendBubble('assistant', errMsg, null, { retry: instruction });
+            // V1-FE-12: 区分超时状态
+            const isTimeout = e.message.includes('超时') || e.name === 'AbortError';
+            this.statusBar.textContent = isTimeout ? (t('agent.timeout') || '请求超时') : t('common.error');
+            this.statusBar.className = `pc-agent-status ${isTimeout ? 'pc-agent-timeout' : 'pc-agent-error'}`;
         }
 
         this._scrollToBottom();
@@ -232,7 +235,7 @@ class AgentPanelUI {
         this.messagesEl.appendChild(welcome);
     }
 
-    _appendBubble(role, content, operations) {
+    _appendBubble(role, content, operations, options = {}) {
         const bubble = document.createElement('div');
         bubble.className = `pc-agent-bubble pc-agent-${role}`;
 
@@ -255,20 +258,41 @@ class AgentPanelUI {
             }
         }
 
+        // V1-FE-13: 失败气泡 retry 按钮
+        if (options.retry) {
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'pc-agent-retry-btn';
+            retryBtn.textContent = t('agent.retry') || '重试';
+            retryBtn.addEventListener('click', () => {
+                bubble.remove();
+                // 移除最后一条失败回复，保留用户指令
+                if (this.agentMessages.length > 0 && this.agentMessages[this.agentMessages.length - 1].role === 'assistant') {
+                    this.agentMessages.pop();
+                }
+                this._sendInstruction(options.retry);
+            });
+            bubble.appendChild(retryBtn);
+        }
+
         this.messagesEl.appendChild(bubble);
     }
 
     _createOpCard(op) {
         const card = document.createElement('div');
-        card.className = `pc-agent-op-card ${op.success ? 'pc-agent-op-success' : 'pc-agent-op-fail'}`;
+        // V0-FE-05: 支持 partial 状态（op.success === null/undefined 或 op.status === 'partial'）
+        const isPartial = op.success == null || op.status === 'partial';
+        const stateClass = isPartial
+            ? 'pc-agent-op-partial'
+            : (op.success ? 'pc-agent-op-success' : 'pc-agent-op-fail');
+        card.className = `pc-agent-op-card ${stateClass}`;
 
-        const icon = op.success ? '✓' : '✕';
+        const icon = isPartial ? '◐' : (op.success ? '✓' : '✕');
         const actionLabel = getActionLabel(op.action);
 
         card.innerHTML = `
             <div class="pc-agent-op-header">
                 <span class="pc-agent-op-icon">${icon}</span>
-                <span class="pc-agent-op-action">${actionLabel}</span>
+                <span class="pc-agent-op-action">${escapeHtml(actionLabel)}</span>
             </div>
             <div class="pc-agent-op-message">${escapeHtml(op.message || '')}</div>
         `;

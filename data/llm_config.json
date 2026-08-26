@@ -1,5 +1,6 @@
 {
   "version": "1.0.0",
+  "_template_version": "1.4.0",
   "enabled": false,
   "provider": "openai_compatible",
   "api_url": "https://api.siliconflow.cn/v1/chat/completions",

@@ -2,10 +2,11 @@
 LoRA 磁盘扫描器 — 枚举可用 LoRA、读取元数据
 """
 
+import hashlib
+import json
 import os
 import re
-import json
-import hashlib
+from typing import Any, Dict, Optional
 
 try:
     import folder_paths
@@ -13,11 +14,7 @@ try:
 except ImportError:
     HAS_FOLDER_PATHS = False
 
-try:
-    import comfy.utils
-    HAS_COMFY_UTILS = True
-except ImportError:
-    HAS_COMFY_UTILS = False
+# V1.4.0: comfy.utils 已不再使用（V0-LORA-01 改用 _read_safetensors_header 轻量读取）
 
 # 常见 Danbooru 标签集合 — 非 common 标签优先展示（可能是触发词）
 COMMON_TAGS = frozenset([
@@ -58,7 +55,7 @@ class LoraScanner:
     def list_folders() -> dict:
         """返回文件夹层级结构"""
         all_files = LoraScanner.list_all()
-        tree = {"all": all_files, "/": {"all": []}}
+        tree: Dict[str, Any] = {"all": all_files, "/": {"all": []}}
 
         for f in all_files:
             parts = f.replace("\\", "/").split("/")
@@ -76,7 +73,7 @@ class LoraScanner:
         return tree
 
     @staticmethod
-    def get_full_path(lora_name: str) -> str:
+    def get_full_path(lora_name: str) -> Optional[str]:
         """获取 LoRA 文件的绝对路径"""
         if not HAS_FOLDER_PATHS:
             return None
@@ -93,6 +90,9 @@ class LoraScanner:
         """
         读取 LoRA 元数据
         优先级: sidecar JSON > safetensors header
+
+        V0-LORA-01: 改用 _read_safetensors_header 只读 header，不加载权重（原 comfy.utils.load_torch_file 会加载整个模型，性能差）
+        V0-LORA-02: trigger_words 改用 _parse_training_words 正确解析 ss_tag_frequency（原 split(",") 错误解析 JSON 结构）
         """
         full_path = LoraScanner.get_full_path(lora_name)
         if not full_path:
@@ -107,20 +107,19 @@ class LoraScanner:
             except Exception:
                 pass
 
-        # 尝试 safetensors header
-        if HAS_COMFY_UTILS and full_path.endswith(".safetensors"):
-            try:
-                header = comfy.utils.load_torch_file(
-                    full_path, safe_load=True, return_metadata=True)
-                if isinstance(header, dict) and "__metadata__" in header:
-                    meta = header["__metadata__"]
-                    return {
-                        "base_model": meta.get("ss_base_model_version", ""),
-                        "trigger_words": meta.get("ss_tag_frequency", "").split(",")[:5],
-                        "description": meta.get("ss_description", ""),
-                    }
-            except Exception:
-                pass
+        # V0-LORA-01: 用轻量 header 读取替代 comfy.utils.load_torch_file
+        if full_path.endswith(".safetensors"):
+            header = LoraScanner._read_safetensors_header(full_path)
+            meta = header.get("__metadata__", {})
+            if meta:
+                # V0-LORA-02: 用 _parse_training_words 正确解析 ss_tag_frequency
+                training_words = LoraScanner._parse_training_words(meta.get("ss_tag_frequency"))
+                return {
+                    "base_model": meta.get("ss_base_model_version", "") or meta.get("ss_sd_model_name", ""),
+                    "trigger_words": [w["word"] for w in training_words[:10]],
+                    "training_words": training_words,
+                    "description": meta.get("ss_description", ""),
+                }
 
         return {}
 
@@ -186,7 +185,7 @@ class LoraScanner:
             return []
 
         # 遍历所有 bucket，累加每个 tag 的出现次数
-        tag_counts = {}
+        tag_counts: Dict[str, int] = {}
         for bucket_value in tag_frequency.values():
             if isinstance(bucket_value, dict):
                 for tag, count in bucket_value.items():
@@ -202,7 +201,7 @@ class LoraScanner:
 
         non_common, common = [], []
         for tag, count in tag_counts.items():
-            entry = {"word": tag, "count": count}
+            entry: Dict[str, Any] = {"word": tag, "count": count}
             if tag.lower() in COMMON_TAGS:
                 common.append(entry)
             else:
@@ -276,7 +275,7 @@ class LoraScanner:
         }
 
         try:
-            cache_data = dict(result)
+            cache_data: Dict[str, Any] = dict(result)
             cache_data["_mtime"] = os.path.getmtime(full_path)
             cache_data["_cache_version"] = _CACHE_VERSION
             with open(sidecar_path, "w", encoding="utf-8") as f:
@@ -300,7 +299,7 @@ class LoraScanner:
         验证群组中每个 LoRA 文件是否存在
         返回: {"valid": [...], "missing": [...]}
         """
-        result = {"valid": [], "missing": []}
+        result: Dict[str, list] = {"valid": [], "missing": []}
         for item in group_data.get("loras", []):
             lora_name = item.get("lora", "")
             if LoraScanner.exists(lora_name):

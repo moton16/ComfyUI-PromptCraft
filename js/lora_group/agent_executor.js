@@ -205,11 +205,28 @@ export function buildCurrentState(node) {
  * @returns {Promise<string>} LLM 返回的 JSON 字符串
  */
 export async function callAgent(instruction, currentState) {
-    const res = await fetch(`${API_PREFIX}/agent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instruction, current_state: currentState }),
-    });
+    // V1-FE-11: 60s 超时（Agent 调用比普通请求慢）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    let res;
+    try {
+        res = await fetch(`${API_PREFIX}/agent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instruction, current_state: currentState }),
+            signal: controller.signal,
+        });
+    } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+            throw new Error(t('agent.timeout') || 'Agent 请求超时（60s）');
+        }
+        throw err;
+    }
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
     const json = await res.json();
     if (!json.success) {
         throw new Error(json.error || t('agent.request_error'));

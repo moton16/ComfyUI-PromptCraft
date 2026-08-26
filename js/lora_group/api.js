@@ -15,7 +15,24 @@ async function request(method, endpoint, body = null) {
     if (body) {
         options.body = JSON.stringify(body);
     }
-    const res = await api.fetchApi(`${API_PREFIX}${endpoint}`, options);
+    // V1-FE-02: 30s 超时 + 响应状态检查
+    const controller = new AbortController();
+    options.signal = controller.signal;
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let res;
+    try {
+        res = await api.fetchApi(`${API_PREFIX}${endpoint}`, options);
+    } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+            throw new Error('请求超时（30s）');
+        }
+        throw err;
+    }
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
     const json = await res.json();
     if (!json.success) {
         throw new Error(json.error || 'API 请求失败');

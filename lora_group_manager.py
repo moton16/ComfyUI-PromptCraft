@@ -4,25 +4,34 @@ LoRA 群组管理器 — 群组配置的 CRUD 操作
 """
 
 import os
+import threading
 from datetime import datetime
+from typing import Optional
+
 from .cache_utils import MtimeCacheMixin
 
 
 class LoraGroupManager(MtimeCacheMixin):
-    """LoRA 群组配置的 CRUD 管理器（单例）"""
+    """LoRA 群组配置的 CRUD 管理器（模块级单例 + Lock 线程安全初始化）"""
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    _init_lock = threading.Lock()
 
     def __init__(self):
-        if self._initialized:
+        if getattr(self, "_initialized", False):
             return
-        self._initialized = True
+        with self._init_lock:
+            if getattr(self, "_initialized", False):
+                return
+            # Phase 3 #19: _do_init 异常时不设 _initialized，下次调用可重试
+            try:
+                self._do_init()
+            except Exception as e:
+                print(f"[PromptCraft] LoraGroupManager 初始化失败: {e}", flush=True)
+                raise
+            self._initialized = True
+
+    def _do_init(self):
+        """首次初始化逻辑（由 __init__ 在 Lock 保护下调用一次）"""
 
         from .config_manager import config_manager
         self.user_dir = config_manager.user_config_dir
@@ -42,7 +51,7 @@ class LoraGroupManager(MtimeCacheMixin):
 
     def _save_raw(self, data):
         from .config_manager import config_manager
-        config_manager._atomic_write_json(self._cache_file, data)
+        return config_manager._atomic_write_json(self._cache_file, data)
 
     # ==================== 加载 ====================
 
@@ -62,7 +71,7 @@ class LoraGroupManager(MtimeCacheMixin):
     def get_group_names(self) -> list:
         return list(self.load_groups().keys())
 
-    def get_group(self, name: str) -> dict:
+    def get_group(self, name: str) -> Optional[dict]:
         return self.load_groups().get(name)
 
     def get_group_summary(self) -> dict:
@@ -166,15 +175,26 @@ class LoraGroupManager(MtimeCacheMixin):
         raise ValueError(f"LoRA '{lora_name}' 不在群组 '{group_name}' 中")
 
     def reorder_loras(self, group_name: str, ordered_names: list):
-        """按指定顺序重排群组内 LoRA"""
+        """按指定顺序重排群组内 LoRA
+
+        V0-DATA-04: 未在 ordered_names 中的 LoRA 追加到末尾（不静默丢弃）。
+        ordered_names 中不存在于群组的条目被忽略。
+        """
         groups = self.load_groups()
         if group_name not in groups:
             raise ValueError(f"群组 '{group_name}' 不存在")
         lora_map = {item["lora"]: item for item in groups[group_name]["loras"]}
         new_list = []
+        seen = set()
+        # 按 ordered_names 顺序追加存在的 LoRA
         for name in ordered_names:
-            if name in lora_map:
+            if name in lora_map and name not in seen:
                 new_list.append(lora_map[name])
+                seen.add(name)
+        # V0-DATA-04: 未在 ordered_names 中的 LoRA 追加到末尾，保留不丢
+        for name, item in lora_map.items():
+            if name not in seen:
+                new_list.append(item)
         groups[group_name]["loras"] = new_list
         groups[group_name]["updated_at"] = datetime.now().isoformat()
         self.save_groups(groups)

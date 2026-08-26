@@ -8,6 +8,8 @@ let currentLang = 'zh';
 let translations = {};
 let nodeDefsTranslations = {};
 let _listeners = [];
+let _readyResolve;
+const readyPromise = new Promise(r => { _readyResolve = r; });
 
 /**
  * 推导 i18n JSON 的基础 URL
@@ -83,6 +85,8 @@ export async function initI18n() {
     } catch (e) {
         console.warn('[i18n] nodeDefs load error:', e);
     }
+
+    _readyResolve();
 }
 
 /**
@@ -91,10 +95,21 @@ export async function initI18n() {
  * @param {Object} [params] - 插值参数（如 { error: 'timeout' }）
  * @returns {string}
  */
+const FALLBACKS = {
+    'settings.usage_help': '使用帮助',
+    'settings.usage_help_desc': '查看 PromptCraft 使用说明',
+    'help.title': 'PromptCraft 使用帮助',
+    'help.load_failed': '加载帮助文档失败',
+    'settings.language': '语言 / Language',
+    'settings.language_hint': '切换语言后页面将刷新',
+};
+
 export function t(key, params) {
     let val = translations[key];
     if (val === undefined) {
-        // key 未找到时返回 key 本身，便于排查
+        if (FALLBACKS[key]) {
+            return FALLBACKS[key];
+        }
         return key;
     }
     if (params) {
@@ -119,6 +134,14 @@ export function getLang() {
  */
 export function getNodeDefsTranslations() {
     return nodeDefsTranslations;
+}
+
+/**
+ * 等待 i18n 初始化完成
+ * @returns {Promise}
+ */
+export function waitForReady() {
+    return readyPromise;
 }
 
 /**

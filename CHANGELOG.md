@@ -2,6 +2,38 @@
 
 ## **作者：Moton**
 
+## **V1.4.0  (2026-07-28)**
+
+### 🏗️ 架构整改
+
+V1.4.0 是一次架构性大版本，整合了 91 项审查问题（29 严重 / 46 重要 / 49 次要 / 13 技术债），聚焦数据安全、异步架构、版本一致性。
+
+#### 破坏性变更
+
+* **Prompt 权重语法统一为 SD 标准**：`(tag:weight)` 冒号语法，删除多层括号 `(((tag:1.5)))` 和中括号 `[[tag]]` 旧语法。启动时自动迁移历史记录并备份为 `*.prompt.bak`（`migrate_legacy_prompts.py`）
+* **API 路由重命名**：`/agent_endpoint` → `/agent`，`/chat_endpoint` → `/chat`，前端 fetch URL 已同步
+* **LLMClient 全异步化**：用 `aiohttp.ClientSession` 替换 `httpx.Client`，所有方法改为 `async def`，API 路由直接 `await`
+
+#### 🐛 严重修复
+
+* **单例线程安全**：删除 `__new__` 实现，改用 `threading.Lock` + `_initialized` 标志，异常时不设标志允许重试
+* **模板同步机制**：基于 `_template_version` 字段比较替代 mtime，覆盖前备份为 `*.bak`，启动时日志提示备份文件
+* **数据安全**：`reorder_loras` 未在 order 中的 LoRA 追加末尾（不静默丢弃）；`_load_json_cached` 加载失败不缓存允许重试；`set_current_service` 校验 service_id 存在；`_save_json_and_update_cache` 检查写入返回值
+* **XSS 防护**：Agent 面板 actionLabel 转义；`renderMarkdown` URL 协议白名单（只允许 http/https）
+* **SSRF 防护**：阻止云元数据地址 `169.254.169.254`
+* **异常信息脱敏**：API 异常返回通用消息，详细错误仅 print 到日志
+* **LoRA 元数据**：`get_metadata` 改用轻量 header 读取（不加载权重），正确解析 `ss_tag_frequency`
+
+#### 🔧 优化
+
+* **前端**：`setupDragDrop` 单次注册避免监听器堆积；`agentMessages` 改实例属性；request 函数 30s 超时；Agent 调用 60s 超时；失败气泡 retry 按钮；partial/timeout 状态卡片；焦点环可访问性
+* **Vue 死代码清理**：删除 4 个未使用的 Vue 面板组件（FloatingPanel/HubPanel/AgentPanel/SettingsPanel.vue）
+* **依赖声明**：`pyproject.toml` 新增 `aiohttp>=3.8.0`
+* **CI/CD**：新增 GitHub Actions（lint/typecheck/test/i18n-check）、pre-commit、Makefile
+* **文档**：新增 MIGRATION.md、DEVELOPMENT.md
+
+---
+
 ## **V1.3.7  (2026-06-11)**
 
 ### 🔧 调整

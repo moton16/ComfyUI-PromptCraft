@@ -1,24 +1,25 @@
 """
-Model & LoRA Stack Loader 节点 v1.3.7
+Model & LoRA Stack Loader 节点 v1.4.0
 支持底模切换 + LoRA 个体调用 + 群组引用混合栈
 前端通过隐藏 JSON widget 传递栈数据，后端在执行时解析并加载
 """
 
-import os
-import json
 import hashlib
+import json
+import os
 
 try:
-    import folder_paths
     import comfy.sd
     import comfy.utils
+    import folder_paths
     HAS_COMFY = True
 except ImportError:
     HAS_COMFY = False
 
 from .lora_group_manager import lora_group_manager
 from .lora_prompt_manager import lora_prompt_manager
-from .lora_utils import flatten_stack, load_single_lora, clear_cache as _clear_lora_cache
+from .lora_utils import clear_cache as _clear_lora_cache
+from .lora_utils import flatten_stack, load_single_lora
 
 
 class ModelLoraGroupLoader:

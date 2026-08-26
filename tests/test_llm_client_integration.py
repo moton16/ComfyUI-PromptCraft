@@ -1,11 +1,14 @@
 """
 LLM 客户端集成测试
 覆盖: URL 规范化 / 请求头 / enhance_prompt / chat_stream / agent_call / test_connection
-所有 HTTP 调用通过 unittest.mock.patch 模拟
+V1.4.0: LLMClient 已从 httpx 同步改为 aiohttp 全异步，所有调用通过 asyncio.run 执行
 """
 
+import asyncio
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import aiohttp
 
 from llm_client import LLMClient
 
@@ -29,6 +32,16 @@ def _make_post_response(content="hello", reasoning_content=None):
     if reasoning_content is not None:
         msg["reasoning_content"] = reasoning_content
     return {"choices": [{"message": msg, "finish_reason": "stop"}]}
+
+
+def _make_client_response_error(status=401, message="Unauthorized"):
+    """构造 aiohttp.ClientResponseError"""
+    return aiohttp.ClientResponseError(
+        request_info=MagicMock(),
+        history=(),
+        status=status,
+        message=message,
+    )
 
 
 # ==================== TestPrepareUrl ====================
@@ -113,7 +126,7 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response("enhanced prompt here")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result == "enhanced prompt here"
 
     @patch.object(LLMClient, "_post")
@@ -121,10 +134,10 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response("enhanced ///tag1/// and ///tag2/// result")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt(
+        result = asyncio.run(client.enhance_prompt(
             "basic prompt",
             lora_tags="///tag1/// ///tag2///",
-        )
+        ))
         assert "///tag1///" in result
         assert "///tag2///" in result
 
@@ -133,7 +146,7 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response("enhanced result")
         client = LLMClient(service_config=_enabled_config())
 
-        client.enhance_prompt("basic prompt", llm_hint="make it cyberpunk")
+        asyncio.run(client.enhance_prompt("basic prompt", llm_hint="make it cyberpunk"))
         call_args = mock_post.call_args
         payload = call_args[1]["payload"] if "payload" in call_args[1] else call_args[0][1]
         user_content = payload["messages"][1]["content"]
@@ -141,17 +154,17 @@ class TestEnhancePrompt:
 
     def test_disabled_returns_none(self):
         client = LLMClient(service_config={"enabled": False})
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
 
     def test_no_api_key_returns_none(self):
         client = LLMClient(service_config=_enabled_config(api_key=""))
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
 
     def test_no_api_url_returns_none(self):
         client = LLMClient(service_config=_enabled_config(api_url=""))
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -159,7 +172,7 @@ class TestEnhancePrompt:
         mock_post.return_value = {"choices": []}
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -167,7 +180,7 @@ class TestEnhancePrompt:
         mock_post.return_value = {"error": "something"}
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -175,31 +188,24 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response(content="", reasoning_content="reasoned output")
         client = LLMClient(service_config=_enabled_config(filter_thinking_output=False))
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result == "reasoned output"
 
     @patch.object(LLMClient, "_post")
     def test_timeout_returns_none(self, mock_post):
-        import httpx
-        mock_post.side_effect = httpx.TimeoutException("timed out")
+        mock_post.side_effect = asyncio.TimeoutError("timed out")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
-        assert "超时" in client.last_error or "timed out" in client.last_error
+        assert "超时" in client.last_error or "timed out" in client.last_error.lower()
 
     @patch.object(LLMClient, "_post")
     def test_http_error_returns_none(self, mock_post):
-        import httpx
-        response = MagicMock()
-        response.status_code = 401
-        response.text = "Unauthorized"
-        mock_post.side_effect = httpx.HTTPStatusError(
-            "401 Unauthorized", request=MagicMock(), response=response
-        )
+        mock_post.side_effect = _make_client_response_error(status=401, message="Unauthorized")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result is None
         assert "401" in client.last_error
 
@@ -208,7 +214,7 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response("  trimmed result  ")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.enhance_prompt("basic prompt")
+        result = asyncio.run(client.enhance_prompt("basic prompt"))
         assert result == "trimmed result"
 
     @patch.object(LLMClient, "_post")
@@ -216,7 +222,7 @@ class TestEnhancePrompt:
         mock_post.return_value = _make_post_response("ok")
         client = LLMClient(service_config=_enabled_config())
 
-        client.enhance_prompt("my prompt", is_detailed=True, llm_hint="hint")
+        asyncio.run(client.enhance_prompt("my prompt", is_detailed=True, llm_hint="hint"))
         payload = mock_post.call_args[0][1]
 
         assert payload["model"] == "gpt-4"
@@ -231,90 +237,125 @@ class TestEnhancePrompt:
 # ==================== TestChatStream ====================
 
 
+def _build_mock_session(sse_lines):
+    """构造一个 mock aiohttp.ClientSession，使 chat_stream 能消费 SSE 行
+
+    sse_lines 中的每一项会被编码为 utf-8 字节，作为 response.content 的 async iterable 一项。
+    """
+    async def _aiter():
+        for line in sse_lines:
+            yield line.encode("utf-8")
+
+    mock_response = AsyncMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.content = _aiter()
+
+    mock_session_instance = MagicMock()
+    mock_post_cm = AsyncMock()
+    mock_post_cm.__aenter__.return_value = mock_response
+    mock_post_cm.__aexit__.return_value = None
+    mock_session_instance.post.return_value = mock_post_cm
+
+    mock_session_ctx = AsyncMock()
+    mock_session_ctx.__aenter__.return_value = mock_session_instance
+    mock_session_ctx.__aexit__.return_value = None
+    return mock_session_ctx
+
+
 class TestChatStream:
 
-    @patch("httpx.Client")
-    def test_stream_yields_content(self, MockClient):
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_stream_yields_content(self, MockSession, MockConnector):
         sse_lines = [
             'data: {"choices":[{"delta":{"content":"Hello"}}]}',
             'data: {"choices":[{"delta":{"content":" World"}}]}',
             'data: [DONE]',
         ]
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.iter_lines.return_value = iter(sse_lines)
-
-        mock_client_instance = MagicMock()
-        mock_client_instance.stream.return_value.__enter__ = MagicMock(return_value=mock_response)
-        mock_client_instance.stream.return_value.__exit__ = MagicMock(return_value=False)
-        MockClient.return_value.__enter__ = MagicMock(return_value=mock_client_instance)
-        MockClient.return_value.__exit__ = MagicMock(return_value=False)
+        MockSession.return_value = _build_mock_session(sse_lines)
 
         client = LLMClient(service_config=_enabled_config())
-        chunks = list(client.chat_stream([{"role": "user", "content": "hi"}]))
 
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
         assert "Hello" in chunks
         assert " World" in chunks
 
     def test_disabled_yields_error(self):
         client = LLMClient(service_config={"enabled": False})
-        chunks = list(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
         assert any("Error" in c for c in chunks)
 
-    @patch("httpx.Client")
-    def test_stream_empty_sse(self, MockClient):
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_stream_empty_sse(self, MockSession, MockConnector):
         sse_lines = ['data: [DONE]']
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.iter_lines.return_value = iter(sse_lines)
-
-        mock_client_instance = MagicMock()
-        mock_client_instance.stream.return_value.__enter__ = MagicMock(return_value=mock_response)
-        mock_client_instance.stream.return_value.__exit__ = MagicMock(return_value=False)
-        MockClient.return_value.__enter__ = MagicMock(return_value=mock_client_instance)
-        MockClient.return_value.__exit__ = MagicMock(return_value=False)
+        MockSession.return_value = _build_mock_session(sse_lines)
 
         client = LLMClient(service_config=_enabled_config())
-        chunks = list(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
         assert chunks == []
 
-    @patch("httpx.Client")
-    def test_stream_http_error_yields_error(self, MockClient):
-        import httpx
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_stream_http_error_yields_error(self, MockSession, MockConnector):
+        # 用 MagicMock 而非 AsyncMock，确保 raise_for_status 是同步调用并立即抛 side_effect
         mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "500", request=MagicMock(), response=MagicMock(status_code=500)
+        mock_response.raise_for_status = MagicMock()
+        mock_response.raise_for_status.side_effect = _make_client_response_error(
+            status=500, message="Internal Server Error"
         )
+        # 让 async for 直接返回（不产生任何行，因为 raise_for_status 会先抛出）
+        async def _empty():
+            return
+            yield  # 让 Python 把它识别为 async generator
+        mock_response.content = _empty()
 
-        mock_client_instance = MagicMock()
-        mock_client_instance.stream.return_value.__enter__ = MagicMock(return_value=mock_response)
-        mock_client_instance.stream.return_value.__exit__ = MagicMock(return_value=False)
-        MockClient.return_value.__enter__ = MagicMock(return_value=mock_client_instance)
-        MockClient.return_value.__exit__ = MagicMock(return_value=False)
+        mock_session_instance = MagicMock()
+        mock_post_cm = AsyncMock()
+        mock_post_cm.__aenter__.return_value = mock_response
+        mock_post_cm.__aexit__.return_value = None
+        mock_session_instance.post.return_value = mock_post_cm
+
+        mock_session_ctx = AsyncMock()
+        mock_session_ctx.__aenter__.return_value = mock_session_instance
+        mock_session_ctx.__aexit__.return_value = None
+        MockSession.return_value = mock_session_ctx
 
         client = LLMClient(service_config=_enabled_config())
-        chunks = list(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
         assert any("Error" in c for c in chunks)
 
-    @patch("httpx.Client")
-    def test_stream_malformed_json_skipped(self, MockClient):
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_stream_malformed_json_skipped(self, MockSession, MockConnector):
         sse_lines = [
             'data: not-json',
             'data: {"choices":[{"delta":{"content":"valid"}}]}',
             'data: [DONE]',
         ]
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_response.iter_lines.return_value = iter(sse_lines)
-
-        mock_client_instance = MagicMock()
-        mock_client_instance.stream.return_value.__enter__ = MagicMock(return_value=mock_response)
-        mock_client_instance.stream.return_value.__exit__ = MagicMock(return_value=False)
-        MockClient.return_value.__enter__ = MagicMock(return_value=mock_client_instance)
-        MockClient.return_value.__exit__ = MagicMock(return_value=False)
+        MockSession.return_value = _build_mock_session(sse_lines)
 
         client = LLMClient(service_config=_enabled_config())
-        chunks = list(client.chat_stream([{"role": "user", "content": "hi"}]))
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
         assert chunks == ["valid"]
 
 
@@ -329,20 +370,20 @@ class TestAgentCall:
         mock_post.return_value = _make_post_response(agent_json)
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.agent_call(
+        result = asyncio.run(client.agent_call(
             current_state={"loras": []},
             instruction="add a cyberpunk LoRA",
-        )
+        ))
         assert result is not None
         parsed = json.loads(result)
         assert "operations" in parsed
 
     def test_disabled_returns_none(self):
         client = LLMClient(service_config={"enabled": False})
-        result = client.agent_call(
+        result = asyncio.run(client.agent_call(
             current_state={"loras": []},
             instruction="add a cyberpunk LoRA",
-        )
+        ))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -350,7 +391,7 @@ class TestAgentCall:
         mock_post.return_value = _make_post_response('{"operations": []}')
         client = LLMClient(service_config=_enabled_config())
 
-        client.agent_call(current_state={}, instruction="query state")
+        asyncio.run(client.agent_call(current_state={}, instruction="query state"))
         payload = mock_post.call_args[0][1]
 
         system_content = payload["messages"][0]["content"]
@@ -358,16 +399,10 @@ class TestAgentCall:
 
     @patch.object(LLMClient, "_post")
     def test_http_error_returns_none(self, mock_post):
-        import httpx
-        response = MagicMock()
-        response.status_code = 500
-        response.text = "Internal Server Error"
-        mock_post.side_effect = httpx.HTTPStatusError(
-            "500", request=MagicMock(), response=response
-        )
+        mock_post.side_effect = _make_client_response_error(status=500, message="Internal Server Error")
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.agent_call(current_state={}, instruction="test")
+        result = asyncio.run(client.agent_call(current_state={}, instruction="test"))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -375,7 +410,7 @@ class TestAgentCall:
         mock_post.return_value = {"choices": []}
         client = LLMClient(service_config=_enabled_config())
 
-        result = client.agent_call(current_state={}, instruction="test")
+        result = asyncio.run(client.agent_call(current_state={}, instruction="test"))
         assert result is None
 
     @patch.object(LLMClient, "_post")
@@ -384,7 +419,7 @@ class TestAgentCall:
         client = LLMClient(service_config=_enabled_config())
 
         state = {"loras": ["style/cyberpunk.safetensors"], "checkpoint": "sdxl"}
-        client.agent_call(current_state=state, instruction="toggle the LoRA")
+        asyncio.run(client.agent_call(current_state=state, instruction="toggle the LoRA"))
         payload = mock_post.call_args[0][1]
 
         user_content = payload["messages"][1]["content"]
@@ -402,38 +437,31 @@ class TestTestConnection:
         mock_post.return_value = _make_post_response("OK")
         client = LLMClient(service_config=_enabled_config())
 
-        success, message = client.test_connection()
+        success, message = asyncio.run(client.test_connection())
         assert success is True
         assert "成功" in message or "success" in message.lower()
 
     @patch.object(LLMClient, "_post")
     def test_http_error(self, mock_post):
-        import httpx
-        response = MagicMock()
-        response.status_code = 401
-        response.text = "Unauthorized"
-        mock_post.side_effect = httpx.HTTPStatusError(
-            "401", request=MagicMock(), response=response
-        )
+        mock_post.side_effect = _make_client_response_error(status=401, message="Unauthorized")
         client = LLMClient(service_config=_enabled_config())
 
-        success, message = client.test_connection()
+        success, message = asyncio.run(client.test_connection())
         assert success is False
         assert "401" in message
 
     def test_disabled(self):
         client = LLMClient(service_config={"enabled": False})
-        success, message = client.test_connection()
+        success, message = asyncio.run(client.test_connection())
         assert success is False
         assert "未启用" in message or "disabled" in message.lower()
 
     @patch.object(LLMClient, "_post")
     def test_timeout(self, mock_post):
-        import httpx
-        mock_post.side_effect = httpx.TimeoutException("connection timed out")
+        mock_post.side_effect = asyncio.TimeoutError("connection timed out")
         client = LLMClient(service_config=_enabled_config())
 
-        success, message = client.test_connection()
+        success, message = asyncio.run(client.test_connection())
         assert success is False
         assert "超时" in message or "timed out" in message.lower()
 
@@ -442,6 +470,6 @@ class TestTestConnection:
         mock_post.return_value = _make_post_response("OK")
         client = LLMClient(service_config=_enabled_config(model="claude-4-sonnet"))
 
-        success, message = client.test_connection()
+        success, message = asyncio.run(client.test_connection())
         assert success is True
         assert "claude-4-sonnet" in message

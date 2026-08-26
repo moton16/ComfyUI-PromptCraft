@@ -3,8 +3,9 @@ LoRA Prompt Loader 节点测试
 覆盖: 节点属性 / _extract_prompt_text / execute
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from promptcraft.lora_prompt_loader import LoraPromptLoader
 
 

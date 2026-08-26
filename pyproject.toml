@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-PromptCraft"
 description = "All-in-one enhancement plugin with Checkpoint & LoRA Stack and Prompt Enhancement nodes. Customizable multi-dimension tag library, anime-gen specialized. LoRA groups with inline trigger words — pick tags, 1-click quality output. LLM smart prompt expansion, no more prompt block.一个ComfyUI 全链路增强插件，包含底模&Lora栈与Prompt增强节点，内置可自定义的全维度标签库，二次元出图特化，LoRA 群组管理支持触发词内嵌，挑选标签一键优质出图，LLM 智能扩写摆脱词荒"
-version = "1.3.7"
+version = "1.4.0"
 # 只支持语义化版本，不要有带后缀（MOD等）的更改
 license = "GPL-2.0"
 # classifiers = [
@@ -21,6 +21,20 @@ license = "GPL-2.0"
 #     "Environment :: GPU :: Apple Metal",    # Apple Metal support
 # ]
 
+# V0-DEP-01: 显式声明运行时依赖，避免 Windows 用户 pip install 时崩溃
+dependencies = [
+    "aiohttp>=3.8.0",
+]
+
+# V1-DX-16: 开发依赖（pytest-asyncio/ruff/mypy/vulture）
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.6.0",
+    "mypy>=1.0",
+    "vulture>=2.0",
+]
 
 [project.urls]
 Repository = "https://github.com/moton16/ComfyUI-PromptCraft"
@@ -32,6 +46,32 @@ Documentation = "https://github.com/moton16/ComfyUI-PromptCraft/wiki"
 PublisherId = "moton"
 DisplayName = "ComfyUI-PromptCraft"
 Icon = ""
-includes = [] 
+includes = []
 # "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+# V1.4.0: 仅启用核心规则集，避免对历史代码引入大量噪声
+# 后续版本可逐步启用更多规则（FA100/UP/BLE001 等）
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",   # 行宽由 line-length 控制，不强制断行
+    "E402",   # 模块导入顺序（项目用 importlib 加载，允许后置 import）
+    "E701",   # 单行 if/else 风格
+    "E722",   # bare except（历史代码兼容）
+    "E741",   # 模糊变量名（l/I/O 等单字母变量在节点参数中常见）
+]
+
+[tool.mypy]
+# V1.4.0: 项目目录名含连字符，mypy 默认无法将其识别为合法包名；
+# 启用 explicit_package_bases 以文件系统路径作为包基础，避免 "not a valid Python package name" 错误。
+explicit_package_bases = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
 

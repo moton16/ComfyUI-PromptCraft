@@ -2,14 +2,15 @@
 PromptCraft 测试套件 — 公共 fixtures 和 mock 基础设施
 """
 
-import os
-import sys
-import json
-import tempfile
-import shutil
 import importlib.util
-import pytest
+import json
+import os
+import shutil
+import sys
+import tempfile
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # ==================== Mock ComfyUI 依赖（在加载项目模块之前） ====================
 
@@ -44,6 +45,7 @@ def _load_project_package():
     1. 先注册空的包对象到 sys.modules（使相对导入的 parent 可被找到）
     2. 加载所有子模块（它们的 from .xxx 会引用步骤1的包对象）
     3. 最后执行 __init__.py（它也会 from .xxx 导入，此时子模块已就绪）
+    4. 将所有子模块作为属性挂载到包对象（使 @patch("promptcraft.xxx.yyy") 可用）
     """
     if 'promptcraft' in sys.modules:
         return
@@ -63,7 +65,8 @@ def _load_project_package():
         'lora_prompt_manager', 'lora_utils', 'llm_client',
         'legacy_migration',  # 必须在 prompt_enhancer 之前加载
         'prompt_enhancer', 'model_lora_loader', 'lora_prompt_loader',
-        'clip_text_encode_pro', 'ai_chat',
+        'clip_text_encode_pro', 'ai_chat', 'api_routes',
+        'migrate_legacy_prompts', 'lora_prompt_loader',
     ]
     for mod_name in SUBMODULES:
         full_name = f'promptcraft.{mod_name}'
@@ -78,6 +81,8 @@ def _load_project_package():
         sys.modules[full_name] = mod
         sys.modules[mod_name] = mod  # 顶级别名
         mod_spec.loader.exec_module(mod)
+        # V1-TEST-01: 将子模块作为属性挂载到包对象，使 @patch("promptcraft.xxx.yyy") 可用
+        setattr(pkg, mod_name, mod)
 
     # 3. 执行 __init__.py（此时子模块已就绪，from .xxx 不会失败）
     init_spec = importlib.util.spec_from_file_location(
@@ -90,6 +95,13 @@ def _load_project_package():
     init_pkg.__package__ = 'promptcraft'
     sys.modules['promptcraft'] = init_pkg
     init_spec.loader.exec_module(init_pkg)
+
+    # 4. V1-TEST-01: 将所有子模块属性从旧 pkg 迁移到 init_pkg
+    #    （init_pkg 是新对象，不继承 pkg 的属性，需手动复制）
+    for mod_name in SUBMODULES:
+        full_name = f'promptcraft.{mod_name}'
+        if full_name in sys.modules:
+            setattr(init_pkg, mod_name, sys.modules[full_name])
 
 
 # 延迟加载（在第一个测试收集前完成）

@@ -4,9 +4,9 @@ Agent Prompt 模块测试
 """
 
 from agent_prompt import (
-    get_agent_system_prompt,
-    build_agent_context,
     AGENT_SYSTEM_PROMPT,
+    build_agent_context,
+    get_agent_system_prompt,
 )
 
 

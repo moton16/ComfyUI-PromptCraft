@@ -1,5 +1,6 @@
 {
   "version": "1.4.0",
+  "_template_version": "1.4.0",
   "description": "特殊内容Prompt扩展库 V1.4 - 与SFW库分类完全一一对应，启用后各分类选项追加入SFW库对应分类",
   "enabled": true,
   "categories": {

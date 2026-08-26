@@ -4,8 +4,9 @@ LoRA 工具函数测试
 注意: load_single_lora 依赖 ComfyUI 运行时，只测 flatten_stack 的纯逻辑
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 class TestFlattenStack:
@@ -144,7 +145,7 @@ class TestFlattenStack:
 class TestClearCache:
 
     def test_clear_cache(self):
-        from lora_utils import clear_cache, _lora_cache
+        from lora_utils import _lora_cache, clear_cache
         _lora_cache["test"] = {"mock": "data"}
         assert len(_lora_cache) > 0
         clear_cache()

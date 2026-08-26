@@ -1,34 +1,15 @@
 """
 api_handler 装饰器测试
 覆盖: 成功响应 / ValueError 处理 / 通用异常处理 / 响应格式
+
+V1.4.0: aiohttp 已成为运行时依赖，不再用 sys.modules 级别 mock。
+       改为 patch promptcraft.api_routes.web 模块属性。
 """
 
 import asyncio
-import sys
-import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-# mock aiohttp 必须在 import api_routes 之前（无论是否已安装）
-_mock_web = MagicMock()
-sys.modules['aiohttp'] = MagicMock()
-sys.modules['aiohttp.web'] = _mock_web
-
-# mock ComfyUI 依赖
-if 'server' not in sys.modules:
-    sys.modules['server'] = MagicMock()
-if 'folder_paths' not in sys.modules:
-    sys.modules['folder_paths'] = MagicMock()
-if 'comfy' not in sys.modules:
-    sys.modules['comfy'] = MagicMock()
-    sys.modules['comfy.sd'] = MagicMock()
-    sys.modules['comfy.utils'] = MagicMock()
-    sys.modules['comfy.model_management'] = MagicMock()
-if 'nodes' not in sys.modules:
-    sys.modules['nodes'] = MagicMock()
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from promptcraft.api_routes import api_handler, get_result_json  # noqa: E402
+from promptcraft.api_routes import api_handler, get_result_json
 
 
 class TestGetResultJson:
@@ -95,43 +76,44 @@ class TestApiHandlerDecorator:
 
     def test_successful_return_calls_json_response(self):
         """正常返回时调用 web.json_response"""
-        from promptcraft.api_routes import web
-        call_count_before = web.json_response.call_count
+        mock_web = MagicMock()
+        with patch("promptcraft.api_routes.web", mock_web):
+            @api_handler("测试")
+            async def handler(request):
+                return {"name": "test"}
 
-        @api_handler("测试")
-        async def handler(request):
-            return {"name": "test"}
-
-        request = MagicMock()
-        self._run(handler(request))
-        assert web.json_response.call_count > call_count_before
+            request = MagicMock()
+            self._run(handler(request))
+            assert mock_web.json_response.call_count > 0
 
     def test_value_error_calls_json_response_with_400(self):
         """ValueError 时调用 web.json_response(status=400)"""
-        from promptcraft.api_routes import web
-        call_count_before = web.json_response.call_count
+        mock_web = MagicMock()
+        with patch("promptcraft.api_routes.web", mock_web):
+            @api_handler("测试")
+            async def handler(request):
+                raise ValueError("bad input")
 
-        @api_handler("测试")
-        async def handler(request):
-            raise ValueError("bad input")
-
-        request = MagicMock()
-        self._run(handler(request))
-        assert web.json_response.call_count > call_count_before
-        last_call = web.json_response.call_args
-        assert last_call.kwargs.get("status") == 400 or (len(last_call.args) > 1 and last_call.args[1] == 400)
+            request = MagicMock()
+            self._run(handler(request))
+            assert mock_web.json_response.call_count > 0
+            last_call = mock_web.json_response.call_args
+            assert last_call.kwargs.get("status") == 400 or (
+                len(last_call.args) > 1 and last_call.args[1] == 400
+            )
 
     def test_generic_error_calls_json_response_with_500(self):
         """通用异常时调用 web.json_response(status=500)"""
-        from promptcraft.api_routes import web
-        call_count_before = web.json_response.call_count
+        mock_web = MagicMock()
+        with patch("promptcraft.api_routes.web", mock_web):
+            @api_handler("测试")
+            async def handler(request):
+                raise RuntimeError("unexpected")
 
-        @api_handler("测试")
-        async def handler(request):
-            raise RuntimeError("unexpected")
-
-        request = MagicMock()
-        self._run(handler(request))
-        assert web.json_response.call_count > call_count_before
-        last_call = web.json_response.call_args
-        assert last_call.kwargs.get("status") == 500 or (len(last_call.args) > 1 and last_call.args[1] == 500)
+            request = MagicMock()
+            self._run(handler(request))
+            assert mock_web.json_response.call_count > 0
+            last_call = mock_web.json_response.call_args
+            assert last_call.kwargs.get("status") == 500 or (
+                len(last_call.args) > 1 and last_call.args[1] == 500
+            )

@@ -3,20 +3,18 @@ LoRA 群组管理器测试
 覆盖: CRUD 操作 / LoRA 增删改查 / 重排序 / 错误处理
 """
 
-import os
 import json
+import os
+
 import pytest
 from promptcraft.lora_group_manager import LoraGroupManager
 
 
 @pytest.fixture
 def group_manager(tmp_dir):
-    """创建独立的 LoraGroupManager 实例"""
-    # 重置单例
-    LoraGroupManager._instance = None
-
-    # 创建实例（绕过 __init__ 中的 config_manager 依赖）
-    mgr = LoraGroupManager.__new__(LoraGroupManager)
+    """创建独立的 LoraGroupManager 实例（绕过模块级单例）"""
+    # 创建实例（用 object.__new__ 绕过 __init__，再设 _initialized 阻止重入）
+    mgr = object.__new__(LoraGroupManager)
     mgr._initialized = True
     mgr.user_dir = tmp_dir
     mgr._cache_file = os.path.join(tmp_dir, "lora_groups.json")
@@ -39,7 +37,6 @@ def group_manager(tmp_dir):
     mgr._save_raw = _save_raw
 
     yield mgr
-    LoraGroupManager._instance = None
 
 
 class TestLoraGroupManagerCRUD:

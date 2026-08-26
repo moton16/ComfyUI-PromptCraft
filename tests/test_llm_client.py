@@ -4,7 +4,8 @@ LLM 客户端测试
 注意: 实际 HTTP 调用需要 mock httpx
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from llm_client import LLMClient
 
 

@@ -4,10 +4,12 @@
 参考 prompt-assistant 的 config_manager.py 设计模式
 """
 
-import os
 import json
-import tempfile
+import os
 import shutil
+import tempfile
+import threading
+from typing import Optional
 
 try:
     import folder_paths
@@ -17,20 +19,27 @@ except ImportError:
 
 
 class ConfigManager:
-    """Prompt Enhancer 配置管理器（单例）"""
+    """Prompt Enhancer 配置管理器（模块级单例 + Lock 线程安全初始化）"""
 
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+    _init_lock = threading.Lock()
 
     def __init__(self):
-        if self._initialized:
+        if getattr(self, "_initialized", False):
             return
-        self._initialized = True
+        with self._init_lock:
+            if getattr(self, "_initialized", False):
+                return
+            # Phase 3 #19: _do_init 异常时不设 _initialized，下次调用可重试
+            # （_do_init 的副作用均为幂等：makedirs/_init_config_files/_check_bak_files）
+            try:
+                self._do_init()
+            except Exception as e:
+                print(f"[PromptCraft] ConfigManager 初始化失败: {e}", flush=True)
+                raise
+            self._initialized = True
+
+    def _do_init(self):
+        """首次初始化逻辑（由 __init__ 在 Lock 保护下调用一次）"""
 
         # 插件目录（内置模板）
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -89,12 +98,22 @@ class ConfigManager:
         print(f"[PromptCraft]   用户配置目录: {self.user_config_dir}")
         print(f"[PromptCraft]   内置模板目录: {self.templates_dir}")
 
+        # 启动时检测 *.bak 文件存在则 log 提示（Choice 4: 日志提示，不弹窗）
+        self._check_bak_files()
+
+        # V1-BE-04: 一次性迁移旧版权重语法到冒号语法（幂等）
+        try:
+            from .migrate_legacy_prompts import run_migration
+            run_migration(self.user_config_dir)
+        except Exception as e:
+            print(f"[PromptCraft] 权重语法迁移失败（非致命）: {e}")
+
     # ==================== 工具方法 ====================
 
     def _log(self, msg: str):
         print(f"[PromptCraft] {msg}", flush=True)
 
-    def _atomic_write_json(self, file_path: str, data: dict) -> bool:
+    def _atomic_write_json(self, file_path: str, data) -> bool:
         """原子性写入 JSON 文件（先写临时文件再 rename）"""
         temp_fd = None
         temp_path = None
@@ -131,6 +150,8 @@ class ConfigManager:
             cache_attr: 缓存属性名（如 '_llm_config_cache'）
             default_factory: 加载失败时的默认值工厂（无参 callable）
             force_reload: 是否强制跳过缓存
+
+        V0-DATA-02: 加载失败时不写缓存（保留 None），下次访问重试。
         """
         if not force_reload and getattr(self, cache_attr, None) is not None:
             return getattr(self, cache_attr)
@@ -140,7 +161,8 @@ class ConfigManager:
             setattr(self, cache_attr, data)
         except Exception as e:
             self._log(f"加载配置失败 [{os.path.basename(file_path)}]: {e}")
-            setattr(self, cache_attr, default_factory())
+            # V0-DATA-02: 不缓存失败结果，下次访问重试（返回默认值但不持久化）
+            return default_factory()
         return getattr(self, cache_attr)
 
     def _copy_template_if_missing(self, template_path: str, target_path: str) -> bool:
@@ -157,26 +179,75 @@ class ConfigManager:
                 return False
         return False
 
+    @staticmethod
+    def _parse_version(v: str) -> tuple:
+        """将 '1.4.0' 转为 (1, 4, 0) 用于比较；非法值视为 (0,)"""
+        try:
+            return tuple(int(x) for x in str(v).split('.'))
+        except Exception:
+            return (0,)
+
     def _sync_template_to_user(self, template_path: str, user_path: str, label: str) -> bool:
-        """将模板同步到用户目录（仅当模板比用户文件更新时）"""
+        """将模板同步到用户目录（基于 _template_version 字段比较 + 备份机制）
+
+        - 用户文件不存在：直接复制模板（首次创建，无需备份）
+        - 用户文件无 _template_version：视为 "0.0.0"，强制同步 + 备份
+        - 用户版本 < 模板版本：备份用户文件到 *.bak 后覆盖
+        - 用户版本 >= 模板版本：不同步（用户已是最新或更高）
+        """
         if not os.path.exists(template_path):
             return False
         try:
-            template_mtime = os.path.getmtime(template_path)
-            if os.path.exists(user_path):
-                user_mtime = os.path.getmtime(user_path)
-                if user_mtime >= template_mtime:
-                    return False  # 用户文件已是最新，不需同步
-            # 模板更新，同步到用户目录
             with open(template_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            success = self._atomic_write_json(user_path, data)
+                template_data = json.load(f)
+            template_ver = self._parse_version(template_data.get('_template_version', '0.0.0'))
+
+            if not os.path.exists(user_path):
+                # 首次创建，直接复制模板
+                success = self._atomic_write_json(user_path, template_data)
+                if success:
+                    self._log(f"🔄 内置模板已初始化: {label} → {os.path.basename(user_path)}")
+                return success
+
+            # 用户文件已存在，读 _template_version 比较
+            try:
+                with open(user_path, 'r', encoding='utf-8') as f:
+                    user_data = json.load(f)
+            except Exception:
+                user_data = {}
+            user_ver = self._parse_version(user_data.get('_template_version', '0.0.0'))
+
+            if user_ver >= template_ver:
+                return False  # 用户文件已是最新，不需同步
+
+            # 模板更新，备份用户文件到 *.bak 后覆盖
+            try:
+                shutil.copy2(user_path, user_path + ".bak")
+                self._log(f"📦 已备份旧配置: {os.path.basename(user_path)} → {os.path.basename(user_path)}.bak")
+            except Exception as e:
+                self._log(f"⚠️ 备份 {label} 失败（跳过覆盖以防数据丢失）: {e}")
+                return False
+
+            success = self._atomic_write_json(user_path, template_data)
             if success:
-                self._log(f"🔄 内置模板已同步: {label} → {os.path.basename(user_path)}")
+                self._log(f"🔄 内置模板已升级同步: {label} → {os.path.basename(user_path)} (v{user_ver} → v{template_ver})")
             return success
         except Exception as e:
             self._log(f"⚠️ 同步 {label} 失败: {e}")
             return False
+
+    def _check_bak_files(self):
+        """启动时检测 *.bak / *.prompt.bak 文件存在则 log 提示（Choice 4: 日志提示，不弹窗）"""
+        try:
+            for fname in os.listdir(self.user_config_dir):
+                # Bug fix: 同时检测模板备份 *.bak 和迁移备份 *.prompt.bak
+                if fname.endswith('.bak'):
+                    self._log(
+                        f"ℹ️ 检测到备份文件 {fname}（上次升级/迁移时自动生成）。"
+                        f"如需恢复旧配置，请手动将 {fname} 重命名为 {fname.replace('.prompt.bak', '').replace('.bak', '')}"
+                    )
+        except Exception:
+            pass
 
     def _init_config_files(self):
         """初始化配置文件：模板变更时自动覆盖用户目录，确保下拉框始终反映最新模板"""
@@ -522,6 +593,11 @@ class ConfigManager:
         if category not in ("enhance_basic", "enhance_detail", "enhance_normal", "agent"):
             return False
         cfg = self.load_services_config()
+        # V1-BE-01: 校验 service_id 存在，避免写入悬空引用
+        valid_ids = {svc["id"] for svc in cfg.get("services", [])}
+        if service_id not in valid_ids:
+            self._log(f"设置当前服务失败: service_id '{service_id}' 不存在")
+            return False
         cfg["current"][category] = {"service_id": service_id, "model": model}
         self.save_services_config(cfg)
         return True
@@ -548,15 +624,15 @@ class ConfigManager:
         # 回退到旧配置
         return self.load_llm_config()
 
-    def test_service_connection(self, service_id: str) -> tuple:
-        """测试指定服务的连接"""
+    async def test_service_connection(self, service_id: str) -> tuple:
+        """测试指定服务的连接（异步）"""
         cfg = self.load_services_config()
         for svc in cfg.get("services", []):
             if svc["id"] == service_id:
                 from .llm_client import LLMClient
                 test_cfg = {**svc, "enabled": True}
                 client = LLMClient(service_config=test_cfg)
-                return client.test_connection()
+                return await client.test_connection()
         return False, "服务不存在"
 
     # ==================== Prompt 历史记录 CRUD ====================
@@ -581,7 +657,7 @@ class ConfigManager:
             "entries": []
         }
 
-    def add_prompt_history(self, positive_prompt: str, negative_prompt: str = "", extra: dict = None) -> bool:
+    def add_prompt_history(self, positive_prompt: str, negative_prompt: str = "", extra: Optional[dict] = None) -> bool:
         """添加一条 prompt 历史记录，自动裁剪到限制"""
         import time
         data = self.load_prompt_history()

@@ -3,8 +3,9 @@ MtimeCacheMixin 测试
 覆盖: 缓存加载 / 缓存失效 / 原子写入 / key 查询
 """
 
-import os
 import json
+import os
+
 from cache_utils import MtimeCacheMixin
 
 
@@ -16,8 +17,13 @@ class MockCachedManager(MtimeCacheMixin):
         self._init_mtime_cache()
 
     def _save_raw(self, data):
-        with open(self._cache_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        """V1-BE-09: _save_raw 需返回 bool 表示写入是否成功"""
+        try:
+            with open(self._cache_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
 
 
 class TestMtimeCacheMixin:

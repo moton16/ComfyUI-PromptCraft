@@ -1240,6 +1240,8 @@ class HubPanel {
         if (this.node && _onRefreshStack) {
             _onRefreshStack(this.node);
         }
+        // V1-FE-10: 清理节点引用，避免面板关闭后仍持有节点对象
+        this.node = null;
         _hubInstance = null;
     }
 }

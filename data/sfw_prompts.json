@@ -1,5 +1,6 @@
 {
   "version": "1.0.0",
+  "_template_version": "1.4.0",
   "description": "默认Prompt增强库 - 正常向内容",
   "categories": {
     "scene_type": {

@@ -7,23 +7,28 @@ V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语
 V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 V1.3.6 — 修复 Windows HTTPS SSL 证书路径问题
 V1.3.7 — 优化代码结构，提取通用 JSON 缓存加载方法
+V1.4.0 — aiohttp 全异步化，删除 httpx 同步客户端
 """
 
+import asyncio
 import json
 import re
-import httpx
+import ssl
 import traceback
 from pathlib import Path
+from typing import Optional
+
+import aiohttp
 
 try:
     import certifi
-    _SSL_VERIFY = certifi.where()
+    _SSL_CTX: Optional[ssl.SSLContext] = ssl.create_default_context(cafile=certifi.where())
 except ImportError:
-    _SSL_VERIFY = False
+    _SSL_CTX = None  # None 表示用系统默认证书
 
 
 class LLMClient:
-    """OpenAI兼容的LLM客户端"""
+    """OpenAI兼容的LLM客户端（全异步）"""
 
     def __init__(self, config_manager=None, service_config=None):
         """
@@ -137,12 +142,20 @@ class LLMClient:
         return thinking_params
 
     def _prepare_url(self) -> str:
-        """获取并规范化 API URL（自动补全 scheme 和 /chat/completions 路径）"""
+        """获取并规范化 API URL（自动补全 scheme 和 /chat/completions 路径）
+
+        V1-SEC-02: 阻止云元数据地址（169.254.169.254）防止 SSRF。
+        本地部署的 LLM（localhost/127.0.0.1/内网）允许，因为是单用户桌面工具。
+        """
         url = self.config.get("api_url", "").strip()
         if url and not url.startswith(("http://", "https://")):
             url = "http://" + url
         if url and not url.endswith("/chat/completions"):
             url = url.rstrip("/") + "/chat/completions"
+        # V1-SEC-02: 阻止云元数据端点（AWS/GCP/Azure metadata service）
+        if url and "169.254.169.254" in url:
+            print("[LLMClient] 阻止访问云元数据地址（SSRF 防护）")
+            return ""
         return url
 
     def _prepare_headers(self) -> dict:
@@ -152,12 +165,17 @@ class LLMClient:
             "Authorization": f"Bearer {self.config.get('api_key', '').strip()}"
         }
 
-    def _post(self, url: str, payload: dict, timeout_s: float = 30.0) -> dict:
-        """发送 POST 请求并返回 JSON 响应（统一错误处理）"""
-        with httpx.Client(timeout=httpx.Timeout(timeout_s, connect=10.0), verify=_SSL_VERIFY) as client:
-            resp = client.post(url, json=payload, headers=self._prepare_headers())
-            resp.raise_for_status()
-            return resp.json()
+    async def _post(self, url: str, payload: dict, timeout_s: float = 30.0) -> dict:
+        """发送 POST 请求并返回 JSON 响应（统一错误处理，异步）"""
+        timeout = aiohttp.ClientTimeout(total=timeout_s, connect=10.0)
+        # V1.4.0: 传 SSLContext 给 TCPConnector；None 表示用系统默认
+        connector = aiohttp.TCPConnector(ssl=_SSL_CTX)  # type: ignore[arg-type]
+        async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+            async with session.post(
+                url, json=payload, headers=self._prepare_headers()
+            ) as resp:
+                resp.raise_for_status()
+                return await resp.json()
 
     def _filter_content(self, content: str) -> str:
         """
@@ -184,9 +202,9 @@ class LLMClient:
 
         return content
 
-    def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint="", lora_tags=""):
+    async def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint="", lora_tags=""):
         """
-        使用LLM增强prompt
+        使用LLM增强prompt（异步）
 
         Args:
             base_prompt: 基础prompt（已包含库中随机选取的标签）
@@ -201,6 +219,9 @@ class LLMClient:
         if not self.is_enabled():
             print("[LLMClient] LLM未启用或配置不完整")
             return None
+
+        # V1-BE-08: 每次调用前清空 last_error，避免上次错误残留
+        self.last_error = ""
 
         api_url = self._prepare_url()
         model = self.config.get("model", "").strip()
@@ -245,7 +266,7 @@ class LLMClient:
             print(f"[LLMClient] 已应用思维链控制参数: {thinking_params}")
 
         try:
-            result = self._post(api_url, payload, timeout_s=30.0)
+            result = await self._post(api_url, payload, timeout_s=30.0)
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})
@@ -264,24 +285,16 @@ class LLMClient:
             print(f"[LLMClient] {self.last_error}")
             return None
 
-        except httpx.TimeoutException as e:
+        except asyncio.TimeoutError as e:
             self.last_error = f"请求超时: {e}"
             print(f"[LLMClient] {self.last_error}")
             return None
-        except httpx.HTTPStatusError as e:
-            self.last_error = f"HTTP {e.response.status_code}: {e.response.text[:300]}"
+        except aiohttp.ClientResponseError as e:
+            self.last_error = f"HTTP {e.status}: {e.message[:300] if e.message else ''}"
             print(f"[LLMClient] {self.last_error}")
             return None
-        except httpx.RequestError as e:
+        except aiohttp.ClientError as e:
             self.last_error = f"网络错误: {e}"
-            print(f"[LLMClient] {self.last_error}")
-            return None
-        except FileNotFoundError as e:
-            self.last_error = f"文件未找到（可能是 API URL 格式错误）: {e} | URL: {self.config.get('api_url', '')}"
-            print(f"[LLMClient] {self.last_error}")
-            return None
-        except OSError as e:
-            self.last_error = f"系统错误: {e}"
             print(f"[LLMClient] {self.last_error}")
             return None
         except Exception as e:
@@ -290,9 +303,9 @@ class LLMClient:
             traceback.print_exc()
             return None
 
-    def test_connection(self):
+    async def test_connection(self):
         """
-        测试LLM连接是否正常
+        测试LLM连接是否正常（异步）
 
         Returns:
             (success, message): 是否成功和消息
@@ -317,25 +330,21 @@ class LLMClient:
             payload.update(thinking_params)
 
         try:
-            self._post(api_url, payload, timeout_s=15.0)
+            await self._post(api_url, payload, timeout_s=15.0)
             return True, f"连接成功! 模型: {model}"
 
-        except httpx.TimeoutException as e:
+        except asyncio.TimeoutError as e:
             return False, f"请求超时: {e}"
-        except httpx.HTTPStatusError as e:
-            return False, f"HTTP {e.response.status_code}: {e.response.text[:300]}"
-        except httpx.RequestError as e:
+        except aiohttp.ClientResponseError as e:
+            return False, f"HTTP {e.status}: {e.message[:300] if e.message else ''}"
+        except aiohttp.ClientError as e:
             return False, f"网络错误: {e}"
-        except FileNotFoundError as e:
-            return False, f"文件未找到（可能是 API URL 格式错误）: {e} | URL: {self.config.get('api_url', '')}"
-        except OSError as e:
-            return False, f"系统错误: {e}"
         except Exception as e:
             return False, str(e)
 
-    def chat_stream(self, messages, temperature=None, max_tokens=None):
+    async def chat_stream(self, messages, temperature=None, max_tokens=None):
         """
-        流式聊天，逐块 yield 内容
+        流式聊天，异步逐块 yield 内容
 
         Args:
             messages: [{"role": "user"/"assistant"/"system", "content": "..."}]
@@ -367,20 +376,25 @@ class LLMClient:
             print(f"[LLMClient] 流式请求已应用思维链控制参数: {thinking_params}")
 
         filter_output = self.config.get("filter_thinking_output", True)
+        timeout = aiohttp.ClientTimeout(total=120.0, connect=10.0)
+        # V1.4.0: 传 SSLContext 给 TCPConnector；None 表示用系统默认
+        connector = aiohttp.TCPConnector(ssl=_SSL_CTX)
 
         try:
-            with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0), verify=_SSL_VERIFY) as client:
-                with client.stream(
-                    "POST", api_url, json=payload,
-                    headers=self._prepare_headers()
+            async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+                async with session.post(
+                    api_url, json=payload, headers=self._prepare_headers()
                 ) as response:
                     response.raise_for_status()
                     has_content = False
                     thinking_buffer = ""  # 用于缓存可能的思维链内容
                     in_thinking = False  # 是否在思维链标签内
 
-                    for line in response.iter_lines():
-                        line = line.strip()
+                    async for raw_line in response.content:
+                        try:
+                            line = raw_line.decode("utf-8").strip()
+                        except UnicodeDecodeError:
+                            continue
                         if not line.startswith("data: "):
                             continue
                         data_str = line[6:]
@@ -426,18 +440,22 @@ class LLMClient:
                     if in_thinking and thinking_buffer:
                         print(f"[LLMClient] 检测到未闭合的思维链标签，已丢弃 {len(thinking_buffer)} 字符")
 
-        except httpx.TimeoutException as e:
+        except asyncio.TimeoutError as e:
             yield f"\n[Error: 请求超时 {e}]"
-        except httpx.HTTPStatusError as e:
-            yield f"\n[Error: HTTP {e.response.status_code}]"
-        except httpx.RequestError as e:
+        except aiohttp.ClientResponseError as e:
+            yield f"\n[Error: HTTP {e.status}]"
+        except aiohttp.ClientError as e:
             yield f"\n[Error: 网络错误 {e}]"
+        except asyncio.CancelledError:
+            # V1-BE-03: 客户端断开时 aiohttp 自动抛 CancelledError，连接自动释放
+            print("[LLMClient] 流式请求被取消（客户端断开）")
+            raise
         except Exception as e:
             yield f"\n[Error: {e}]"
 
-    def chat(self, messages, temperature=None, max_tokens=None):
+    async def chat(self, messages, temperature=None, max_tokens=None):
         """
-        非流式聊天，返回完整响应字符串
+        非流式聊天，返回完整响应字符串（异步）
 
         Args:
             messages: [{"role": "user"/"assistant"/"system", "content": "..."}]
@@ -447,12 +465,15 @@ class LLMClient:
         Returns:
             str: 完整的 LLM 响应文本
         """
-        return "".join(self.chat_stream(messages, temperature, max_tokens))
+        chunks = []
+        async for chunk in self.chat_stream(messages, temperature, max_tokens):
+            chunks.append(chunk)
+        return "".join(chunks)
 
-    def agent_call(self, current_state: dict, instruction: str) -> str:
+    async def agent_call(self, current_state: dict, instruction: str) -> Optional[str]:
         """
         Agent 模式调用 — 使用内置 system prompt（前端不可编辑）
-        解析自然语言指令，返回结构化操作 JSON
+        解析自然语言指令，返回结构化操作 JSON（异步）
 
         Args:
             current_state: 当前节点状态（LoRA 栈、checkpoint、类别选择等）
@@ -465,7 +486,7 @@ class LLMClient:
             print("[LLMClient] Agent 调用失败: LLM 未启用")
             return None
 
-        from .agent_prompt import get_agent_system_prompt, build_agent_context
+        from .agent_prompt import build_agent_context, get_agent_system_prompt
 
         system_prompt = get_agent_system_prompt()
         user_message = build_agent_context(current_state, instruction)
@@ -492,7 +513,7 @@ class LLMClient:
             print(f"[LLMClient] Agent 请求已应用思维链控制参数: {thinking_params}")
 
         try:
-            result = self._post(api_url, payload, timeout_s=30.0)
+            result = await self._post(api_url, payload, timeout_s=30.0)
 
             if "choices" in result and len(result["choices"]) > 0:
                 msg = result["choices"][0].get("message", {})
@@ -509,11 +530,14 @@ class LLMClient:
             print("[LLMClient] Agent 响应格式异常")
             return None
 
-        except httpx.TimeoutException as e:
+        except asyncio.TimeoutError as e:
             print(f"[LLMClient] Agent 调用超时: {e}")
             return None
-        except httpx.HTTPStatusError as e:
-            print(f"[LLMClient] Agent HTTP错误: {e.response.status_code}")
+        except aiohttp.ClientResponseError as e:
+            print(f"[LLMClient] Agent HTTP错误: {e.status}")
+            return None
+        except aiohttp.ClientError as e:
+            print(f"[LLMClient] Agent 网络错误: {e}")
             return None
         except Exception as e:
             print(f"[LLMClient] Agent 调用错误: {e}")

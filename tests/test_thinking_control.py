@@ -4,15 +4,14 @@
 """
 
 from thinking_control import (
+    FUZZY_KEYWORDS,
+    THINKING_CONTROL_RULES,
     build_thinking_suppression,
     filter_thinking_content,
     filter_thinking_stream,
-    validate_custom_rule,
     get_supported_models,
-    THINKING_CONTROL_RULES,
-    FUZZY_KEYWORDS,
+    validate_custom_rule,
 )
-
 
 # ==================== build_thinking_suppression ====================
 

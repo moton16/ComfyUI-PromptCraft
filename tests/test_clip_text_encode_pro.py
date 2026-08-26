@@ -3,8 +3,10 @@ CLIPTextEncodePro 节点测试
 覆盖: INPUT_TYPES / RETURN_TYPES / FUNCTION 属性, encode() 各种输入场景
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from clip_text_encode_pro import CLIPTextEncodePro
 
 

@@ -3,18 +3,24 @@ Prompt Enhancer Node - ComfyUI 提示词增强器核心节点
 基于内置Prompt库随机选择 + 可选LLM细节补充
 使用 config_manager 统一管理 SFW/特殊内容 库和 LLM 配置
 V1.1.0 — 支持每分类独立随机范围选择（+IS_CHANGED 随机修复）
-V1.4.0 — 中文变量名 → 英文标识符改造，支持 nodeDefs.json 双语翻译
+V1.3.3 — 中文变量名 → 英文标识符改造，支持 nodeDefs.json 双语翻译
+V1.4.0 — _apply_weight 统一冒号语法 (tag:weight)，_random_pick/_collect_subgroups 容错
 """
 
+import asyncio
 import json
 import random
+
+from server import PromptServer  # type: ignore[attr-defined]
+
 from .config_manager import config_manager
-from .llm_client import LLMClient
 from .legacy_migration import (
-    LEGACY_KEY_MAP, LEGACY_RANDOM_MAP, LEGACY_EXPAND_MAP,
+    LEGACY_EXPAND_MAP,
+    LEGACY_KEY_MAP,
+    LEGACY_RANDOM_MAP,
     LEGACY_SUBGROUP_PREFIX_MAP,
 )
-from server import PromptServer
+from .llm_client import LLMClient
 
 
 class LLMInterruptException(Exception):
@@ -146,12 +152,15 @@ class PromptEnhancer:
                         "label": sg_data.get("label", sg_key),
                         "options": []
                     }
-                # 合并 options（避免重复）
-                existing_labels = {o["label"] for o in subgroups[sg_key]["options"]}
+                # V1-BE-05: 用 .get("label", "") 容错，避免缺 label key 时 KeyError
+                existing_labels = {o.get("label", "") for o in subgroups[sg_key]["options"]}
                 for opt in sg_data.get("options", []):
-                    if opt["label"] not in existing_labels:
+                    lbl = opt.get("label", "")
+                    if not lbl:
+                        continue
+                    if lbl not in existing_labels:
                         subgroups[sg_key]["options"].append(opt)
-                        existing_labels.add(opt["label"])
+                        existing_labels.add(lbl)
 
         return subgroups
 
@@ -450,10 +459,12 @@ class PromptEnhancer:
 
         def _llm_call(container):
             try:
-                container['result'] = llm_client.enhance_prompt(
+                # V1.4.0: LLMClient.enhance_prompt 现在是 async，用 asyncio.run 桥接
+                # 在子线程中创建新事件循环运行协程（子线程没有事件循环，asyncio.run 安全）
+                container['result'] = asyncio.run(llm_client.enhance_prompt(
                     positive_prompt, is_detailed=is_detailed, llm_hint=llm_hint,
                     lora_tags=lora_tag_str
-                )
+                ))
                 # 如果 enhance_prompt 返回 None 但没有抛异常，从 last_error 获取原因
                 if container['result'] is None and llm_client.last_error:
                     container['error'] = llm_client.last_error
@@ -507,15 +518,13 @@ class PromptEnhancer:
         else:
             error_detail = result_container.get('error', '')
             if error_detail:
+                # V1-SEC-01: 详细错误只打印到日志，不通过 WebSocket 推送给前端
                 print(f"[PromptCraft] 大模型增强失败: {error_detail}")
-                PromptServer.instance.send_sync("promptcraft.llm_status", {
-                    "status": "error", "message": f"LLM error: {error_detail}"
-                })
             else:
                 print("[PromptCraft] 大模型增强失败，返回空结果")
-                PromptServer.instance.send_sync("promptcraft.llm_status", {
-                    "status": "error", "messageKey": "llm.status_failed"
-                })
+            PromptServer.instance.send_sync("promptcraft.llm_status", {
+                "status": "error", "messageKey": "llm.status_failed"
+            })
 
         return positive_prompt, llm_enhanced
 
@@ -614,12 +623,15 @@ class PromptEnhancer:
                 # 合并子组 options（随机模式下全量参与抽取）
                 for sg_data in category.get("subgroups", {}).values():
                     options.extend(sg_data.get("options", []))
-            # 合并所有库的 options（去重）
-            existing_labels = {o["label"] for o in all_options}
+            # V1-BE-05: 用 .get("label", "") 容错
+            existing_labels = {o.get("label", "") for o in all_options}
             for opt in options:
-                if opt["label"] not in existing_labels:
+                lbl = opt.get("label", "")
+                if not lbl:
+                    continue
+                if lbl not in existing_labels:
                     all_options.append(opt)
-                    existing_labels.add(opt["label"])
+                    existing_labels.add(lbl)
         if all_options:
             chosen = random.choice(all_options)
             return chosen.get("en", "")
@@ -642,11 +654,15 @@ class PromptEnhancer:
                 nsfw_opts = sp_data.get("options", [])
                 if nsfw_opts:
                     sfw_opts = sfw_cat.setdefault("options", [])
-                    sfw_labels = {o["label"] for o in sfw_opts}
+                    # V1-BE-05: 用 .get("label", "") 容错
+                    sfw_labels = {o.get("label", "") for o in sfw_opts}
                     for o in nsfw_opts:
-                        if o["label"] not in sfw_labels:
+                        lbl = o.get("label", "")
+                        if not lbl:
+                            continue
+                        if lbl not in sfw_labels:
                             sfw_opts.append(o)
-                            sfw_labels.add(o["label"])
+                            sfw_labels.add(lbl)
                 # 合并 subgroups
                 nsfw_subs = sp_data.get("subgroups", {})
                 if nsfw_subs:
@@ -656,11 +672,14 @@ class PromptEnhancer:
                             sfw_subs[sg_key] = copy.deepcopy(sg_data)
                         else:
                             sfw_sg_opts = sfw_subs[sg_key].setdefault("options", [])
-                            sfw_sg_labels = {o["label"] for o in sfw_sg_opts}
+                            sfw_sg_labels = {o.get("label", "") for o in sfw_sg_opts}
                             for o in sg_data.get("options", []):
-                                if o["label"] not in sfw_sg_labels:
+                                lbl = o.get("label", "")
+                                if not lbl:
+                                    continue
+                                if lbl not in sfw_sg_labels:
                                     sfw_sg_opts.append(o)
-                                    sfw_sg_labels.add(o["label"])
+                                    sfw_sg_labels.add(lbl)
         return merged
 
     # ==================== 辅助方法 ====================
@@ -701,21 +720,19 @@ class PromptEnhancer:
         return ""
 
     def _apply_weight(self, tag, weight):
-        """给标签应用权重（使用SD的()权重语法）"""
+        """给标签应用权重（SD 标准冒号语法）
+
+        V1-BE-04: 统一为 (tag:weight)，删除多层括号/中括号旧语法。
+        权重 1.0 = 原样返回；<=0 = 丢弃；其他 = (tag:weight)。
+        旧语法 [[[tag:1.5]]] / [[tag]] 由 migrate_legacy_prompts.py 自动迁移。
+        """
         if weight == 1.0:
             return tag
         if weight <= 0:
             return ""
-        if weight > 1.0:
-            bracket_count = max(1, round(weight * 2) - 1)
-            brackets = "(" * bracket_count
-            end_brackets = ")" * bracket_count
-            return f"{brackets}{tag}:{weight:.1f}{end_brackets}"
-        else:
-            bracket_count = max(1, round((1.0 / weight)))
-            brackets = "[" * bracket_count
-            end_brackets = "]" * bracket_count
-            return f"{brackets}{tag}{end_brackets}"
+        # V1-BE-04: 统一冒号语法，权重钳制到 [0.1, 10.0] 避免极端值
+        weight = max(0.1, min(10.0, weight))
+        return f"({tag}:{weight:.2f})"
 
     def _generate_negative(self, negative_type, lora_negative_elements=None):
         """生成负面提示词 — 从双库 categories.negative_prompt 中查找，追加 LoRA 负面提示词"""

@@ -6,15 +6,14 @@ V1.3.3 — 中文变量名→英文标识符改造，支持 nodeDefs.json 双语
 V1.3.5 — 修复前端旧工作流值迁移、随机填充过滤、i18n 缺失 key
 V1.3.6 — 版本号更新
 V1.3.7 — 优化代码结构
+V1.4.0 — 自定义规则改由 config_manager 统一读取用户配置目录
 
 参考 prompt-assistan 的 thinking_control.py 设计
 """
 
-import re
 import json
-from pathlib import Path
-from typing import Dict, Any, List
-
+import re
+from typing import Any, Dict, List
 
 # ==================== 模型匹配规则 ====================
 
@@ -127,7 +126,7 @@ EXCLUDE_PATTERNS = [
 ]
 
 # 模糊匹配关键词（当精确匹配失败时使用）
-FUZZY_KEYWORDS = {
+FUZZY_KEYWORDS: Dict[str, Dict[str, Any]] = {
     "deepseek": {"thinking": {"type": "disabled"}},
     "qwen": {"enable_thinking": False},
     "claude": {"thinking": {"type": "disabled"}},
@@ -141,50 +140,26 @@ FUZZY_KEYWORDS = {
 }
 
 
-# mtime 缓存：避免每次 LLM 调用都读盘
-_custom_rules_cache = None
-_custom_rules_mtime = 0
-_custom_params_cache = None
-_custom_params_mtime = 0
+# V0-DATA-01: 自定义规则/参数改由 config_manager 统一读取用户配置目录
+# （原实现直读插件 data/ 目录，导致用户在用户配置目录修改的规则不生效）
+# config_manager 内部已处理文件不存在与异常，此处仅做 import 失败兜底
 
 
 def _load_custom_rules() -> List[Dict[str, Any]]:
-    """加载用户自定义规则（带 mtime 缓存）"""
-    global _custom_rules_cache, _custom_rules_mtime
+    """加载用户自定义规则（通过 config_manager 读取用户配置目录）"""
     try:
-        config_path = Path(__file__).parent / "data" / "custom_thinking_rules.json"
-        if not config_path.exists():
-            return []
-        mtime = config_path.stat().st_mtime
-        if _custom_rules_cache is not None and mtime == _custom_rules_mtime:
-            return _custom_rules_cache
-        with open(config_path, "r", encoding="utf-8") as f:
-            rules = json.load(f)
-            if isinstance(rules, list):
-                _custom_rules_cache = rules
-                _custom_rules_mtime = mtime
-                return rules
+        from .config_manager import config_manager
+        return config_manager.get_custom_thinking_rules()
     except Exception as e:
         print(f"[ThinkingControl] 加载自定义规则失败: {e}")
     return []
 
 
 def _load_custom_params() -> Dict[str, Any]:
-    """加载用户自定义参数（带 mtime 缓存）"""
-    global _custom_params_cache, _custom_params_mtime
+    """加载用户自定义参数（通过 config_manager 读取用户配置目录）"""
     try:
-        config_path = Path(__file__).parent / "data" / "custom_thinking_params.json"
-        if not config_path.exists():
-            return {}
-        mtime = config_path.stat().st_mtime
-        if _custom_params_cache is not None and mtime == _custom_params_mtime:
-            return _custom_params_cache
-        with open(config_path, "r", encoding="utf-8") as f:
-            params = json.load(f)
-            if isinstance(params, dict):
-                _custom_params_cache = params
-                _custom_params_mtime = mtime
-                return params
+        from .config_manager import config_manager
+        return config_manager.get_custom_thinking_params()
     except Exception as e:
         print(f"[ThinkingControl] 加载自定义参数失败: {e}")
     return {}
@@ -392,7 +367,7 @@ def filter_thinking_stream(chunk: str, state: dict) -> tuple:
     return chunk, state
 
 
-def get_supported_models() -> List[str]:
+def get_supported_models() -> List[Dict[str, Any]]:
     """获取支持思维链控制的模型列表（用于前端显示）"""
     models = []
     for rule in THINKING_CONTROL_RULES:

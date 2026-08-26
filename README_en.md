@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/Version-v1.3.7-brightgreen?style=for-the-badge" alt="Version 1.3.7"/>
+  <img src="https://img.shields.io/badge/Version-v1.4.0-brightgreen?style=for-the-badge" alt="Version 1.4.0"/>
   <img src="https://img.shields.io/badge/Status-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -353,7 +353,20 @@ moton-promptcraft/
 
 ## 📝 Version History
 
-### v1.3.6 (2026-06-09) — Current Version
+### v1.4.0 (2026-07-28) — Current Version
+
+> ⚠️ **Architecture Rectification Major Release**: This is a major version with breaking changes. Please read [MIGRATION.md](./MIGRATION.md) before upgrading.
+
+- 🏗️ **Architecture Rectification**: Integrated 91 audit issues, focusing on data safety, async architecture, and version consistency
+- 💥 **Breaking Changes**:
+  - Prompt weight syntax unified to SD standard `(tag:weight)` colon syntax, removed legacy multi-bracket/bracket syntax (auto-migrate + backup on startup)
+  - API route rename: `/agent_endpoint` → `/agent`, `/chat_endpoint` → `/chat`
+  - LLMClient fully async: `aiohttp.ClientSession` replaces `httpx.Client`
+- 🐛 **Critical Fixes**: Singleton thread safety (`threading.Lock`); template sync via version field + backup; XSS protection; SSRF protection; exception message sanitization; lightweight LoRA metadata reading
+- 🔧 **Optimizations**: Vue dead code cleanup; CI/CD (GitHub Actions + pre-commit + Makefile); added MIGRATION.md / DEVELOPMENT.md
+- 📦 **Dependencies**: `pyproject.toml` explicitly declares `aiohttp>=3.8.0`
+
+### v1.3.6 (2026-06-09)
 
 - 🐛 **Fix**: Windows HTTPS API `[Errno 2]` — httpx SSL certificate path issue, added certifi explicit verification
 - 🔧 **Adjust**: Version number unified, removed Mod suffix

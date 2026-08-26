@@ -8,7 +8,7 @@
  */
 
 import { api } from '../../../scripts/api.js';
-import { t, getLang, setLang } from './i18n.js';
+import { t, getLang, setLang, waitForReady } from './i18n.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 
@@ -32,7 +32,7 @@ export function createSettingsContent() {
         <div class="pc-brand">
             <div class="pc-brand-icon">◆</div>
             <span class="pc-brand-text">PromptCraft</span>
-            <span class="pc-brand-ver">v1.3.7</span>
+            <span class="pc-brand-ver">v1.4.0</span>
         </div>
     `;
 
@@ -103,7 +103,7 @@ function buildPanelSwitch() {
 
 
 function buildHelpSection() {
-    const card = createSectionCard('❓', t('settings.usage_help'));
+    const card = createSectionCard('❓', t('settings.usage_help') || '使用帮助');
 
     const row = document.createElement('div');
     row.className = 'pc-tool-grid-wide';
@@ -111,13 +111,22 @@ function buildHelpSection() {
         <div class="pc-tool-card-wide" data-action="open-help">
             <div class="pc-tool-icon" style="font-size:22px">📖</div>
             <div class="pc-tool-info">
-                <div class="pc-tool-name" style="font-size:14px">${t('settings.usage_help')}</div>
-                <div class="pc-tool-desc">${t('settings.usage_help_desc')}</div>
+                <div class="pc-tool-name" style="font-size:14px">${t('settings.usage_help') || '使用帮助'}</div>
+                <div class="pc-tool-desc">${t('settings.usage_help_desc') || '查看 PromptCraft 使用说明'}</div>
             </div>
             <span class="pc-tool-arrow">→</span>
         </div>
     `;
     card.body.appendChild(row);
+
+    waitForReady().then(() => {
+        const titleEl = card.root.querySelector('.pc-section-title');
+        if (titleEl) titleEl.textContent = t('settings.usage_help');
+        const nameEl = row.querySelector('.pc-tool-name');
+        if (nameEl) nameEl.textContent = t('settings.usage_help');
+        const descEl = row.querySelector('.pc-tool-desc');
+        if (descEl) descEl.textContent = t('settings.usage_help_desc');
+    });
 
     card.root.addEventListener('click', (e) => {
         if (e.target.closest('[data-action="open-help"]')) {
@@ -185,7 +194,16 @@ function renderMarkdown(md) {
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
     html = html.replace(/`(.+?)`/g, '<code>$1</code>');
     html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/\[(.+?)\]\((.+?)\)/g, (m, text, url) => {
+        // V1-FE-03: URL 协议白名单，阻止 javascript: 等危险协议
+        const trimmedUrl = url.trim();
+        if (/^https?:\/\//i.test(trimmedUrl)) {
+            // Bug fix: 转义 URL 中的引号，防止属性注入 XSS
+            const safeUrl = trimmedUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        }
+        return text; // 非安全协议，只显示文本
+    });
     html = html.replace(/^---$/gm, '<hr>');
 
     html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, (match) => `<ul>${match}</ul>`);
@@ -347,7 +365,7 @@ function buildAboutSection() {
     card.innerHTML = `
         <div class="pc-section-body">
             <div class="pc-about-row">
-                <span>PromptCraft v1.3.6</span>
+                <span>PromptCraft v1.4.0</span>
                 <span class="pc-about-dot"></span>
                 <span>Author: Moton</span>
             </div>
