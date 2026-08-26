@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/版本-v1.4.0-brightgreen?style=for-the-badge" alt="Version 1.4.0"/>
+  <img src="https://img.shields.io/badge/版本-v1.4.1-brightgreen?style=for-the-badge" alt="Version 1.4.1"/>
   <img src="https://img.shields.io/badge/状态-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -352,7 +352,14 @@ moton-promptcraft/
 
 ## 📝 版本历史
 
-### v1.4.0 (2026-07-28) — 当前版本
+### v1.4.1 (2026-08-26) — 当前版本
+
+- 📦 **分发修复**：Vue 构建产物（`js/promptcraft-vue.js/.css`）纳入 git 追踪，Comfy Registry / ComfyUI Manager / git clone 安装后不再缺失 Vue 弹窗；`.comfyignore` 不再排除构建产物；Registry 发布工作流增加测试门禁与发布前重新编译（`publish_action.yml`）
+- 🐛 **LoRA 栈随节点缩放**：栈 widget 高度随节点尺寸同步，拉大时撑满剩余空间并内部滚动，缩小后恢复内容自适应高度
+- 🐛 **添加 LoRA 菜单可关闭**：新增 × 关闭按钮，支持 Esc 与点击外部关闭（含点击节点自身区域）；添加群组/Prompt 组选择菜单统一相同关闭机制并清理监听器
+- 🛠️ **打包流程**：新增 `pack_release.py` / `make pack`，本地产出与 GitHub Release zip 完全一致的纯净运行包（`dist/ComfyUI-PromptCraft/`）
+
+### v1.4.0 (2026-07-28)
 
 > ⚠️ **架构整改大版本**：本次为 major 版本，包含破坏性变更，请升级前阅读 [MIGRATION.md](./MIGRATION.md)
 

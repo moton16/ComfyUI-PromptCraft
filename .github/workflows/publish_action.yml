@@ -14,6 +14,36 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      # ============ 后端 gate：pytest 必须通过（与 release.yml 一致）============
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package and run tests
+        run: |
+          pip install -e ".[dev]"
+          pytest tests/ -q
+
+      # ============ 前端构建 ============
+      # 发布前重新编译，保证 Registry 包内的 Vue 产物与 src/ 源码一致
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies and build frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Verify build artifacts exist
+        run: |
+          test -f js/promptcraft-vue.js || { echo "ERROR: js/promptcraft-vue.js not built"; exit 1; }
+          test -f js/promptcraft-vue.css || { echo "ERROR: js/promptcraft-vue.css not built"; exit 1; }
+
       - name: Publish Custom Node
         uses: Comfy-Org/publish-node-action@main
         with:

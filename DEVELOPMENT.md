@@ -40,6 +40,8 @@ npm run dev        # 开发模式，热更新
 
 构建产物会输出到 `js/` 目录，由 ComfyUI 直接加载。
 
+> ⚠️ `js/promptcraft-vue.js` / `js/promptcraft-vue.css` 已纳入 git 追踪：ComfyUI Manager、Comfy Registry、git clone 等分发渠道都没有构建步骤，产物必须随仓库提交。修改 `src/` 后必须重新 `npm run build` 并把产物一并提交。
+
 ---
 
 ## 2. 项目结构
@@ -133,6 +135,7 @@ make format      # ruff format . && ruff check --fix .
 make deadcode    # vulture . --min-confidence 80
 make check       # lint + typecheck + test
 make migrate-test  # 运行 migrate_legacy_prompts.py 自测
+make pack        # 生成纯净发布包（等价于 GitHub Release zip）
 make clean       # 清理缓存目录
 ```
 
@@ -147,6 +150,27 @@ mypy --ignore-missing-imports .
 pytest tests/ -v
 vulture . --min-confidence 80
 ```
+
+### 3.2 本地打包（纯净运行包）
+
+`pack_release.py` 是标准本地打包入口，产出与 `.github/workflows/release.yml` 完全一致的纯净包：
+
+```bash
+python pack_release.py              # pytest 门禁 + npm run build + 导出，产出 dist/ComfyUI-PromptCraft/
+python pack_release.py --zip        # 额外生成 ComfyUI-PromptCraft-<版本>.zip
+python pack_release.py --skip-tests # 跳过 pytest（快速迭代）
+python pack_release.py --skip-build # 跳过前端构建（复用现有产物）
+```
+
+流程说明：
+
+1. 运行 `pytest` 门禁（与 CI 一致）。
+2. `npm run build` 编译 Vue 前端。产物已纳入 git 追踪，此处用刚构建的版本覆盖，保证包内产物与当前 `src/` 严格一致。
+3. `git archive HEAD` 导出 git 追踪文件，自动排除 `.gitignore` 内容（缓存、本地用户配置等），等价于其他用户从 GitHub 获取的内容。
+4. 剔除开发文件（tests/src/design/docs/vite 配置等）并校验运行时必备文件。
+5. 若工作区有未提交改动，会提示其不包含在本包中。
+
+产出的 `dist/ComfyUI-PromptCraft/` 可直接复制（或软链接）到 `ComfyUI/custom_nodes/` 下运行，用于在与 GitHub 用户完全相同的环境中测试。注意：包内容与 `git HEAD` 一致，请先提交需要验证的改动再打包。
 
 ---
 

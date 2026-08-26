@@ -1,0 +1,117 @@
+name: Release
+
+# 触发条件：推送 V*/v* 开头的 tag（项目历史 tag 格式混合，两种都覆盖）
+# 也支持手动触发（指定 tag 名）
+on:
+  push:
+    tags:
+      - 'V*'
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name (e.g. V1.4.0)'
+        required: true
+        default: 'V1.4.0'
+
+jobs:
+  build-release:
+    name: Build and publish ready-to-use zip
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 创建/更新 release 需要
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # ============ 后端 gate：pytest 必须通过 ============
+      # tag push 不触发 ci.yml，release workflow 自身必须保证后端功能正确
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package and run tests
+        run: |
+          pip install -e ".[dev]"
+          pytest tests/ -q
+
+      # ============ 前端构建 ============
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies and build frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Verify build artifacts exist
+        run: |
+          test -f js/promptcraft-vue.js || { echo "ERROR: js/promptcraft-vue.js not built"; exit 1; }
+          test -f js/promptcraft-vue.css || { echo "ERROR: js/promptcraft-vue.css not built"; exit 1; }
+          echo "Build artifacts:"
+          ls -la js/promptcraft-vue.*
+
+      - name: Determine tag name
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      # 用 git archive 导出所有 git 追踪的文件，自动排除 .gitignore 里的：
+      # - 缓存（__pycache__/ .mypy_cache/ .ruff_cache/ .pytest_cache/）
+      # - 用户本地配置（data/llm_*.json data/lora_*.json data/prompt_history.json 等）
+      # - 构建产物（js/promptcraft-vue.* — 后面手动加回来）
+      # - 备份文件（*.bak *.pc-info.json）
+      # 这样比维护黑名单更可靠，避免把用户本地配置泄漏到 release 包
+      - name: Stage runtime files via git archive
+        run: |
+          mkdir -p staging
+          git archive --format=tar --prefix=ComfyUI-PromptCraft/ HEAD | tar -x -C staging/
+
+          # 删除 git 追踪但运行时不需要的开发文件
+          cd staging/ComfyUI-PromptCraft
+          rm -rf tests src design docs .github
+          rm -f CLAUDE.md PLAN.md DEVELOPMENT.md MIGRATION.md \
+                package.json package-lock.json vite.config.js \
+                .pre-commit-config.yaml update_version.sh Makefile
+
+          # 用刚构建的产物覆盖仓库内提交的构建产物，保证包内产物与当前 src/ 严格一致
+          cp ../../js/promptcraft-vue.js ../../js/promptcraft-vue.css js/
+
+      - name: Verify runtime essentials
+        run: |
+          cd staging/ComfyUI-PromptCraft
+          test -f __init__.py || { echo "ERROR: __init__.py missing"; exit 1; }
+          test -f pyproject.toml || { echo "ERROR: pyproject.toml missing"; exit 1; }
+          test -f js/promptcraft-vue.js || { echo "ERROR: built js missing"; exit 1; }
+          test -f js/promptcraft-vue.css || { echo "ERROR: built css missing"; exit 1; }
+          test -f data/sfw_prompts.json || { echo "ERROR: sfw_prompts.json missing"; exit 1; }
+          test -f data/nsfw_prompts.json || { echo "ERROR: nsfw_prompts.json missing"; exit 1; }
+          echo "=== Staged files ==="
+          find . -type f | sort
+
+      - name: Create zip archive
+        run: |
+          cd staging
+          zip -r "../ComfyUI-PromptCraft-${{ steps.tag.outputs.name }}.zip" ComfyUI-PromptCraft
+          cd ..
+          echo "=== Zip contents ==="
+          unzip -l "ComfyUI-PromptCraft-${{ steps.tag.outputs.name }}.zip" | head -50
+          ls -la "ComfyUI-PromptCraft-${{ steps.tag.outputs.name }}.zip"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ComfyUI-PromptCraft-${{ steps.tag.outputs.name }}.zip
+          name: ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

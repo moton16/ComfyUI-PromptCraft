@@ -18,9 +18,16 @@ node_modules/
 package-lock.json
 CLAUDE.md
 
-# Vite 构建产物（由 npm run build 生成）
-js/promptcraft-vue.js
-js/promptcraft-vue.css
+# Vite 构建产物：有意纳入 git 追踪。
+# ComfyUI Manager / Registry / git clone 等分发渠道均无构建步骤，
+# 必须随仓库提交编译后的产物，否则用户端 Vue 弹窗不可用。
+# 发布前必须重新执行 npm run build 并提交更新。
+
+# 本地 release 打包暂存目录（本地测试用，不应提交）
+staging/
+
+# pack_release.py 打包产物目录（本地测试用，不应提交）
+dist/
 
 # 本地用户配置数据（运行时生成，不应提交）
 data/lora_groups.json

@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test format deadcode check migrate-test clean
+.PHONY: lint typecheck test format deadcode check migrate-test pack clean
 
 lint:
 	ruff check .
@@ -19,6 +19,9 @@ check: lint typecheck test
 
 migrate-test:
 	python migrate_legacy_prompts.py
+
+pack:
+	python pack_release.py
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + ; rm -rf .pytest_cache .ruff_cache

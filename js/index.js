@@ -33,7 +33,7 @@ import { createSettingsContent } from './control_panel.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 const PREFIX = '[PromptCraft]';
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 
 // ==================== 工具函数 ====================
 
@@ -292,9 +292,28 @@ function ensureFallbackPanel() {
 
     let dragging = false, sx, sy, ox, oy;
     gearBtn.onclick = () => { if(dragging)return; panel.style.display = panel.style.display==='none'?'flex':'none'; gearBtn.textContent = panel.style.display==='none'?'◆':'▼'; };
-    container.onmousedown = (e) => { if(e.target!==container&&e.target!==gearBtn)return; dragging=true; sx=e.clientX; sy=e.clientY; ox=container.offsetLeft; oy=container.offsetTop; container.style.cursor='grabbing'; e.preventDefault(); };
-    document.addEventListener('mousemove', (e) => { if(!dragging)return; container.style.left=Math.max(0,Math.min(ox+e.clientX-sx,window.innerWidth-40))+'px'; container.style.top=Math.max(0,Math.min(oy+e.clientY-sy,window.innerHeight-40))+'px'; });
-    document.addEventListener('mouseup', () => { if(!dragging)return; dragging=false; container.style.cursor='grab'; try{localStorage.setItem(storageKey,JSON.stringify({x:container.offsetLeft,y:container.offsetTop}));}catch{} });
+    // V1-FE-16: 拖拽监听改为拖拽会话期间临时绑定、mouseup 时解绑，
+    // 避免每次创建面板向 document 累积 mousemove/mouseup 监听导致泄漏
+    const onDragMove = (e) => {
+        if(!dragging)return;
+        container.style.left=Math.max(0,Math.min(ox+e.clientX-sx,window.innerWidth-40))+'px';
+        container.style.top=Math.max(0,Math.min(oy+e.clientY-sy,window.innerHeight-40))+'px';
+    };
+    const onDragEnd = () => {
+        if(!dragging)return;
+        dragging=false;
+        container.style.cursor='grab';
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+        try{localStorage.setItem(storageKey,JSON.stringify({x:container.offsetLeft,y:container.offsetTop}));}catch{}
+    };
+    container.onmousedown = (e) => {
+        if(e.target!==container&&e.target!==gearBtn)return;
+        dragging=true; sx=e.clientX; sy=e.clientY; ox=container.offsetLeft; oy=container.offsetTop;
+        container.style.cursor='grabbing'; e.preventDefault();
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+    };
 
     // 右键菜单：关闭浮窗
     container.addEventListener('contextmenu', (e) => {
@@ -872,6 +891,38 @@ app.registerExtension({
     },
 });
 
+/**
+ * i18n 初始化完成后，刷新画布上已存在节点的渲染文本
+ * onNodeCreated / syncTextareaAppearance 可能在 i18n 加载完成前执行，
+ * 此时 t() 返回 key 原文（如 "canvas.random_fill"），这里统一重刷为翻译文本
+ */
+function refreshExistingNodeI18n() {
+    if (!app.graph || !app.graph._nodes) return;
+    app.graph._nodes.forEach(node => {
+        if (!node || !node.widgets) return;
+        let dirty = false;
+        node.widgets.forEach(w => {
+            // 随机填充按钮（i18n 就绪前创建的按钮 label 是 key 原文）
+            if (w.type === 'button' && (w.name === 'canvas.random_fill' || w.name === '🎲 随机填充' || w.name === '🎲 Random Fill')) {
+                const label = t('canvas.random_fill');
+                w.name = label;
+                w.label = label;
+                dirty = true;
+            }
+            // multiline textarea placeholder
+            if ((w.name === 'user_prompt' || w.name === 'llm_instruction') && w.element && w.element.tagName === 'TEXTAREA') {
+                w.element.placeholder = w.name === 'user_prompt'
+                    ? t('canvas.placeholder_prompt')
+                    : t('canvas.placeholder_llm');
+                dirty = true;
+            }
+        });
+        if (dirty && node.graph && node.graph.setDirtyCanvas) {
+            node.graph.setDirtyCanvas(true, true);
+        }
+    });
+}
+
 // ==================== 全局初始化 ====================
 
 // 1. 控制面板 → 子面板事件桥接（不依赖 i18n，立即注册）
@@ -898,6 +949,8 @@ loadNsfwLabelCache();
 // 3. 初始化 i18n → 注册设置面板（确保翻译加载完成后再注册）
 initI18n().then(() => {
     registerSettings();
+    // i18n 就绪后重刷已存在节点的翻译文本
+    refreshExistingNodeI18n();
     // 预加载 Vue 模块 + Toast（非阻塞，避免首次点击延迟）
     mountToastVue().catch(() => {});
     log(`V${VERSION} 前端模块加载完成`);

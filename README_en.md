@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Node-blueviolet?style=for-the-badge" alt="ComfyUI Node"/>
-  <img src="https://img.shields.io/badge/Version-v1.4.0-brightgreen?style=for-the-badge" alt="Version 1.4.0"/>
+  <img src="https://img.shields.io/badge/Version-v1.4.1-brightgreen?style=for-the-badge" alt="Version 1.4.1"/>
   <img src="https://img.shields.io/badge/Status-Beta-ff69b4?style=for-the-badge" alt="Beta"/>
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge" alt="Python 3.8+"/>
 </p>
@@ -353,7 +353,14 @@ moton-promptcraft/
 
 ## 📝 Version History
 
-### v1.4.0 (2026-07-28) — Current Version
+### v1.4.1 (2026-08-26) — Current Version
+
+- 📦 **Distribution Fix**: Vue build artifacts (`js/promptcraft-vue.js/.css`) are now committed to git, so installs via Comfy Registry / ComfyUI Manager / git clone no longer miss the Vue dialogs; `.comfyignore` no longer excludes build artifacts; the registry publish workflow now runs the test gate and rebuilds before publishing (`publish_action.yml`)
+- 🐛 **LoRA Stack Resizes with Node**: Stack widget height follows node size — fills the remaining space with internal scrolling when enlarged, restores content-fit height when shrunk
+- 🐛 **Add LoRA Menu Closable**: Added × close button plus Esc and click-outside closing (including clicks on the node itself); add-group / prompt-group menus share the same close mechanism with listener cleanup
+- 🛠️ **Packaging Flow**: Added `pack_release.py` / `make pack` to produce a clean local package identical to the GitHub Release zip (`dist/ComfyUI-PromptCraft/`)
+
+### v1.4.0 (2026-07-28)
 
 > ⚠️ **Architecture Rectification Major Release**: This is a major version with breaking changes. Please read [MIGRATION.md](./MIGRATION.md) before upgrading.
 

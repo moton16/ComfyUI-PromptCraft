@@ -2,6 +2,58 @@
 
 ## **作者：Moton**
 
+## **V1.4.1 (2026-08-26)**
+
+> 分发链修复版本：确保所有渠道获取到的包都包含编译后的 Vue 产物。
+
+### 📦 分发
+
+* **Vue 构建产物入库**：`js/promptcraft-vue.js` / `.css` 取消 gitignore 并提交，Comfy Registry / ComfyUI Manager / git clone 安装后不再因缺失产物导致 Vue 弹窗不可用（`.gitignore`）
+* **`.comfyignore` 修正**：不再排除构建产物，否则 Registry 发布包会缺失运行时必备文件
+* **Registry 发布工作流**：增加 pytest 门禁与发布前重新编译（`publish_action.yml`），保证发出的包一定包含与 `src/` 一致的最新构建产物；`release.yml` 同步更新说明注释
+* **本地打包**：新增 `pack_release.py` / `make pack`，产出与 GitHub Release zip 完全一致的纯净运行包（`dist/ComfyUI-PromptCraft/`），用于在与其他用户相同的环境中测试；`dist/` 已加入 `.gitignore`
+
+### 🐛 UI 修复
+
+* **LoRA 栈随节点缩放**：模型与 LoRA 栈加载器节点的栈 widget 高度随节点拖动缩放同步，拉大时撑满剩余空间并内部滚动，缩小后恢复内容自适应高度（`canvas_widget.js` / `styles.css`）
+* **添加 LoRA 下拉可关闭**：新增 × 关闭按钮，支持 Esc 与点击外部关闭（捕获阶段，含点击节点自身区域）；添加群组、Prompt 组选择菜单统一相同关闭机制，关闭时同步清理 document 监听器；修复加载失败分支无法关闭菜单的问题
+
+---
+
+## **V1.4.0 补充修复 (2026-08-01)**
+
+> 全面代码审查（52 文件）后的一轮集中修复：5 项数据安全 / 8 项核心功能 / 前端与测试补强。
+
+### 🐛 数据安全
+
+* **Windows 原子写**：`config_manager._atomic_write_json` 用 `shutil.move` → `os.replace`（+fsync），避免崩溃/断电时配置 JSON 留下半截内容
+* **迁移工具保护 SD 语法**：`[a|b]`（交替采样）/ `[from:to:steps]`（prompt editing）不再被误迁移为无效语法（`migrate_legacy_prompts.py`）
+* **缓存引用隔离**：`cache_utils._load_json_with_cache` 返回深拷贝；ConfigManager 缓存读写加 `RLock`；`toggle_lora_favorite` 复制后再修改——写盘失败不再污染内存缓存
+* **掩码 api_key 防护**：前端回传 GET 掩码串不再覆盖真实 key；`temperature`/`max_tokens` 数值字段类型与范围校验（`api_routes.py` / `config_manager.update_service`）
+* **LoRA 权重缓存失效**：`lora_utils.load_single_lora` 校验文件 mtime，替换 LoRA 文件后不再使用旧权重
+
+### 🐛 功能修复
+
+* **SSE 流式解析**（`llm_client.chat_stream`）：按传输 chunk 自行切行，修复多事件拼块被整体丢弃、单事件拆块解析失败导致的随机丢字
+* **思维链过滤统一**：新增 `strip_thinking_chunk` 按标签位置切分（只丢标签区间、支持带属性标签、跨 chunk 状态），修复混合 chunk 误丢正文
+* **用户中断生效**：捕获 `InterruptProcessingException`（原仅捕获 `KeyboardInterrupt`，ComfyUI Cancel 后 LLM 请求继续跑满超时）
+* **LoRA 标签补回**：只补缺失标签，避免已保留标签重复注入
+* **RANDOM_NSFW**：特殊内容开关未开启时不再注入 NSFW 标签（与文档一致）
+* **中断负面提示**：LLM 中断时生成默认负面提示词而非空串
+* **thinking_control 规则**：siliconflow 大写 pattern 改小写（原永不可匹配）；孤立标签规则不再误删正常正文
+
+### 🖥️ 前端
+
+* **Agent 请求走 `api.fetchApi`**（原裸 fetch 缺 CSRF/认证头）；无节点时空状态兜底
+* **Vue**：LibraryEditor 保存保留中文分类 label；i18n 初始化竞态（实时读取）；API Key 可清空；测试连接复用 JSON 解析；构建产物 `js/promptcraft-vue.js` 已重新生成
+* **JS**：浮动面板监听器泄漏、API 错误消息透传、i18n 补 3 个缺失 key、Hub 异步竞态守卫 + 防抖、切 Tab 保留 Agent 对话历史、新建节点 500ms 配置丢失
+
+### 🧪 测试
+
+* 新增 SSE 拼块/拆块、思维链混合 chunk、`strip_thinking_chunk` 单元测试（409 个测试全绿，mypy/ruff 通过）
+
+---
+
 ## **V1.4.0  (2026-07-28)**
 
 ### 🏗️ 架构整改

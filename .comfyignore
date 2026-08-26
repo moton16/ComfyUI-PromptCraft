@@ -17,9 +17,8 @@ node_modules/
 package-lock.json
 CLAUDE.md
 
-# Vite 构建产物（由 npm run build 生成）
-js/promptcraft-vue.js
-js/promptcraft-vue.css
+# 注意：js/promptcraft-vue.js / js/promptcraft-vue.css 是运行时必备的
+# Vite 构建产物，不得排除，否则 Registry 安装后 Vue 弹窗不可用
 
 # 本地用户配置数据（运行时生成，不应提交）
 data/lora_groups.json
