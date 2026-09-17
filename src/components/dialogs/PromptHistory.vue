@@ -23,7 +23,9 @@ const isLoading = ref(false)
 
 // 格式化时间
 function formatTime(ts) {
+  if (ts === 0 || ts === undefined || ts === null || isNaN(ts)) return '--'
   const d = new Date(ts * 1000)
+  if (isNaN(d.getTime())) return '--'
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

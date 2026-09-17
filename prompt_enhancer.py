@@ -311,7 +311,11 @@ class PromptEnhancer:
                 positive_prompt, kwargs, lora_pos
             )
         except LLMInterruptException as e:
-            return (e.positive_prompt, "", "LLM调用被用户中断")
+            # V1-BE-12: 中断时仍生成负面提示词，避免下游对空负面编码导致生成质量异常
+            negative_prompt = self._generate_negative(
+                kwargs.get("negative_type", "标准"), lora_neg
+            )
+            return (e.positive_prompt, negative_prompt, "LLM调用被用户中断")
 
         negative_prompt = self._generate_negative(
             kwargs.get("negative_type", "标准"), lora_neg
@@ -483,13 +487,13 @@ class PromptEnhancer:
                 import nodes
                 nodes.before_node_execution()
             except KeyboardInterrupt:
-                print("[PromptCraft] ⚠ 用户中断 LLM 调用")
-                PromptServer.instance.send_sync("promptcraft.llm_status", {
-                    "status": "interrupted", "messageKey": "llm.status_interrupted"
-                })
-                raise LLMInterruptException(positive_prompt)
-            except Exception:
-                pass
+                self._handle_llm_interrupt(positive_prompt)
+            except Exception as e:
+                # V1-BE-12: ComfyUI 的用户中断抛 InterruptProcessingException（继承 Exception，
+                # 而非 KeyboardInterrupt），旧实现捕获不到导致 Cancel 后 LLM 请求继续跑满超时
+                if type(e).__name__ == "InterruptProcessingException":
+                    self._handle_llm_interrupt(positive_prompt)
+                # 其余异常静默忽略（before_node_execution 的常规行为）
 
         if 'error' in result_container:
             print(f"[PromptCraft] LLM调用异常: {result_container['error']}")
@@ -505,7 +509,8 @@ class PromptEnhancer:
                 if missing:
                     print(f"[PromptCraft] ⚠ LoRA 标签丢失 {len(missing)}/{len(lora_prompt_elements)} 条，自动补回")
                     result = result.replace("///", "").strip().lstrip(",").strip()
-                    result = ", ".join(lora_prompt_elements) + ", " + result
+                    # V1-BE-12: 只补回缺失的标签，避免已保留的标签被重复注入
+                    result = ", ".join(missing) + ", " + result
                 else:
                     print("[PromptCraft] ✓ LoRA 标签验证通过")
                     result = result.replace("///", "").strip()
@@ -527,6 +532,15 @@ class PromptEnhancer:
             })
 
         return positive_prompt, llm_enhanced
+
+    @staticmethod
+    def _handle_llm_interrupt(positive_prompt: str):
+        """处理用户中断 LLM 调用：通知前端并抛 LLMInterruptException"""
+        print("[PromptCraft] ⚠ 用户中断 LLM 调用")
+        PromptServer.instance.send_sync("promptcraft.llm_status", {
+            "status": "interrupted", "messageKey": "llm.status_interrupted"
+        })
+        raise LLMInterruptException(positive_prompt)
 
     @staticmethod
     def _save_history(positive_prompt, negative_prompt, llm_enhanced, special_enabled):
@@ -592,8 +606,11 @@ class PromptEnhancer:
             libs = [cls._load_prompt_library(False, False)]
             return cls._random_pick(cat_key, libs)
 
-        # 强制仅NSFW
+        # 强制仅NSFW（需特殊内容开关开启才生效）
         if selected_label == cls.RANDOM_NSFW:
+            if not special_enabled:
+                # V1-BE-12: 与 docstring/注释约定一致，特殊内容未开启时回退为空
+                return ""
             libs = [cls._load_prompt_library(False, True)]
             return cls._random_pick(cat_key, libs)
 

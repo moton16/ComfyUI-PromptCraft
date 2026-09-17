@@ -10,6 +10,7 @@ from thinking_control import (
     filter_thinking_content,
     filter_thinking_stream,
     get_supported_models,
+    strip_thinking_chunk,
     validate_custom_rule,
 )
 
@@ -287,6 +288,62 @@ class TestFilterThinkingStream:
         r3, state = filter_thinking_stream("</think>B", state)
         assert r3 == "B"
         assert state["in_thinking"] is False
+
+
+# ==================== strip_thinking_chunk ====================
+
+class TestStripThinkingChunk:
+    """chunk 内思维链切分（统一流式过滤实现）"""
+
+    def test_empty(self):
+        assert strip_thinking_chunk("", False) == ("", False)
+
+    def test_no_tags_passthrough(self):
+        text, state = strip_thinking_chunk("plain content", False)
+        assert text == "plain content"
+        assert state is False
+
+    def test_mixed_chunk_keeps_trailing_text(self):
+        """同一 chunk 含开始标签+思维链+结束标签+正文：只丢弃标签区间"""
+        text, state = strip_thinking_chunk("<thinking>secret</thinking>visible", False)
+        assert text == "visible"
+        assert state is False
+
+    def test_mixed_chunk_keeps_prefix(self):
+        """同一 chunk 含正文+开始标签：保留标签前正文，置 in_thinking"""
+        text, state = strip_thinking_chunk("prefix<think>", False)
+        assert text == "prefix"
+        assert state is True
+
+    def test_close_tag_exits_thinking(self):
+        """上一 chunk 在思维链内，本 chunk 含结束标签+正文"""
+        text, state = strip_thinking_chunk("secret</think>after", True)
+        assert text == "after"
+        assert state is False
+
+    def test_still_thinking_returns_empty(self):
+        """上一 chunk 在思维链内，本 chunk 无结束标签：全部丢弃"""
+        text, state = strip_thinking_chunk("still thinking", True)
+        assert text == ""
+        assert state is True
+
+    def test_attributed_open_tag(self):
+        """带属性的开始标签也应被识别（<thinking type=\"reasoning\">）"""
+        text, state = strip_thinking_chunk("a<thinking type=\"reasoning\">secret</thinking>b", False)
+        assert text == "ab"
+        assert state is False
+
+    def test_multiple_tag_pairs_in_chunk(self):
+        """同一 chunk 含多对标签：全部过滤"""
+        text, state = strip_thinking_chunk("<think>a</think>x<think>b</think>y", False)
+        assert text == "xy"
+        assert state is False
+
+    def test_unclosed_tag_drops_tail(self):
+        """未闭合的开始标签：丢弃标签后内容"""
+        text, state = strip_thinking_chunk("keep<think>tail", False)
+        assert text == "keep"
+        assert state is True
 
 
 # ==================== validate_custom_rule ====================

@@ -86,8 +86,8 @@ class AgentPanelUI {
         }
 
         // 快捷指令栏
-        const quickBar = document.createElement('div');
-        quickBar.className = 'pc-agent-quickbar';
+        this.quickBar = document.createElement('div');
+        this.quickBar.className = 'pc-agent-quickbar';
         const shortcuts = [
             { label: t('agent.shortcut_status'), cmd: '显示当前节点的状态' },
             { label: t('agent.shortcut_clear'), cmd: '清空所有 LoRA' },
@@ -98,12 +98,12 @@ class AgentPanelUI {
             btn.className = 'pc-agent-quick-btn';
             btn.textContent = s.label;
             btn.addEventListener('click', () => this._sendInstruction(s.cmd));
-            quickBar.appendChild(btn);
+            this.quickBar.appendChild(btn);
         }
 
         // 输入区域
-        const inputArea = document.createElement('div');
-        inputArea.className = 'pc-agent-input-area';
+        this.inputArea = document.createElement('div');
+        this.inputArea.className = 'pc-agent-input-area';
 
         this.textarea = document.createElement('textarea');
         this.textarea.className = 'pc-agent-textarea';
@@ -114,8 +114,8 @@ class AgentPanelUI {
         sendBtn.className = 'pc-agent-send-btn';
         sendBtn.textContent = t('agent.send');
 
-        inputArea.appendChild(this.textarea);
-        inputArea.appendChild(sendBtn);
+        this.inputArea.appendChild(this.textarea);
+        this.inputArea.appendChild(sendBtn);
 
         // 状态栏
         this.statusBar = document.createElement('div');
@@ -123,10 +123,7 @@ class AgentPanelUI {
         this.statusBar.textContent = t('agent.status.ready');
 
         // 组装
-        this.container.appendChild(this.messagesEl);
-        this.container.appendChild(quickBar);
-        this.container.appendChild(inputArea);
-        this.container.appendChild(this.statusBar);
+        this.mount(this.container);
 
         // 事件
         sendBtn.addEventListener('click', () => this._handleSend());
@@ -143,6 +140,18 @@ class AgentPanelUI {
             this.textarea.style.height = Math.min(this.textarea.scrollHeight, 100) + 'px';
         });
 
+        this._scrollToBottom();
+    }
+
+    /**
+     * 将面板 DOM 挂载到容器（供 Hub Tab 切换时复用实例重新挂载）
+     */
+    mount(container) {
+        this.container = container;
+        container.appendChild(this.messagesEl);
+        container.appendChild(this.quickBar);
+        container.appendChild(this.inputArea);
+        container.appendChild(this.statusBar);
         this._scrollToBottom();
     }
 

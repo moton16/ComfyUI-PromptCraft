@@ -26,14 +26,13 @@ import re
 from typing import Tuple
 
 # 旧语法正则（从内到外匹配，避免贪婪问题）
-# 匹配多层括号包裹的纯 tag（无冒号）：((tag)), (((tag)))
-_RE_MULTI_PAREN = re.compile(r'\({2,}([^()]+)\){2,}')
 # 匹配多层中括号：[[tag]], [[[tag]]]
 _RE_MULTI_BRACKET = re.compile(r'\[{2,}([^\[\]]+)\]{2,}')
 # 匹配单层中括号带冒号：[tag:0.5]
 _RE_SINGLE_BRACKET_COLON = re.compile(r'\[([^\[\]:]+):(\d+\.?\d*)\]')
 # 匹配单层中括号：[tag]
-_RE_SINGLE_BRACKET = re.compile(r'\[([^\[\]]+)\]')
+# 排除冒号(:)与竖线(|)，保护 SD 合法语法 [from:to:steps]（prompt editing）与 [a|b]（交替采样）
+_RE_SINGLE_BRACKET = re.compile(r'\[([^\[\]:|]+)\]')
 
 
 def _migrate_text(text: str) -> Tuple[str, int]:
@@ -228,6 +227,11 @@ def _self_test():
         ("normal tag, ((enhanced)), [reduced]", "normal tag, (enhanced:1.0), (reduced:0.9)"),
         ("(already:new)", "(already:new)"),  # 新语法保持不变
         ("plain text", "plain text"),  # 无权重语法不变
+        # SD 合法动态语法必须原样保留（V1-BE-11: 防止误迁移损坏）
+        ("[from:to:steps]", "[from:to:steps]"),
+        ("[a|b]", "[a|b]"),
+        ("[tree:oak:0.5]", "[tree:oak:0.5]"),
+        ("[from:to:steps], [tag]", "[from:to:steps], (tag:0.9)"),
     ]
     failures = 0
     for old, expected in cases:

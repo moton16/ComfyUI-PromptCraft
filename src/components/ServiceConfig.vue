@@ -43,6 +43,8 @@ async function loadServices() {
     current.value = data.current
   } catch (e) {
     console.error('[PromptCraft] Load services failed:', e)
+    status.message = t('service_config.status.load_config_failed', { error: e.message })
+    status.isError = true
   } finally {
     isLoading.value = false
   }
@@ -80,6 +82,8 @@ async function handleAddService() {
     selectService(data.id)
   } catch (e) {
     console.error('[PromptCraft] Add service failed:', e)
+    status.message = t('service_config.status.add_failed', { error: e.message })
+    status.isError = true
   }
 }
 
@@ -93,20 +97,20 @@ async function handleSaveService() {
     body[key] = selectedService[key]
   }
 
-  // API key 只在用户修改时发送
-  if (apiKeyModified.value && selectedService.api_key) {
+  // API key 只要被修改过就提交（含清空）；后端 update_service 直接覆盖，空串即清除
+  if (apiKeyModified.value) {
     body.api_key = selectedService.api_key
   }
 
-  // 解析 custom_thinking_params
-  if (selectedService.custom_thinking_params.trim()) {
-    try {
-      body.custom_thinking_params = JSON.parse(selectedService.custom_thinking_params)
-    } catch (e) {
-      status.message = t('service_config.custom_thinking_params_invalid')
-      status.isError = true
-      return
-    }
+  // 解析 custom_thinking_params（保存与测试连接共用）
+  const parsed = parseCustomThinkingParams()
+  if (!parsed.ok) {
+    status.message = t('service_config.custom_thinking_params_invalid')
+    status.isError = true
+    return
+  }
+  if (parsed.value !== undefined) {
+    body.custom_thinking_params = parsed.value
   }
 
   try {
@@ -117,6 +121,17 @@ async function handleSaveService() {
   } catch (e) {
     status.message = t('service_config.status.save_failed', { error: e.message })
     status.isError = true
+  }
+}
+
+// 解析 custom_thinking_params：textarea 中是 JSON 字符串，返回 { ok, value }；value 为 undefined 表示未填写
+function parseCustomThinkingParams() {
+  const raw = selectedService.custom_thinking_params
+  if (!raw || !raw.trim()) return { ok: true, value: undefined }
+  try {
+    return { ok: true, value: JSON.parse(raw) }
+  } catch (e) {
+    return { ok: false, error: e }
   }
 }
 
@@ -145,6 +160,20 @@ async function handleTestService() {
     const body = {}
     if (apiKeyModified.value) {
       body.config = { ...selectedService }
+
+      // custom_thinking_params 在 textarea 中是 JSON 字符串，与保存一致先解析
+      const parsed = parseCustomThinkingParams()
+      if (!parsed.ok) {
+        status.message = t('service_config.custom_thinking_params_invalid')
+        status.isError = true
+        return
+      }
+      if (parsed.value !== undefined) {
+        body.config.custom_thinking_params = parsed.value
+      } else {
+        delete body.config.custom_thinking_params
+      }
+
       if (!body.config.api_url) {
         status.message = t('service_config.fill_endpoint')
         status.isError = true
@@ -167,6 +196,8 @@ async function handleCategoryChange(category, serviceId) {
     current.value[category] = { service_id: serviceId }
   } catch (e) {
     console.error('[PromptCraft] Update category failed:', e)
+    status.message = t('service_config.status.save_failed', { error: e.message })
+    status.isError = true
   }
 }
 

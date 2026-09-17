@@ -5,6 +5,7 @@
 
 import * as StackAPI from './stack_api.js';
 import { t } from '../i18n.js';
+import { api } from '../../../../scripts/api.js';
 
 const API_PREFIX = '/moton_prompt_enhancer/api';
 
@@ -174,6 +175,10 @@ const HANDLERS = {
  * 构建当前节点状态（传给 LLM 作为上下文）
  */
 export function buildCurrentState(node) {
+    // V1-FE-15: node 为 null（未找到 ModelLoraGroupLoader 节点）时返回安全默认值
+    if (!node) {
+        return { checkpoint: 'None', stack: [] };
+    }
     const stack = StackAPI.getStack(node.id);
     const ckptWidget = node.widgets?.find(w => w.name === 'checkpoint');
 
@@ -210,7 +215,8 @@ export async function callAgent(instruction, currentState) {
     const timeoutId = setTimeout(() => controller.abort(), 60000);
     let res;
     try {
-        res = await fetch(`${API_PREFIX}/agent`, {
+        // V1-FE-14: 使用 api.fetchApi 走 ComfyUI 统一请求通道（带 CSRF/认证头）
+        res = await api.fetchApi(`${API_PREFIX}/agent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ instruction, current_state: currentState }),

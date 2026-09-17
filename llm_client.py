@@ -12,7 +12,6 @@ V1.4.0 — aiohttp 全异步化，删除 httpx 同步客户端
 
 import asyncio
 import json
-import re
 import ssl
 import traceback
 from pathlib import Path
@@ -202,6 +201,15 @@ class LLMClient:
 
         return content
 
+    @staticmethod
+    def _strip_thinking(text: str, in_thinking: bool):
+        """从 chunk 中移除思维链标签区间，保留区间外内容（流式过滤）
+
+        委托 thinking_control.strip_thinking_chunk 统一实现，避免两套逻辑漂移。
+        """
+        from .thinking_control import strip_thinking_chunk
+        return strip_thinking_chunk(text, in_thinking)
+
     async def enhance_prompt(self, base_prompt, is_detailed=False, llm_hint="", lora_tags=""):
         """
         使用LLM增强prompt（异步）
@@ -390,51 +398,79 @@ class LLMClient:
                     thinking_buffer = ""  # 用于缓存可能的思维链内容
                     in_thinking = False  # 是否在思维链标签内
 
-                    async for raw_line in response.content:
+                    # B3 修复：response.content 的异步迭代产出的是传输层 chunk（可能 8KB/64KB，
+                    # 不保证以 \n 结尾、可含多条 data 事件），必须自行切行解析，
+                    # 否则多事件拼块被整体丢弃、单事件拆块导致 json 解析失败。
+                    line_buf = ""
+                    done = False
+                    async for raw_chunk in response.content:
                         try:
-                            line = raw_line.decode("utf-8").strip()
-                        except UnicodeDecodeError:
+                            line_buf += raw_chunk.decode("utf-8", errors="replace")
+                        except Exception:
                             continue
-                        if not line.startswith("data: "):
-                            continue
-                        data_str = line[6:]
-                        if data_str == "[DONE]":
+                        while "\n" in line_buf:
+                            line, line_buf = line_buf.split("\n", 1)
+                            line = line.strip()
+                            if not line.startswith("data:"):
+                                continue
+                            data_str = line[5:].strip()
+                            if data_str == "[DONE]":
+                                done = True
+                                line_buf = ""
+                                break
+                            try:
+                                sse = json.loads(data_str)
+                                delta = sse["choices"][0].get("delta", {})
+                                content = delta.get("content", "")
+
+                                if content:
+                                    has_content = True
+
+                                    # 思维链标签过滤：chunk 内切分标签区间，只丢弃标签内容
+                                    if filter_output:
+                                        cleaned, in_thinking = self._strip_thinking(content, in_thinking)
+                                        if cleaned:
+                                            yield cleaned
+                                        if in_thinking:
+                                            thinking_buffer += content
+                                    else:
+                                        yield content
+                                elif not has_content:
+                                    # Fallback: capture reasoning_content if content is empty
+                                    reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
+                                    if reasoning and not filter_output:
+                                        yield reasoning
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                continue
+                        if done:
                             break
-                        try:
-                            chunk = json.loads(data_str)
-                            delta = chunk["choices"][0].get("delta", {})
-                            content = delta.get("content", "")
 
-                            if content:
-                                has_content = True
-
-                                # 思维链标签检测和过滤
-                                if filter_output:
-                                    # 检测思维链开始标签
-                                    if re.search(r'<(think|thinking|reasoning|thoughts?)>', content, re.IGNORECASE):
-                                        in_thinking = True
-                                        thinking_buffer += content
-                                        continue
-
-                                    # 检测思维链结束标签
-                                    if in_thinking:
-                                        thinking_buffer += content
-                                        if re.search(r'</(think|thinking|reasoning|thoughts?)>', content, re.IGNORECASE):
-                                            in_thinking = False
-                                            thinking_buffer = ""
-                                        continue
-
-                                    # 正常内容，直接输出
-                                    yield content
-                                else:
-                                    yield content
-                            elif not has_content:
-                                # Fallback: capture reasoning_content if content is empty
-                                reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
-                                if reasoning and not filter_output:
-                                    yield reasoning
-                        except (json.JSONDecodeError, KeyError, IndexError):
-                            continue
+                    # 处理最后一行（流结束前无换行结尾的残余数据）
+                    if not done and line_buf.strip():
+                        line = line_buf.strip()
+                        if line.startswith("data:"):
+                            data_str = line[5:].strip()
+                            if data_str != "[DONE]":
+                                try:
+                                    sse = json.loads(data_str)
+                                    delta = sse["choices"][0].get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content:
+                                        has_content = True
+                                        if filter_output:
+                                            cleaned, in_thinking = self._strip_thinking(content, in_thinking)
+                                            if cleaned:
+                                                yield cleaned
+                                            if in_thinking:
+                                                thinking_buffer += content
+                                        else:
+                                            yield content
+                                    elif not has_content:
+                                        reasoning = delta.get("reasoning_content", "") or delta.get("reasoning", "")
+                                        if reasoning and not filter_output:
+                                            yield reasoning
+                                except (json.JSONDecodeError, KeyError, IndexError):
+                                    pass
 
                     # 如果结束时仍在思维链中，说明标签未闭合，丢弃
                     if in_thinking and thinking_buffer:

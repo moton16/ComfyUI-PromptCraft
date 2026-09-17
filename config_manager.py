@@ -22,6 +22,8 @@ class ConfigManager:
     """Prompt Enhancer 配置管理器（模块级单例 + Lock 线程安全初始化）"""
 
     _init_lock = threading.Lock()
+    # 缓存读改写锁（RLock 可重入，保护 API 线程与节点 worker 线程并发读写）
+    _cache_lock = threading.RLock()
 
     def __init__(self):
         if getattr(self, "_initialized", False):
@@ -114,18 +116,26 @@ class ConfigManager:
         print(f"[PromptCraft] {msg}", flush=True)
 
     def _atomic_write_json(self, file_path: str, data) -> bool:
-        """原子性写入 JSON 文件（先写临时文件再 rename）"""
+        """原子性写入 JSON 文件（先写临时文件再 os.replace 原子覆盖）"""
         temp_fd = None
         temp_path = None
         try:
-            temp_fd, temp_path = tempfile.mkstemp(
-                dir=os.path.dirname(file_path), suffix='.tmp', prefix='.tmp_')
-            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-                temp_fd = None
-            shutil.move(temp_path, file_path)
-            temp_path = None
-            return True
+            with self._cache_lock:
+                temp_fd, temp_path = tempfile.mkstemp(
+                    dir=os.path.dirname(file_path), suffix='.tmp', prefix='.tmp_')
+                with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    f.flush()
+                    try:
+                        os.fsync(f.fileno())
+                    except OSError:
+                        pass  # 某些文件系统（网络盘）不支持 fsync，忽略
+                    temp_fd = None
+                # Windows 上 shutil.move 会回退为非原子的 copy2+unlink（先截断目标再拷贝），
+                # 崩溃/断电时可能留下半截 JSON；os.replace 在 Windows 与 POSIX 均为原子覆盖
+                os.replace(temp_path, file_path)
+                temp_path = None
+                return True
         except Exception as e:
             self._log(f"写入文件失败 [{os.path.basename(file_path)}]: {e}")
             return False
@@ -153,17 +163,18 @@ class ConfigManager:
 
         V0-DATA-02: 加载失败时不写缓存（保留 None），下次访问重试。
         """
-        if not force_reload and getattr(self, cache_attr, None) is not None:
+        with self._cache_lock:
+            if not force_reload and getattr(self, cache_attr, None) is not None:
+                return getattr(self, cache_attr)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                setattr(self, cache_attr, data)
+            except Exception as e:
+                self._log(f"加载配置失败 [{os.path.basename(file_path)}]: {e}")
+                # V0-DATA-02: 不缓存失败结果，下次访问重试（返回默认值但不持久化）
+                return default_factory()
             return getattr(self, cache_attr)
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            setattr(self, cache_attr, data)
-        except Exception as e:
-            self._log(f"加载配置失败 [{os.path.basename(file_path)}]: {e}")
-            # V0-DATA-02: 不缓存失败结果，下次访问重试（返回默认值但不持久化）
-            return default_factory()
-        return getattr(self, cache_attr)
 
     def _copy_template_if_missing(self, template_path: str, target_path: str) -> bool:
         """如果目标文件不存在，从模板复制"""
@@ -181,9 +192,17 @@ class ConfigManager:
 
     @staticmethod
     def _parse_version(v: str) -> tuple:
-        """将 '1.4.0' 转为 (1, 4, 0) 用于比较；非法值视为 (0,)"""
+        """将 '1.4.0' 转为 (1, 4, 0) 用于比较；非法/空值视为 (0,)
+
+        '1.0.0-beta' 这类带后缀版本解析为 (1, 0, 0)，避免被误判为旧版本
+        """
         try:
-            return tuple(int(x) for x in str(v).split('.'))
+            parts = str(v).split('.')
+            nums = []
+            for p in parts:
+                digits = ''.join(ch for ch in p if ch.isdigit())
+                nums.append(int(digits) if digits else 0)
+            return tuple(nums)
         except Exception:
             return (0,)
 
@@ -285,7 +304,8 @@ class ConfigManager:
 
     @staticmethod
     def _get_default_sfw_library() -> dict:
-        return {"version": "1.0.0", "description": "SFW Prompt库", "categories": {}, "negative_prompts": {}, "presets": {}, "trigger_words": {}}
+        # _template_version 与 data/sfw_prompts.json 保持一致，避免兜底空库被误判为旧版反复覆盖
+        return {"version": "1.0.0", "_template_version": "1.4.0", "description": "SFW Prompt库", "categories": {}, "negative_prompts": {}, "presets": {}, "trigger_words": {}}
 
     @staticmethod
     def _get_default_nsfw_library() -> dict:
@@ -318,35 +338,36 @@ class ConfigManager:
     # ==================== SFW Prompt 库 CRUD ====================
 
     def load_sfw_library(self, force_reload: bool = False) -> dict:
-        # 自动检测文件 mtime 变化，透明失效缓存
-        if not force_reload and self._sfw_cache is not None:
+        with self._cache_lock:
+            # 自动检测文件 mtime 变化，透明失效缓存
+            if not force_reload and self._sfw_cache is not None:
+                try:
+                    current_mtime = os.path.getmtime(self.sfw_library_path)
+                    if current_mtime <= self._sfw_cache_mtime:
+                        return self._sfw_cache
+                except OSError:
+                    pass
             try:
-                current_mtime = os.path.getmtime(self.sfw_library_path)
-                if current_mtime <= self._sfw_cache_mtime:
-                    return self._sfw_cache
-            except OSError:
-                pass
-        try:
-            with open(self.sfw_library_path, 'r', encoding='utf-8') as f:
-                self._sfw_cache = json.load(f)
-            self._sfw_cache_mtime = os.path.getmtime(self.sfw_library_path)
-        except Exception as e:
-            self._log(f"加载 SFW 库失败: {e}")
-            self._sfw_cache = self._get_default_sfw_library()
-            self._sfw_cache_mtime = 0
-        # 自动修复空库：若用户库为空但模板存在，从模板恢复
-        if not self._sfw_cache.get("categories") and os.path.exists(self.sfw_template_path):
-            try:
-                with open(self.sfw_template_path, 'r', encoding='utf-8') as f:
-                    template = json.load(f)
-                if template.get("categories"):
-                    self._log("⚠️ SFW 库 categories 为空，从内置模板自动恢复")
-                    self._sfw_cache = template
-                    self._atomic_write_json(self.sfw_library_path, template)
-                    self._sfw_cache_mtime = os.path.getmtime(self.sfw_library_path)
-            except Exception:
-                pass
-        return self._sfw_cache
+                with open(self.sfw_library_path, 'r', encoding='utf-8') as f:
+                    self._sfw_cache = json.load(f)
+                self._sfw_cache_mtime = os.path.getmtime(self.sfw_library_path)
+            except Exception as e:
+                self._log(f"加载 SFW 库失败: {e}")
+                self._sfw_cache = self._get_default_sfw_library()
+                self._sfw_cache_mtime = 0
+            # 自动修复空库：若用户库为空但模板存在，从模板恢复
+            if not self._sfw_cache.get("categories") and os.path.exists(self.sfw_template_path):
+                try:
+                    with open(self.sfw_template_path, 'r', encoding='utf-8') as f:
+                        template = json.load(f)
+                    if template.get("categories"):
+                        self._log("⚠️ SFW 库 categories 为空，从内置模板自动恢复")
+                        self._sfw_cache = template
+                        self._atomic_write_json(self.sfw_library_path, template)
+                        self._sfw_cache_mtime = os.path.getmtime(self.sfw_library_path)
+                except Exception:
+                    pass
+            return self._sfw_cache
 
     def save_sfw_library(self, data: dict) -> bool:
         success = self._atomic_write_json(self.sfw_library_path, data)
@@ -361,33 +382,34 @@ class ConfigManager:
     # ==================== NSFW Prompt 库 CRUD ====================
 
     def load_nsfw_library(self, force_reload: bool = False) -> dict:
-        # 自动检测文件 mtime 变化，透明失效缓存
-        if not force_reload and self._nsfw_cache is not None:
+        with self._cache_lock:
+            # 自动检测文件 mtime 变化，透明失效缓存
+            if not force_reload and self._nsfw_cache is not None:
+                try:
+                    current_mtime = os.path.getmtime(self.nsfw_library_path)
+                    if current_mtime <= self._nsfw_cache_mtime:
+                        return self._nsfw_cache
+                except OSError:
+                    pass
             try:
-                current_mtime = os.path.getmtime(self.nsfw_library_path)
-                if current_mtime <= self._nsfw_cache_mtime:
-                    return self._nsfw_cache
-            except OSError:
-                pass
-        try:
-            with open(self.nsfw_library_path, 'r', encoding='utf-8') as f:
-                self._nsfw_cache = json.load(f)
-            self._nsfw_cache_mtime = os.path.getmtime(self.nsfw_library_path)
-        except Exception as e:
-            self._log(f"加载 NSFW 库失败: {e}")
-            self._nsfw_cache = self._get_default_nsfw_library()
-        # 自动修复空库：若用户库 categories 为空但模板存在，从模板恢复
-        if not self._nsfw_cache.get("categories") and os.path.exists(self.nsfw_template_path):
-            try:
-                with open(self.nsfw_template_path, 'r', encoding='utf-8') as f:
-                    template = json.load(f)
-                if template.get("categories"):
-                    self._log("⚠️ NSFW 库 categories 为空，从内置模板自动恢复")
-                    self._nsfw_cache = template
-                    self._atomic_write_json(self.nsfw_library_path, template)
-            except Exception:
-                pass
-        return self._nsfw_cache
+                with open(self.nsfw_library_path, 'r', encoding='utf-8') as f:
+                    self._nsfw_cache = json.load(f)
+                self._nsfw_cache_mtime = os.path.getmtime(self.nsfw_library_path)
+            except Exception as e:
+                self._log(f"加载 NSFW 库失败: {e}")
+                self._nsfw_cache = self._get_default_nsfw_library()
+            # 自动修复空库：若用户库 categories 为空但模板存在，从模板恢复
+            if not self._nsfw_cache.get("categories") and os.path.exists(self.nsfw_template_path):
+                try:
+                    with open(self.nsfw_template_path, 'r', encoding='utf-8') as f:
+                        template = json.load(f)
+                    if template.get("categories"):
+                        self._log("⚠️ NSFW 库 categories 为空，从内置模板自动恢复")
+                        self._nsfw_cache = template
+                        self._atomic_write_json(self.nsfw_library_path, template)
+                except Exception:
+                    pass
+            return self._nsfw_cache
 
     def save_nsfw_library(self, data: dict) -> bool:
         success = self._atomic_write_json(self.nsfw_library_path, data)
@@ -502,25 +524,26 @@ class ConfigManager:
         self._atomic_write_json(self.llm_services_path, self._get_default_services_config())
 
     def load_services_config(self, force_reload=False) -> dict:
-        if not force_reload and self._svc_cache is not None:
+        with self._cache_lock:
+            if not force_reload and self._svc_cache is not None:
+                return self._svc_cache
+            try:
+                with open(self.llm_services_path, 'r', encoding='utf-8') as f:
+                    self._svc_cache = json.load(f)
+            except Exception as e:
+                self._log(f"加载服务配置失败: {e}")
+                self._svc_cache = self._get_default_services_config()
+            # 迁移旧版 current 结构（enhance → enhance_basic）
+            current = self._svc_cache.get("current", {})
+            if "enhance" in current and "enhance_basic" not in current:
+                enhance_val = current.pop("enhance")
+                current["enhance_basic"] = enhance_val
+                current.setdefault("enhance_detail", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
+                current.setdefault("enhance_normal", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
+                self._svc_cache["current"] = current
+                self._atomic_write_json(self.llm_services_path, self._svc_cache)
+                self._log("已迁移 enhance → enhance_basic/enhance_detail/enhance_normal")
             return self._svc_cache
-        try:
-            with open(self.llm_services_path, 'r', encoding='utf-8') as f:
-                self._svc_cache = json.load(f)
-        except Exception as e:
-            self._log(f"加载服务配置失败: {e}")
-            self._svc_cache = self._get_default_services_config()
-        # 迁移旧版 current 结构（enhance → enhance_basic）
-        current = self._svc_cache.get("current", {})
-        if "enhance" in current and "enhance_basic" not in current:
-            enhance_val = current.pop("enhance")
-            current["enhance_basic"] = enhance_val
-            current.setdefault("enhance_detail", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
-            current.setdefault("enhance_normal", {"service_id": enhance_val.get("service_id", "default"), "model": ""})
-            self._svc_cache["current"] = current
-            self._atomic_write_json(self.llm_services_path, self._svc_cache)
-            self._log("已迁移 enhance → enhance_basic/enhance_detail/enhance_normal")
-        return self._svc_cache
 
     def save_services_config(self, data: dict) -> bool:
         success = self._atomic_write_json(self.llm_services_path, data)
@@ -566,6 +589,21 @@ class ConfigManager:
         cfg = self.load_services_config()
         for svc in cfg["services"]:
             if svc["id"] == service_id:
+                # V1-BE-12: 数值字段类型/范围校验
+                for num_key, cast, lo, hi, label in (
+                    ("temperature", float, 0.0, 2.0, "temperature"),
+                    ("max_tokens", int, 1, 8192, "max_tokens"),
+                ):
+                    if num_key in updates and updates[num_key] is not None:
+                        try:
+                            val = cast(updates[num_key])
+                            updates[num_key] = max(lo, min(hi, val))
+                        except (TypeError, ValueError):
+                            raise ValueError(f"{label} 必须为数字")
+                # V1-BE-12: 掩码 api_key 不回写，防止前端把 GET 返回的掩码覆盖真实 key
+                if "api_key" in updates and isinstance(updates["api_key"], str) and "****" in updates["api_key"]:
+                    updates = {**updates}
+                    updates.pop("api_key")
                 for k in ("name", "api_url", "api_key", "model", "temperature", "max_tokens", "disable_thinking", "filter_thinking_output", "aggressive_thinking_control", "custom_thinking_params"):
                     if k in updates:
                         svc[k] = updates[k]
@@ -660,9 +698,11 @@ class ConfigManager:
     def add_prompt_history(self, positive_prompt: str, negative_prompt: str = "", extra: Optional[dict] = None) -> bool:
         """添加一条 prompt 历史记录，自动裁剪到限制"""
         import time
+        import uuid
         data = self.load_prompt_history()
         entry = {
-            "id": f"h_{int(time.time() * 1000)}",
+            # 追加随机后缀，避免同一毫秒内多条记录 ID 冲突（冲突会导致删除误删）
+            "id": f"h_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}",
             "timestamp": int(time.time()),
             "positive": positive_prompt,
             "negative": negative_prompt,
@@ -727,18 +767,19 @@ class ConfigManager:
             return False
 
     def load_lora_favorites(self, force_reload: bool = False) -> list:
-        if not force_reload and hasattr(self, '_favorites_cache') and self._favorites_cache is not None:
-            return self._favorites_cache
-        try:
-            if os.path.exists(self.lora_favorites_path):
-                with open(self.lora_favorites_path, 'r', encoding='utf-8') as f:
-                    self._favorites_cache = json.load(f)
-            else:
+        with self._cache_lock:
+            if not force_reload and hasattr(self, '_favorites_cache') and self._favorites_cache is not None:
+                return self._favorites_cache
+            try:
+                if os.path.exists(self.lora_favorites_path):
+                    with open(self.lora_favorites_path, 'r', encoding='utf-8') as f:
+                        self._favorites_cache = json.load(f)
+                else:
+                    self._favorites_cache = []
+            except Exception as e:
+                self._log(f"加载 LoRA 收藏失败: {e}")
                 self._favorites_cache = []
-        except Exception as e:
-            self._log(f"加载 LoRA 收藏失败: {e}")
-            self._favorites_cache = []
-        return self._favorites_cache
+            return self._favorites_cache
 
     def save_lora_favorites(self, favorites: list) -> bool:
         success = self._atomic_write_json(self.lora_favorites_path, favorites)
@@ -748,16 +789,18 @@ class ConfigManager:
 
     def toggle_lora_favorite(self, lora_path: str) -> bool:
         """切换 LoRA 收藏状态，返回是否已收藏"""
-        favorites = self.load_lora_favorites()
-        if lora_path in favorites:
-            favorites.remove(lora_path)
-            self.save_lora_favorites(favorites)
-            return False
-        else:
-            favorites.append(lora_path)
-            favorites.sort()
-            self.save_lora_favorites(favorites)
-            return True
+        with self._cache_lock:
+            # 复制后再修改，避免直接改动缓存引用（保存失败时内存与磁盘不一致）
+            favorites = list(self.load_lora_favorites())
+            if lora_path in favorites:
+                favorites.remove(lora_path)
+                self.save_lora_favorites(favorites)
+                return False
+            else:
+                favorites.append(lora_path)
+                favorites.sort()
+                self.save_lora_favorites(favorites)
+                return True
 
     def is_lora_favorite(self, lora_path: str) -> bool:
         favorites = self.load_lora_favorites()
@@ -772,14 +815,9 @@ class ConfigManager:
         sfw = self.load_sfw_library()
         nsfw = self.load_nsfw_library()
 
-        # API Key 掩码处理
+        # API Key 掩码处理（复用 _mask_key，避免重复实现）
         api_key = llm.get("api_key", "")
-        api_key_masked = ""
-        if api_key:
-            if len(api_key) > 8:
-                api_key_masked = api_key[:4] + "****" + api_key[-4:]
-            else:
-                api_key_masked = "****"
+        api_key_masked = self._mask_key(api_key)
 
         return {
             "llm": {

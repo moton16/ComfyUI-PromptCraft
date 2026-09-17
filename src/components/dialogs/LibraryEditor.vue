@@ -73,7 +73,7 @@ function collectCategories() {
     }
 
     newCats[key] = {
-      label: key,
+      label: existingCat.label || key,
       description: existingCat.description || '',
       options: opts
     }
@@ -112,10 +112,15 @@ async function saveLibrary() {
     status.isError = false
 
     await api.post(`/library/${currentTab.value}`, payload)
-    await api.post(`/library/${currentTab.value}_reload`, {})
-
     status.message = t('library_editor.status.saved', { type: currentTab.value.toUpperCase() })
     currentLibData.value = payload
+
+    // 缓存 reload 失败不应被误报为"保存失败"，仅记录日志
+    try {
+      await api.post(`/library/${currentTab.value}_reload`, {})
+    } catch (reloadErr) {
+      console.warn('[PromptCraft] Library cache reload failed:', reloadErr)
+    }
   } catch (e) {
     status.message = t('library_editor.status.save_failed', { error: e.message })
     status.isError = true

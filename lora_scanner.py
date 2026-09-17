@@ -63,13 +63,21 @@ class LoraScanner:
                 if f not in tree["/"]["all"]:
                     tree["/"]["all"].append(f)
             else:
-                node = tree
+                node: Dict[str, Any] = tree
+                skipped = False
                 for part in parts[:-1]:
-                    if part not in node:
-                        node[part] = {"all": []}
-                    node = node[part]
-                    if f not in node["all"]:
-                        node["all"].append(f)
+                    child = node.get(part)
+                    if child is not None and not isinstance(child, dict):
+                        # 防御: part 命中文件列表键（如顶层 "all"）时，该子目录在树中
+                        # 无法表达（前端会将 "all" 键过滤），跳过该分支避免类型错误
+                        skipped = True
+                        break
+                    if child is None:
+                        child = {"all": []}
+                        node[part] = child
+                    node = child
+                if not skipped and f not in node["all"]:
+                    node["all"].append(f)
         return tree
 
     @staticmethod
@@ -104,8 +112,8 @@ class LoraScanner:
             try:
                 with open(sidecar, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[PromptCraft] 读取 LoRA sidecar 元数据失败 [{sidecar}]: {e}")
 
         # V0-LORA-01: 用轻量 header 读取替代 comfy.utils.load_torch_file
         if full_path.endswith(".safetensors"):
@@ -228,8 +236,8 @@ class LoraScanner:
                     cached.pop("_mtime", None)
                     cached.pop("_cache_version", None)
                     return cached
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[PromptCraft] 读取 LoRA 信息缓存失败 [{sidecar_path}]: {e}")
 
         filename = os.path.basename(lora_name)
         display_name = os.path.splitext(filename)[0]

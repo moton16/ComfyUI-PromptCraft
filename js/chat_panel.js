@@ -32,8 +32,8 @@ app.registerExtension({
                 openAgentFloating(targetNode);
             });
 
-            // 设置紧凑节点大小
-            this.size = [210, 60];
+            // 移除 size 覆盖逻辑（V1-FE-21）：onNodeCreated 强制设置 [210, 60] 会覆盖用户手动调整的尺寸，
+            // 且从工作流恢复时 configure 会还原已保存尺寸，此覆盖无意义；尺寸交给 LiteGraph 自动计算
 
             return result;
         };

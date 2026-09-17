@@ -60,7 +60,11 @@ class LoraPromptManager(MtimeCacheMixin):
     def save_all(self, loras: dict):
         """原子写入全部配置"""
         data = {"version": "1.0.0", "loras": loras}
-        self._save_json_and_update_cache(data)
+        ok = self._save_json_and_update_cache(data)
+        if not ok:
+            # 写入失败：失效缓存，避免内存与磁盘不一致
+            self._cache = None
+            self._cache_mtime = 0
 
     # ==================== 查询 ====================
 
@@ -78,6 +82,9 @@ class LoraPromptManager(MtimeCacheMixin):
         for path in lora_paths:
             if path in all_data:
                 lora_data = all_data[path]
+                if not isinstance(lora_data, dict):
+                    # 用户手工编辑的非法条目，跳过
+                    continue
                 if selected_groups and path in selected_groups:
                     sel = selected_groups[path]
                     if sel == "__none__":
@@ -87,7 +94,7 @@ class LoraPromptManager(MtimeCacheMixin):
                         # 只返回选中的组
                         filtered_groups = [
                             g for g in lora_data.get("groups", [])
-                            if g["name"] == sel
+                            if isinstance(g, dict) and g.get("name") == sel
                         ]
                         if filtered_groups:
                             result[path] = {"groups": filtered_groups}
@@ -109,14 +116,16 @@ class LoraPromptManager(MtimeCacheMixin):
                   prompts: Optional[list] = None, negative: str = ""):
         """为某个 LoRA 添加一个 prompt 组"""
         all_data = self.load_all()
-        if lora_path not in all_data:
-            all_data[lora_path] = {"groups": []}
+        lora_data = all_data.get(lora_path)
+        if not isinstance(lora_data, dict):
+            lora_data = {"groups": []}
+            all_data[lora_path] = lora_data
 
-        for g in all_data[lora_path]["groups"]:
-            if g["name"] == name:
+        for g in lora_data.get("groups", []):
+            if isinstance(g, dict) and g.get("name") == name:
                 raise ValueError(f"Prompt 组 '{name}' 已存在于该 LoRA 中")
 
-        all_data[lora_path]["groups"].append({
+        lora_data["groups"].append({
             "name": name,
             "prompts": prompts or [],
             "negative": negative,
@@ -126,11 +135,12 @@ class LoraPromptManager(MtimeCacheMixin):
     def update_group(self, lora_path: str, group_name: str, **kwargs):
         """更新某个 prompt 组"""
         all_data = self.load_all()
-        if lora_path not in all_data:
+        lora_data = all_data.get(lora_path)
+        if not isinstance(lora_data, dict):
             raise ValueError(f"LoRA '{lora_path}' 无 prompt 配置")
 
-        for g in all_data[lora_path]["groups"]:
-            if g["name"] == group_name:
+        for g in lora_data.get("groups", []):
+            if isinstance(g, dict) and g.get("name") == group_name:
                 for key, value in kwargs.items():
                     if key in ("name", "prompts", "negative"):
                         g[key] = value
@@ -141,19 +151,20 @@ class LoraPromptManager(MtimeCacheMixin):
     def delete_group(self, lora_path: str, group_name: str):
         """删除某个 prompt 组"""
         all_data = self.load_all()
-        if lora_path not in all_data:
+        lora_data = all_data.get(lora_path)
+        if not isinstance(lora_data, dict):
             raise ValueError(f"LoRA '{lora_path}' 无 prompt 配置")
 
-        original_len = len(all_data[lora_path]["groups"])
-        all_data[lora_path]["groups"] = [
-            g for g in all_data[lora_path]["groups"]
-            if g["name"] != group_name
+        original_len = len(lora_data.get("groups", []))
+        lora_data["groups"] = [
+            g for g in lora_data.get("groups", [])
+            if not (isinstance(g, dict) and g.get("name") == group_name)
         ]
-        if len(all_data[lora_path]["groups"]) == original_len:
+        if len(lora_data["groups"]) == original_len:
             raise ValueError(f"Prompt 组 '{group_name}' 不存在")
 
         # 如果 LoRA 没有任何组了，删除整个条目
-        if not all_data[lora_path]["groups"]:
+        if not lora_data["groups"]:
             del all_data[lora_path]
 
         self.save_all(all_data)
@@ -178,11 +189,16 @@ class LoraPromptManager(MtimeCacheMixin):
         negatives = []
 
         for item in lora_list:
+            if not isinstance(item, dict):
+                continue
             lora_path = item.get("lora", "")
             if not lora_path or lora_path not in all_data:
                 continue
 
-            groups = all_data[lora_path].get("groups", [])
+            lora_data = all_data[lora_path]
+            if not isinstance(lora_data, dict):
+                continue
+            groups = lora_data.get("groups", [])
             for group in groups:
                 for p in group.get("prompts", []):
                     if p and p not in prompts:

@@ -240,11 +240,13 @@ class TestEnhancePrompt:
 def _build_mock_session(sse_lines):
     """构造一个 mock aiohttp.ClientSession，使 chat_stream 能消费 SSE 行
 
-    sse_lines 中的每一项会被编码为 utf-8 字节，作为 response.content 的 async iterable 一项。
+    sse_lines 中的每一项会被编码为 utf-8 字节（带换行，符合真实 SSE 协议——
+    真实 aiohttp StreamReader 以传输 chunk 产出，不保证以 \\n 结尾，必须自行切行），
+    作为 response.content 的 async iterable 一项。
     """
     async def _aiter():
         for line in sse_lines:
-            yield line.encode("utf-8")
+            yield (line + "\n").encode("utf-8")
 
     mock_response = AsyncMock()
     mock_response.raise_for_status = MagicMock()
@@ -359,7 +361,105 @@ class TestChatStream:
         assert chunks == ["valid"]
 
 
-# ==================== TestAgentCall ====================
+def _build_mock_chunk_session(chunks):
+    """构造 mock session，response.content 按任意字节 chunk 产出（模拟真实传输层）"""
+    async def _aiter():
+        for c in chunks:
+            yield c
+
+    mock_response = AsyncMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.content = _aiter()
+
+    mock_session_instance = MagicMock()
+    mock_post_cm = AsyncMock()
+    mock_post_cm.__aenter__.return_value = mock_response
+    mock_post_cm.__aexit__.return_value = None
+    mock_session_instance.post.return_value = mock_post_cm
+
+    mock_session_ctx = AsyncMock()
+    mock_session_ctx.__aenter__.return_value = mock_session_instance
+    mock_session_ctx.__aexit__.return_value = None
+    return mock_session_ctx
+
+
+class TestChatStreamChunking:
+
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_multiline_chunk_no_content_loss(self, MockSession, MockConnector):
+        """一条传输 chunk 含多条 data 事件（真实场景拼块）时不丢内容"""
+        chunk_bytes = (
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}\n'
+            'data: {"choices":[{"delta":{"content":" World"}}]}\n'
+            'data: [DONE]\n'
+        ).encode("utf-8")
+        MockSession.return_value = _build_mock_chunk_session([chunk_bytes])
+
+        client = LLMClient(service_config=_enabled_config())
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
+        assert chunks == ["Hello", " World"]
+
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_split_line_chunk_parsed(self, MockSession, MockConnector):
+        """一条 SSE 事件被拆成两个传输 chunk（真实场景拆块）时也能正确解析"""
+        full = 'data: {"choices":[{"delta":{"content":"split"}}]}\n'
+        mid = len(full) // 2
+        MockSession.return_value = _build_mock_chunk_session([
+            full[:mid].encode("utf-8"),
+            full[mid:].encode("utf-8"),
+        ])
+
+        client = LLMClient(service_config=_enabled_config())
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
+        assert chunks == ["split"]
+
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_thinking_mixed_chunk_keeps_trailing_text(self, MockSession, MockConnector):
+        """同一 chunk 含思维链开始标签 + 后续正文时，只丢弃标签内容不丢正文"""
+        sse_lines = [
+            'data: {"choices":[{"delta":{"content":"<thinking>secret</thinking>visible"}}]}',
+            'data: [DONE]',
+        ]
+        MockSession.return_value = _build_mock_session(sse_lines)
+
+        client = LLMClient(service_config=_enabled_config())
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
+        assert chunks == ["visible"]
+
+    @patch("aiohttp.TCPConnector")
+    @patch("aiohttp.ClientSession")
+    def test_thinking_split_across_chunks(self, MockSession, MockConnector):
+        """思维链标签跨多个 chunk 时跨 chunk 状态正确"""
+        sse_lines = [
+            'data: {"choices":[{"delta":{"content":"before<think>"}}]}',
+            'data: {"choices":[{"delta":{"content":"secret"}}]}',
+            'data: {"choices":[{"delta":{"content":"</think>after"}}]}',
+            'data: [DONE]',
+        ]
+        MockSession.return_value = _build_mock_session(sse_lines)
+
+        client = LLMClient(service_config=_enabled_config())
+
+        async def _collect():
+            return [chunk async for chunk in client.chat_stream([{"role": "user", "content": "hi"}])]
+
+        chunks = asyncio.run(_collect())
+        assert chunks == ["before", "after"]
 
 
 class TestAgentCall:

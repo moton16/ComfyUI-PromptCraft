@@ -80,6 +80,8 @@ class LoraPromptLoader:
         m.update(lora_stack_data.encode())
         if os.path.exists(lora_group_manager.groups_path):
             m.update(str(os.path.getmtime(lora_group_manager.groups_path)).encode())
+        if os.path.exists(lora_prompt_manager.prompts_path):
+            m.update(str(os.path.getmtime(lora_prompt_manager.prompts_path)).encode())
         return m.hexdigest()
 
     def execute(self, checkpoint, strength_multiplier,
@@ -120,10 +122,13 @@ class LoraPromptLoader:
         enabled_lora_paths = []
         for item in flat_loras:
             if item.get("enabled", True):
-                enabled_lora_paths.append(item["lora"])
+                lora_name = item.get("lora", "")
+                if not lora_name:
+                    continue
+                enabled_lora_paths.append(lora_name)
                 sel = item.get("selected_group")
                 if sel:
-                    selected_groups[item["lora"]] = sel
+                    selected_groups[lora_name] = sel
 
         prompt_data = lora_prompt_manager.get_all_for_stack(
             enabled_lora_paths, selected_groups)
@@ -150,8 +155,12 @@ class LoraPromptLoader:
             if not item.get("enabled", True):
                 continue
 
-            s_model = item["weight"] * strength_multiplier
-            s_clip = item["clip_weight"] * strength_multiplier
+            lora_name = item.get("lora", "")
+            if not lora_name:
+                continue
+
+            s_model = item.get("weight", 1.0) * strength_multiplier
+            s_clip = item.get("clip_weight", 1.0) * strength_multiplier
 
             if s_model == 0 and s_clip == 0:
                 continue
@@ -160,7 +169,7 @@ class LoraPromptLoader:
                 s_clip = 0
 
             model, clip = load_single_lora(
-                model, clip, item["lora"], s_model, s_clip)
+                model, clip, lora_name, s_model, s_clip)
 
         return (model, clip, vae, final_positive, final_negative)
 
@@ -169,7 +178,11 @@ class LoraPromptLoader:
         positive_elements = []
         negative_elements = []
         for lora_info in prompt_data.values():
+            if not isinstance(lora_info, dict):
+                continue
             for group in lora_info.get("groups", []):
+                if not isinstance(group, dict):
+                    continue
                 for p in group.get("prompts", []):
                     if p and p not in positive_elements:
                         positive_elements.append(p)

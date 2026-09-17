@@ -97,6 +97,21 @@ async def update_llm_config(request):
         data = await request.json()
         llm = config_manager.load_llm_config()
 
+        # V1-BE-12: 数值字段类型/范围校验，避免字符串或非法值写入配置
+        # （显式 null 表示不更新该字段）
+        for num_key, cast, lo, hi, label in (
+            ("temperature", float, 0.0, 2.0, "temperature"),
+            ("max_tokens", int, 1, 8192, "max_tokens"),
+        ):
+            if num_key in data and data[num_key] is not None:
+                try:
+                    val = cast(data[num_key])
+                    data[num_key] = max(lo, min(hi, val))
+                except (TypeError, ValueError):
+                    return web.json_response(get_result_json(False, error=f"{label} 必须为数字"), status=400)
+            elif num_key in data:
+                data.pop(num_key)
+
         for key in ["enabled", "api_url", "model",
                      "temperature", "max_tokens", "alternative_models"]:
             if key in data:
@@ -104,7 +119,11 @@ async def update_llm_config(request):
 
         # api_key 仅在提供非空值时更新（允许部分更新）
         if "api_key" in data and data["api_key"]:
-            llm["api_key"] = data["api_key"]
+            if "****" in data["api_key"]:
+                # V1-BE-12: 防止前端把 GET 返回的掩码串回传覆盖真实 key
+                print(f"{PREFIX} 收到掩码 api_key，跳过更新（保留原值）")
+            else:
+                llm["api_key"] = data["api_key"]
 
         success = config_manager.save_llm_config(llm)
         if success:

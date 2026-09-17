@@ -66,6 +66,8 @@ class ModelLoraGroupLoader:
         m.update(lora_stack_data.encode())
         if os.path.exists(lora_group_manager.groups_path):
             m.update(str(os.path.getmtime(lora_group_manager.groups_path)).encode())
+        if os.path.exists(lora_prompt_manager.prompts_path):
+            m.update(str(os.path.getmtime(lora_prompt_manager.prompts_path)).encode())
         return m.hexdigest()
 
     def execute(self, checkpoint, strength_multiplier,
@@ -109,12 +111,15 @@ class ModelLoraGroupLoader:
         selected_groups = {}
         for item in flat_loras:
             if item.get("enabled", True):
-                lora_path = item["lora"]
+                lora_path = item.get("lora", "")
+                if not lora_path:
+                    continue
                 sel = item.get("selected_group")
                 if sel:
                     selected_groups[lora_path] = sel
         lora_paths = [
-            item["lora"] for item in flat_loras if item.get("enabled", True)
+            item.get("lora", "") for item in flat_loras
+            if item.get("enabled", True) and item.get("lora")
         ]
         prompt_data = lora_prompt_manager.get_all_for_stack(lora_paths, selected_groups)
         prompt_json = json.dumps(prompt_data, ensure_ascii=False)
@@ -124,8 +129,12 @@ class ModelLoraGroupLoader:
             if not item.get("enabled", True):
                 continue
 
-            s_model = item["weight"] * strength_multiplier
-            s_clip = item["clip_weight"] * strength_multiplier
+            lora_name = item.get("lora", "")
+            if not lora_name:
+                continue
+
+            s_model = item.get("weight", 1.0) * strength_multiplier
+            s_clip = item.get("clip_weight", 1.0) * strength_multiplier
 
             if s_model == 0 and s_clip == 0:
                 continue
@@ -134,7 +143,7 @@ class ModelLoraGroupLoader:
                 s_clip = 0
 
             model, clip = load_single_lora(
-                model, clip, item["lora"], s_model, s_clip)
+                model, clip, lora_name, s_model, s_clip)
 
         return (model, clip, vae, prompt_json)
 

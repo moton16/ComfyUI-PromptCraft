@@ -76,16 +76,17 @@ THINKING_CONTROL_RULES: List[Dict[str, Any]] = [
         "params": {"thinking": {"type": "disabled"}},
     },
     # 硅基流动 SiliconFlow 系列（官方格式：enable_thinking）
+    # 注意：模型名在 build_thinking_suppression 中已被 lower()，pattern 必须全小写
     {
         "name": "siliconflow_thinking",
         "patterns": [
             r"siliconflow[-_/.]?(glm|deepseek|qwen)",
-            r"Pro/zai-org/GLM[-_/.]?(5|4\.7)",
-            r"zai-org/GLM[-_/.]?(4\.6|4\.5)",
-            r"deepseek-ai/DeepSeek[-_/.]?V3\.(1|2)",
-            r"Qwen/Qwen3[-_/.]?(8B|14B|32B|30B)",
-            r"Qwen/Qwen3\.5[-_/.]?(397B|122B|35B|27B|9B|4B)",
-            r"tencent/Hunyuan[-_/.]?A13B",
+            r"pro/zai-org/glm[-_/.]?(5|4\.7)",
+            r"zai-org/glm[-_/.]?(4\.6|4\.5)",
+            r"deepseek-ai/deepseek[-_/.]?v3\.(1|2)",
+            r"qwen/qwen3[-_/.]?(8b|14b|32b|30b)",
+            r"qwen/qwen3\.5[-_/.]?(397b|122b|35b|27b|9b|4b)",
+            r"tencent/hunyuan[-_/.]?a13b",
         ],
         "params": {"enable_thinking": False},
     },
@@ -253,10 +254,14 @@ def filter_thinking_content(text: str) -> str:
     # 1. 配对标签（支持带属性的标签，如 <thinking type="reasoning">）
     text = re.sub(rf'{OPEN_TAG}[\s\S]*?{CLOSE_TAG}', '', text, flags=re.IGNORECASE)
 
-    # 2. 孤立的闭合标签（思维链在开头的情况）
-    text = re.sub(rf'^[\s\S]*?{CLOSE_TAG}', '', text, flags=re.IGNORECASE)
+    # 2. 孤立的闭合标签：仅当文本以思维链标签开头时处理，避免误删正常正文
+    # （旧实现从文本开头一直删到第一个 </tag>，正文中出现标签字面量时会被整段抹除）
+    # 如 "<thinking>思考...</thinking>正文" → "正文"
+    if re.match(rf'{OPEN_TAG}', text.lstrip(), flags=re.IGNORECASE):
+        text = re.sub(rf'^{OPEN_TAG}[\s\S]*?{CLOSE_TAG}', '', text, count=1, flags=re.IGNORECASE)
 
-    # 3. 孤立的开始标签（思维链在结尾的情况）
+    # 3. 孤立的开始标签：删除未闭合思维链标签及其后内容，保留标签前的正文
+    # 如 "正文 <thinking>未闭合..." → "正文 "
     text = re.sub(rf'{OPEN_TAG}[\s\S]*$', '', text, flags=re.IGNORECASE)
 
     # 4. 处理 DeepSeek 特殊格式：reasoning_content 字段可能包含思维链
@@ -365,6 +370,51 @@ def filter_thinking_stream(chunk: str, state: dict) -> tuple:
 
     # 没有思维链标签，返回原始内容
     return chunk, state
+
+
+def strip_thinking_chunk(text: str, in_thinking: bool) -> tuple:
+    """从 chunk 中移除思维链标签区间，保留区间外内容（流式过滤统一实现）
+
+    修复：同一 chunk 可能同时含思维链开始标签与后续正常文本（或结束标签后还有内容），
+    整块丢弃会导致正常内容丢失。此处按标签位置切分，只丢弃标签区间内的内容。
+    支持带属性的开始标签，如 <thinking type="reasoning">。
+
+    Args:
+        text: 当前 chunk 文本
+        in_thinking: 上一 chunk 结束时是否仍在思维链内
+
+    Returns:
+        (过滤后的文本, 新的 in_thinking 状态)
+    """
+    if not text:
+        return text, in_thinking
+
+    THINKING_TAGS = r'(think|thinking|reasoning|thoughts?|reasoning_effort)'
+    OPEN_PATTERN = re.compile(rf'<{THINKING_TAGS}(\s[^>]*)?>', re.IGNORECASE)
+    CLOSE_PATTERN = re.compile(rf'</{THINKING_TAGS}>', re.IGNORECASE)
+
+    out = []
+    pos = 0
+    if in_thinking:
+        # 上一 chunk 在思维链内，先找结束标签；找不到则整个 chunk 都是思维链内容
+        m = CLOSE_PATTERN.search(text)
+        if not m:
+            return "", True
+        pos = m.end()
+        in_thinking = False
+    while True:
+        m = OPEN_PATTERN.search(text, pos)
+        if not m:
+            out.append(text[pos:])
+            break
+        out.append(text[pos:m.start()])
+        m2 = CLOSE_PATTERN.search(text, m.end())
+        if not m2:
+            # 开始标签未闭合，标签后内容视为思维链，置状态并丢弃
+            in_thinking = True
+            break
+        pos = m2.end()
+    return "".join(out), in_thinking
 
 
 def get_supported_models() -> List[Dict[str, Any]]:

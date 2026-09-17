@@ -3,6 +3,7 @@ LoRA 公共工具函数
 抽取自 model_lora_loader.py 和 lora_prompt_loader.py 的重复代码
 """
 
+import os
 import threading
 from collections import OrderedDict
 from typing import Any
@@ -28,10 +29,13 @@ def flatten_stack(items):
     """将栈条目展平为个体 LoRA 列表（group ref 递归展开）"""
     flat = []
     for item in items:
+        if not isinstance(item, dict):
+            continue
         if item.get("type") == "group":
-            group_data = lora_group_manager.get_group(item["group_name"])
-            if group_data is None:
-                print(f"[PromptCraft] 警告: 群组 '{item['group_name']}' 不存在，跳过")
+            group_name = item.get("group_name")
+            group_data = lora_group_manager.get_group(group_name) if group_name else None
+            if not isinstance(group_data, dict):
+                print(f"[PromptCraft] 警告: 群组 '{group_name}' 不存在，跳过")
                 continue
 
             validation = LoraScanner.validate_group(group_data)
@@ -49,8 +53,8 @@ def flatten_stack(items):
                 flat.append({
                     "type": "lora",
                     "lora": lora_item["lora"],
-                    "weight": lora_item["weight"] * stack_weight,
-                    "clip_weight": lora_item["clip_weight"] * stack_clip,
+                    "weight": lora_item.get("weight", 1.0) * stack_weight,
+                    "clip_weight": lora_item.get("clip_weight", 1.0) * stack_clip,
                     "enabled": stack_enabled,
                     "selected_group": item.get("selected_group"),
                 })
@@ -60,21 +64,25 @@ def flatten_stack(items):
 
 
 def load_single_lora(model, clip, lora_name, strength_model, strength_clip):
-    """加载单个 LoRA（带线程安全 LRU 缓存）"""
+    """加载单个 LoRA（带线程安全 LRU 缓存，校验文件 mtime 自动失效）"""
     lora_path = folder_paths.get_full_path_or_raise("loras", lora_name)
+
+    try:
+        file_mtime = os.path.getmtime(lora_path)
+    except OSError:
+        file_mtime = 0.0
 
     with _lora_cache_lock:
         if lora_path in _lora_cache:
-            _lora_cache.move_to_end(lora_path)
-            lora = _lora_cache[lora_path]
+            cached_mtime, lora = _lora_cache[lora_path]
         else:
-            lora = None
+            cached_mtime, lora = None, None
 
-    if lora is None:
+    if lora is None or cached_mtime != file_mtime:
         # 加载在锁外执行（I/O 密集），避免阻塞其他线程
         loaded = comfy.utils.load_torch_file(lora_path, safe_load=True)
         with _lora_cache_lock:
-            _lora_cache[lora_path] = loaded
+            _lora_cache[lora_path] = (file_mtime, loaded)
             _lora_cache.move_to_end(lora_path)
             # LRU 驱逐：超过上限时淘汰最久未用的
             while len(_lora_cache) > _LORA_CACHE_MAX:

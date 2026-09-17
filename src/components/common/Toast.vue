@@ -1,7 +1,13 @@
 <script setup>
+import { onUnmounted } from 'vue'
 import { useToast } from '../../composables/useToast.js'
 
-const { toasts } = useToast()
+const { toasts, clearTimers } = useToast()
+
+// 组件卸载时清理所有 Toast 定时器，避免卸载后定时器仍触发状态更新
+onUnmounted(() => {
+  clearTimers()
+})
 </script>
 
 <template>

@@ -42,6 +42,10 @@ class HubPanel {
         this.searchQuery = '';
         this.favorites = new Set();
         this.initialTarget = options.targetLora || null;
+        // V1-FE-18: 异步请求序号守卫（防旧响应覆盖新内容）
+        this._reqSeq = 0;
+        // V1-FE-19: Agent 面板实例缓存（切回 agent tab 时复用，保留对话历史）
+        this._agentPanel = null;
         this._loadFavorites();
         this._build();
         document.body.appendChild(this.backdrop);
@@ -182,10 +186,11 @@ class HubPanel {
             this._switchTab(tab);
         });
 
-        // Search
+        // Search（250ms 防抖）
         this.sidebar.querySelector('[data-role="sidebar-search"]').addEventListener('input', (e) => {
             this.searchQuery = e.target.value.trim().toLowerCase();
-            this._renderSidebarList();
+            clearTimeout(this._searchDebounce);
+            this._searchDebounce = setTimeout(() => this._renderSidebarList(), 250);
         });
 
         // Sidebar click
@@ -272,12 +277,15 @@ class HubPanel {
     }
 
     async _renderLoraList(listEl) {
+        const seq = ++this._reqSeq;
         if (this.allLoras.length === 0) {
             try {
                 const data = await API.getLoraFolders();
+                if (seq !== this._reqSeq) return;
                 this.folderTree = data;
                 this.allLoras = data.all || [];
             } catch {
+                if (seq !== this._reqSeq) return;
                 listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.load_failed')}</div>`;
                 return;
             }
@@ -289,6 +297,7 @@ class HubPanel {
             // Search mode — favorites first
             try {
                 const results = await API.searchLoras(this.searchQuery);
+                if (seq !== this._reqSeq) return;
                 if (results.length === 0) {
                     listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.no_match')}</div>`;
                     this._onSidebarRendered?.();
@@ -311,6 +320,7 @@ class HubPanel {
                     listEl.appendChild(this._createLoraItem(file));
                 }
             } catch {
+                if (seq !== this._reqSeq) return;
                 listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.search_failed')}</div>`;
             }
             this._onSidebarRendered?.();
@@ -456,8 +466,10 @@ class HubPanel {
     }
 
     async _renderGroupList(listEl) {
+        const seq = ++this._reqSeq;
         try {
             const groups = await API.getGroups();
+            if (seq !== this._reqSeq) return;
             listEl.innerHTML = '';
 
             const entries = Object.entries(groups);
@@ -482,6 +494,7 @@ class HubPanel {
                 listEl.appendChild(item);
             }
         } catch {
+            if (seq !== this._reqSeq) return;
             listEl.innerHTML = `<div class="lhub-empty-msg">${t('hub.load_failed')}</div>`;
         }
     }
@@ -552,10 +565,17 @@ class HubPanel {
 
     _renderAgent() {
         this.content.innerHTML = '';
-        createAgentPanel(this.content, this.node, { mode: 'hub' });
+        if (this._agentPanel) {
+            // V1-FE-19: 复用已有 AgentPanelUI 实例（保留对话历史），重新挂载 DOM
+            this._agentPanel.node = this.node;
+            this._agentPanel.mount(this.content);
+        } else {
+            this._agentPanel = createAgentPanel(this.content, this.node, { mode: 'hub' });
+        }
     }
 
     async _selectLora(loraPath) {
+        const seq = ++this._reqSeq;
         this.selectedLora = loraPath;
         this.selectedGroup = null;
 
@@ -581,6 +601,7 @@ class HubPanel {
             allGroups = {};
             loraInfo = null;
         }
+        if (seq !== this._reqSeq) return;
 
         // Check membership
         const memberOf = Object.keys(allGroups);
@@ -588,11 +609,13 @@ class HubPanel {
         for (const gName of memberOf) {
             try {
                 const gDetail = await API.getGroup(gName);
+                if (seq !== this._reqSeq) return;
                 if (gDetail.loras?.some(l => l.lora === loraPath)) {
                     membershipGroups.push(gName);
                 }
             } catch {}
         }
+        if (seq !== this._reqSeq) return;
 
         const filename = loraPath.split('/').pop();
         const displayName = loraInfo?.name || filename.replace(/\.safetensors$/, '');

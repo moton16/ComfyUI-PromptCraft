@@ -30,12 +30,15 @@ async function request(method, endpoint, body = null) {
         throw err;
     }
     clearTimeout(timeoutId);
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    // V1-FE-17: 先解析 JSON body，再判断错误，保留后端业务错误消息（如 "LoRA 已在群组中"）
+    let json = null;
+    try {
+        json = await res.json();
+    } catch {
+        json = null;
     }
-    const json = await res.json();
-    if (!json.success) {
-        throw new Error(json.error || 'API 请求失败');
+    if (!res.ok || !json || json.success === false) {
+        throw new Error((json && json.error) || `HTTP ${res.status}`);
     }
     return json.data;
 }
