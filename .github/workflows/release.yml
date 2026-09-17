@@ -79,11 +79,14 @@ jobs:
 
           # 删除 git 追踪但运行时不需要的开发文件
           cd staging/ComfyUI-PromptCraft
+          # 剔除清单需与 pack_release.py 的 DEV_DIRS / DEV_FILES 保持一致，
+          # 否则线上 zip 会与本地标准包的产物不同（V1.4.1 曾漏掉 pack_release.py）
           rm -rf tests src design docs .github dev
           rm -f CLAUDE.md PLAN.md DEVELOPMENT.md MIGRATION.md \
                 package.json package-lock.json vite.config.js \
                 vite.playground.config.js \
-                .pre-commit-config.yaml update_version.sh Makefile
+                .pre-commit-config.yaml update_version.sh Makefile \
+                pack_release.py
 
           # 用刚构建的产物覆盖仓库内提交的构建产物，保证包内产物与当前 src/ 严格一致
           cp ../../js/promptcraft-vue.js ../../js/promptcraft-vue.css js/
