@@ -1,4 +1,5 @@
 __pycache__/
+design/
 docs/
 .mimocode/
 .gstack/
@@ -15,7 +16,12 @@ node_modules/
 # Node.js
 node_modules/
 package-lock.json
+
+# 内部开发文档与 AI 助手配置（仅保留在本地，不进仓库）
 CLAUDE.md
+DEVELOPMENT.md
+MIGRATION.md
+PLAN.md
 
 # Vite 构建产物：有意纳入 git 追踪。
 # ComfyUI Manager / Registry / git clone 等分发渠道均无构建步骤，
@@ -24,6 +30,10 @@ CLAUDE.md
 
 # 本地草稿与临时工作目录（不参与构建/发布）
 work/
+
+# 本地开发调试工具（脱离 ComfyUI 预览 Vue 弹窗，非运行时依赖）
+dev/
+vite.playground.config.js
 
 # 本地 release 打包暂存目录（本地测试用，不应提交）
 staging/
