@@ -32,7 +32,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # 不启用 cache: 'npm'：package-lock.json 被 .gitignore 排除，仓库内不存在锁文件，
+          # setup-node 找不到锁文件会直接报错中断整个 job。
 
       - name: Install dependencies and build frontend
         run: |
