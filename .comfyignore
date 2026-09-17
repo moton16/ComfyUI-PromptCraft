@@ -17,6 +17,10 @@ node_modules/
 package-lock.json
 CLAUDE.md
 
+# 本地开发调试工具（脱离 ComfyUI 预览 Vue 弹窗用，非运行时依赖）
+dev/
+vite.playground.config.js
+
 # 注意：js/promptcraft-vue.js / js/promptcraft-vue.css 是运行时必备的
 # Vite 构建产物，不得排除，否则 Registry 安装后 Vue 弹窗不可用
 

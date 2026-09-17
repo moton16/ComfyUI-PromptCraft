@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PromptCraft Playground</title>
+  <style>
+    /* 尽量贴近 ComfyUI 的深色画布环境，避免组件在实际环境下出现对比度/背景差异 */
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: #1a1a1a; color: #ddd;
+      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    #pg-root { display: flex; height: 100vh; }
+    #pg-sidebar {
+      width: 260px; flex: 0 0 260px;
+      background: #242424; border-right: 1px solid #3a3a3a;
+      padding: 16px; overflow-y: auto;
+    }
+    #pg-stage {
+      flex: 1; position: relative; overflow: hidden;
+      background:
+        radial-gradient(circle at 25% 25%, #2a2a2a 0%, transparent 55%),
+        #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+  <div id="pg-root">
+    <aside id="pg-sidebar"></aside>
+    <main id="pg-stage"></main>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

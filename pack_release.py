@@ -39,12 +39,13 @@ BUILD_ARTIFACTS = ["js/promptcraft-vue.js", "js/promptcraft-vue.css"]
 
 # 运行时不需要的开发文件（与 release.yml 的剔除清单一致，外加本地目录兜底）
 DEV_DIRS = [
-    "tests", "src", "design", "docs", ".github",
+    "tests", "src", "design", "docs", ".github", "dev",
     "staging", "work", ".gstack", ".claude", ".mimocode",
 ]
 DEV_FILES = [
     "CLAUDE.md", "PLAN.md", "DEVELOPMENT.md", "MIGRATION.md",
     "package.json", "package-lock.json", "vite.config.js",
+    "vite.playground.config.js",
     ".pre-commit-config.yaml", "update_version.sh", "Makefile",
     "pack_release.py",
 ]

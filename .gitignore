@@ -1,5 +1,4 @@
 __pycache__/
-design/
 docs/
 .mimocode/
 .gstack/
@@ -22,6 +21,9 @@ CLAUDE.md
 # ComfyUI Manager / Registry / git clone 等分发渠道均无构建步骤，
 # 必须随仓库提交编译后的产物，否则用户端 Vue 弹窗不可用。
 # 发布前必须重新执行 npm run build 并提交更新。
+
+# 本地草稿与临时工作目录（不参与构建/发布）
+work/
 
 # 本地 release 打包暂存目录（本地测试用，不应提交）
 staging/

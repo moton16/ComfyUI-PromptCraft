@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoRA Group Manager - ComfyUI Design Prototype</title>
+<style>
+  /* ============================================
+     ComfyUI Dark Theme Design Tokens
+     ============================================ */
+  :root {
+    /* Backgrounds */
+    --bg-color: #202020;
+    --base-bg: #171718;
+    --menu-bg: #171718;
+    --menu-secondary-bg: #303030;
+    --input-bg: #222;
+    --secondary-bg: #262729;
+    --secondary-bg-hover: #313235;
+    --secondary-bg-selected: #494a50;
+    --muted-bg: #55565e;
+    --dialog-surface: #404040;
+    --modal-panel-bg: #262729;
+    --panel-surface: #171718;
+    --panel-hover: #1e1e20;
+    --panel-selected: #252528;
+
+    /* Text */
+    --text-primary: #fff;
+    --text-secondary: #9c9eab;
+    --text-muted: #8a8a8a;
+    --input-text: #ddd;
+    --descrip-text: #999;
+    --drag-text: #ccc;
+    --error-text: #ff4444;
+
+    /* Borders */
+    --border-default: #494a50;
+    --border-subtle: #3c3d42;
+    --stroke: #313235;
+    --menu-stroke: #444;
+
+    /* Accents */
+    --accent-blue: #0b8ce9;
+    --accent-blue-hover: #31b9f4;
+    --destructive: #b33a3a;
+    --destructive-hover: #e04e48;
+    --warning: #fd9903;
+    --success: #00cd72;
+    --brand-yellow: #f0ff41;
+
+    /* Node type colors */
+    --model-color: #B39DDB;
+    --clip-color: #FFD500;
+
+    /* Widgets */
+    --widget-bg: #222;
+    --widget-outline: #666;
+    --widget-text: #DDD;
+    --widget-secondary: #999;
+
+    /* Shadows */
+    --panel-shadow: 1px 1px 8px 0 rgba(0,0,0,0.4);
+    --bar-shadow: rgba(16, 16, 16, 0.5) 0 0 0.5rem;
+
+    /* Spacing */
+    --radius: 6px;
+    --radius-lg: 8px;
+  }
+
+  /* ============================================
+     Reset & Base
+     ============================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--menu-stroke); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+  /* ============================================
+     Backdrop & Modal Shell
+     ============================================ */
+  .backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .modal {
+    width: 960px;
+    height: 640px;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: var(--base-bg);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ============================================
+     Header
+     ============================================ */
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--secondary-bg);
+    border-bottom: 1px solid var(--stroke);
+    flex-shrink: 0;
+  }
+
+  .modal-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .modal-header h2 .icon {
+    width: 18px; height: 18px;
+    background: var(--accent-blue);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: #fff;
+  }
+
+  .header-actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius);
+    background: var(--secondary-bg);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--secondary-bg-hover); }
+  .btn-primary {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-blue-hover); }
+  .btn-danger {
+    border-color: var(--destructive);
+    color: var(--destructive);
+  }
+  .btn-danger:hover { background: var(--destructive); color: #fff; }
+  .btn-sm { padding: 3px 8px; font-size: 11px; }
+  .btn-icon {
+    padding: 4px;
+    width: 26px; height: 26px;
+    justify-content: center;
+    border: none;
+    background: transparent;
+  }
+  .btn-icon:hover { background: var(--secondary-bg-hover); }
+
+  .close-btn {
+    width: 28px; height: 28px;
+    border: none; background: transparent;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .close-btn:hover { background: var(--secondary-bg-hover); color: var(--text-primary); }
+
+  /* ============================================
+     Main Layout: Sidebar + Content
+     ============================================ */
+  .modal-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* --- Sidebar --- */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--panel-surface);
+    border-right: 1px solid var(--stroke);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 6px 8px 6px 28px;
+    background: var(--input-bg);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    color: var(--input-text);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent-blue); }
+  .search-input::placeholder { color: var(--text-muted); }
+
+  .search-wrapper {
+    position: relative;
+  }
+  .search-wrapper::before {
+    content: "⌕";
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .group-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .group-item {
+    display: flex;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.12s;
+    gap: 8px;
+    position: relative;
+  }
+  .group-item:hover { background: var(--panel-hover); }
+  .group-item.active {
+    background: var(--panel-selected);
+    border-left: 2px solid var(--accent-blue);
+    padding-left: 8px;
+  }
+
+  .group-icon {
+    width: 20px; height: 20px;
+    background: var(--secondary-bg-hover);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+  .group-item.active .group-icon {
+    background: var(--accent-blue);
+    color: #fff;
+  }
+
+  .group-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .group-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .group-count {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .group-actions {
+    display: none;
+    gap: 2px;
+  }
+  .group-item:hover .group-actions { display: flex; }
+
+  .sidebar-footer {
+    padding: 8px;
+    border-top: 1px solid var(--stroke);
+  }
+
+  /* --- Content Area --- */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--stroke);
+    flex-shrink: 0;
+  }
+
+  .content-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .content-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ============================================
+     LoRA Item Cards
+     ============================================ */
+  .lora-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .lora-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    gap: 10px;
+    transition: all 0.12s;
+    cursor: grab;
+  }
+  .lora-item:hover {
+    background: var(--secondary-bg-hover);
+    border-color: var(--border-default);
+  }
+  .lora-item.dragging {
+    opacity: 0.5;
+    border-color: var(--accent-blue);
+  }
+  .lora-item.drag-over {
+    border-top: 2px solid var(--accent-blue);
+  }
+
+  .drag-handle {
+    color: var(--text-muted);
+    cursor: grab;
+    font-size: 14px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .drag-handle:hover { color: var(--text-secondary); }
+
+  .lora-enable {
+    flex-shrink: 0;
+  }
+  .toggle {
+    width: 32px; height: 18px;
+    background: var(--muted-bg);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: var(--accent-blue); }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(14px); }
+
+  .lora-preview {
+    width: 40px; height: 40px;
+    background: var(--input-bg);
+    border-radius: 4px;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lora-preview img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .lora-preview .placeholder {
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .lora-details {
+    flex: 1;
+    min-width: 0;
+  }
+  .lora-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lora-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .lora-trigger {
+    background: var(--secondary-bg-selected);
+    padding: 0 5px;
+    border-radius: 3px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lora-weights {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .weight-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .weight-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .weight-input {
+    width: 52px;
+    padding: 3px 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    color: var(--input-text);
+    font-size: 11px;
+    text-align: center;
+    outline: none;
+  }
+  .weight-input:focus { border-color: var(--accent-blue); }
+
+  .lora-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ============================================
+     LoRA Browser / Add Panel
+     ============================================ */
+  .browser-panel {
+    border-top: 1px solid var(--stroke);
+    flex-shrink: 0;
+  }
+
+  .browser-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    cursor: pointer;
+    background: var(--secondary-bg);
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .browser-toggle:hover { background: var(--secondary-bg-hover); }
+  .browser-toggle span {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .browser-toggle .arrow {
+    transition: transform 0.2s;
+    font-size: 10px;
+  }
+  .browser-toggle .arrow.open { transform: rotate(90deg); }
+
+  .browser-content {
+    display: none;
+    height: 180px;
+    flex-direction: column;
+  }
+  .browser-content.open {
+    display: flex;
+  }
+
+  .browser-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .folder-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .breadcrumb-item {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+  .breadcrumb-item:hover { background: var(--secondary-bg-hover); }
+  .breadcrumb-sep { color: var(--text-muted); }
+
+  .browser-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-content: flex-start;
+  }
+
+  .browser-lora-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    max-width: 200px;
+  }
+  .browser-lora-chip:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+  }
+  .browser-lora-chip .chip-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .browser-lora-chip .chip-add {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .folder-chip {
+    background: var(--secondary-bg-selected);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+  }
+  .folder-chip:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+  }
+
+  /* ============================================
+     Empty State
+     ============================================ */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 36px; opacity: 0.4; }
+  .empty-state .title { font-size: 14px; color: var(--text-secondary); }
+  .empty-state .desc { font-size: 12px; text-align: center; max-width: 280px; line-height: 1.6; }
+
+  /* ============================================
+     Node Canvas Widget Preview
+     ============================================ */
+  .node-widget-preview {
+    margin: 40px auto;
+    width: 280px;
+  }
+  .node-widget-preview h3 {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .canvas-node {
+    background: var(--secondary-bg);
+    border: 1px solid var(--widget-outline);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--panel-shadow);
+  }
+  .node-title-bar {
+    background: #353535;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #999;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .node-title-bar .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--model-color);
+  }
+
+  .node-body { padding: 8px; }
+
+  .node-widget {
+    background: var(--widget-bg);
+    border: 1px solid var(--widget-outline);
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .node-widget-label {
+    font-size: 10px;
+    color: var(--widget-secondary);
+    min-width: 44px;
+  }
+  .node-widget-value {
+    font-size: 11px;
+    color: var(--widget-text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mini-lora-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .mini-lora {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 6px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 3px;
+    font-size: 10px;
+  }
+  .mini-lora-name {
+    color: var(--widget-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .mini-lora-weight {
+    color: var(--widget-secondary);
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  .node-ports {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0 2px;
+  }
+  .port {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+  }
+  .port-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .port-dot.model { background: var(--model-color); }
+  .port-dot.clip { background: var(--clip-color); }
+  .port-label { color: var(--widget-secondary); }
+
+  /* ============================================
+     Annotation Labels (Design Spec Only)
+     ============================================ */
+  .spec-label {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(11, 140, 233, 0.15);
+    border: 1px solid rgba(11, 140, 233, 0.3);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--accent-blue);
+    margin: 4px;
+    font-family: monospace;
+  }
+
+  /* ============================================
+     Tooltip
+     ============================================ */
+  [data-tooltip] {
+    position: relative;
+  }
+  [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: #111;
+    color: #ddd;
+    font-size: 11px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================
+     DESIGN MOCKUP: Full Panel Modal
+     ========================================== -->
+<div class="backdrop">
+  <div class="modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <h2>
+        <span class="icon">M</span>
+        LoRA 群组管理器
+      </h2>
+      <div class="header-actions">
+        <button class="btn btn-sm">
+          <span>↓</span> 导入配置
+        </button>
+        <button class="btn btn-sm">
+          <span>↑</span> 导出配置
+        </button>
+        <button class="close-btn" data-tooltip="ESC 关闭">×</button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+
+      <!-- Left Sidebar: Group List -->
+      <div class="sidebar">
+        <div class="sidebar-search">
+          <div class="search-wrapper">
+            <input class="search-input" placeholder="搜索群组..." />
+          </div>
+        </div>
+
+        <div class="group-list">
+          <!-- Active group -->
+          <div class="group-item active">
+            <div class="group-icon">✦</div>
+            <div class="group-info">
+              <div class="group-name">日系动漫风</div>
+              <div class="group-count">3 个 LoRA</div>
+            </div>
+            <div class="group-actions">
+              <button class="btn-icon btn-sm" data-tooltip="重命名">✎</button>
+              <button class="btn-icon btn-sm" data-tooltip="删除">✕</button>
+            </div>
+          </div>
+
+          <div class="group-item">
+            <div class="group-icon">✦</div>
+            <div class="group-info">
+              <div class="group-name">写实人像增强</div>
+              <div class="group-count">2 个 LoRA</div>
+            </div>
+            <div class="group-actions">
+              <button class="btn-icon btn-sm">✎</button>
+              <button class="btn-icon btn-sm">✕</button>
+            </div>
+          </div>
+
+          <div class="group-item">
+            <div class="group-icon">✦</div>
+            <div class="group-info">
+              <div class="group-name">风景摄影</div>
+              <div class="group-count">4 个 LoRA</div>
+            </div>
+            <div class="group-actions">
+              <button class="btn-icon btn-sm">✎</button>
+              <button class="btn-icon btn-sm">✕</button>
+            </div>
+          </div>
+
+          <div class="group-item">
+            <div class="group-icon">✦</div>
+            <div class="group-info">
+              <div class="group-name">赛博朋克</div>
+              <div class="group-count">2 个 LoRA</div>
+            </div>
+            <div class="group-actions">
+              <button class="btn-icon btn-sm">✎</button>
+              <button class="btn-icon btn-sm">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button class="btn btn-primary" style="width:100%; justify-content:center;">
+            <span>+</span> 新建群组
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Content: LoRA List -->
+      <div class="content">
+        <div class="content-header">
+          <div class="content-title">日系动漫风</div>
+          <div class="content-meta">
+            <span>3 个 LoRA</span>
+            <button class="btn btn-sm">全部启用</button>
+            <button class="btn btn-sm">随机填充</button>
+          </div>
+        </div>
+
+        <div class="lora-list">
+
+          <!-- LoRA Item 1 -->
+          <div class="lora-item">
+            <div class="drag-handle" data-tooltip="拖拽排序">⠿</div>
+            <div class="lora-enable">
+              <div class="toggle on" data-tooltip="启用/禁用"></div>
+            </div>
+            <div class="lora-preview">
+              <div class="placeholder" style="color:#B39DDB;">◆</div>
+            </div>
+            <div class="lora-details">
+              <div class="lora-name">animeStyle_v2.safetensors</div>
+              <div class="lora-meta">
+                <span class="lora-trigger">anime, detailed face</span>
+                <span>SD 1.5</span>
+              </div>
+            </div>
+            <div class="lora-weights">
+              <div class="weight-group">
+                <span class="weight-label">Model</span>
+                <input class="weight-input" type="number" value="0.80" step="0.05" min="0" max="2" />
+              </div>
+              <div class="weight-group">
+                <span class="weight-label">CLIP</span>
+                <input class="weight-input" type="number" value="0.80" step="0.05" min="0" max="2" />
+              </div>
+            </div>
+            <div class="lora-actions">
+              <button class="btn-icon" data-tooltip="查看详情">ℹ</button>
+              <button class="btn-icon" data-tooltip="移除" style="color:var(--destructive);">✕</button>
+            </div>
+          </div>
+
+          <!-- LoRA Item 2 -->
+          <div class="lora-item">
+            <div class="drag-handle">⠿</div>
+            <div class="lora-enable">
+              <div class="toggle on"></div>
+            </div>
+            <div class="lora-preview">
+              <div class="placeholder" style="color:#B39DDB;">◆</div>
+            </div>
+            <div class="lora-details">
+              <div class="lora-name">detail_tweaker_xl.safetensors</div>
+              <div class="lora-meta">
+                <span class="lora-trigger">detailed, high quality</span>
+                <span>SDXL</span>
+              </div>
+            </div>
+            <div class="lora-weights">
+              <div class="weight-group">
+                <span class="weight-label">Model</span>
+                <input class="weight-input" type="number" value="0.50" step="0.05" min="0" max="2" />
+              </div>
+              <div class="weight-group">
+                <span class="weight-label">CLIP</span>
+                <input class="weight-input" type="number" value="0.50" step="0.05" min="0" max="2" />
+              </div>
+            </div>
+            <div class="lora-actions">
+              <button class="btn-icon">ℹ</button>
+              <button class="btn-icon" style="color:var(--destructive);">✕</button>
+            </div>
+          </div>
+
+          <!-- LoRA Item 3 (disabled) -->
+          <div class="lora-item" style="opacity: 0.5;">
+            <div class="drag-handle">⠿</div>
+            <div class="lora-enable">
+              <div class="toggle"></div>
+            </div>
+            <div class="lora-preview">
+              <div class="placeholder">◆</div>
+            </div>
+            <div class="lora-details">
+              <div class="lora-name">eye_detail_slider_v4.safetensors</div>
+              <div class="lora-meta">
+                <span class="lora-trigger">beautiful detailed eyes</span>
+                <span>SD 1.5</span>
+              </div>
+            </div>
+            <div class="lora-weights">
+              <div class="weight-group">
+                <span class="weight-label">Model</span>
+                <input class="weight-input" type="number" value="0.60" step="0.05" disabled />
+              </div>
+              <div class="weight-group">
+                <span class="weight-label">CLIP</span>
+                <input class="weight-input" type="number" value="0.60" step="0.05" disabled />
+              </div>
+            </div>
+            <div class="lora-actions">
+              <button class="btn-icon">ℹ</button>
+              <button class="btn-icon" style="color:var(--destructive);">✕</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- LoRA Browser -->
+        <div class="browser-panel">
+          <div class="browser-toggle">
+            <span><span class="arrow open">▶</span> 从磁盘添加 LoRA</span>
+            <span style="font-size:11px; color:var(--text-muted);">已加载 247 个</span>
+          </div>
+          <div class="browser-content open">
+            <div class="browser-toolbar">
+              <div class="folder-breadcrumb">
+                <span class="breadcrumb-item">/</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-item">Character</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-item" style="color:var(--text-primary);">Anime</span>
+              </div>
+              <input class="search-input" placeholder="搜索 LoRA..." style="width:180px;" />
+            </div>
+            <div class="browser-list">
+              <span class="browser-lora-chip folder-chip">📁 Realistic <span style="font-size:10px;color:var(--text-muted);">12</span></span>
+              <span class="browser-lora-chip folder-chip">📁 Style <span style="font-size:10px;color:var(--text-muted);">8</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">anime_face_v3</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">chibi_style_xl</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">manga_lineart</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">cel_shading_v2</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">anime_eyes_detail</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">watercolor_anime</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">flat_color_v1</span> <span class="chip-add">+</span></span>
+              <span class="browser-lora-chip"><span class="chip-name">ghibli_style</span> <span class="chip-add">+</span></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     DESIGN MOCKUP: Node Canvas Widget
+     ========================================== -->
+<div class="node-widget-preview">
+  <h3>— 节点画布 Widget 预览 —</h3>
+  <div class="canvas-node">
+    <div class="node-title-bar">
+      <span class="dot"></span>
+      Model & LoRA Group Loader
+    </div>
+    <div class="node-body">
+      <div class="node-widget">
+        <span class="node-widget-label">底模</span>
+        <span class="node-widget-value">dreamshaperXL_v21.safetensors</span>
+      </div>
+      <div class="node-widget">
+        <span class="node-widget-label">群组</span>
+        <span class="node-widget-value" style="color:var(--accent-blue);">日系动漫风</span>
+      </div>
+      <div class="node-widget">
+        <span class="node-widget-label">倍率</span>
+        <span class="node-widget-value">1.0×</span>
+      </div>
+      <div class="mini-lora-list">
+        <div class="mini-lora">
+          <span class="mini-lora-name">animeStyle_v2</span>
+          <span class="mini-lora-weight">0.80</span>
+        </div>
+        <div class="mini-lora">
+          <span class="mini-lora-name">detail_tweaker_xl</span>
+          <span class="mini-lora-weight">0.50</span>
+        </div>
+      </div>
+      <div class="node-ports">
+        <div>
+          <div class="port"><span class="port-dot model"></span><span class="port-label">MODEL</span></div>
+          <div class="port" style="margin-top:2px;"><span class="port-dot clip"></span><span class="port-label">CLIP</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="port"><span class="port-label">MODEL</span><span class="port-dot model"></span></div>
+          <div class="port" style="margin-top:2px;"><span class="port-label">CLIP</span><span class="port-dot clip"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
